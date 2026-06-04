@@ -1,9 +1,49 @@
-import React, { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { supabase } from '../../../lib/supabase';
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('sia_saved_email');
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    // Simple email persistence if remember me is checked
+    if (rememberMe) {
+      localStorage.setItem('sia_saved_email', email);
+    } else {
+      localStorage.removeItem('sia_saved_email');
+    }
+
+    const { data, authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (authError) {
+      setError(authError.message);
+      setLoading(false);
+    } else {
+      console.log('Logged in successfully', data);
+      setLoading(false);
+      // TODO: Handle post-login routing here (e.g., redirect to dashboard)
+    }
+  };
   return (
     <div className="w-full max-w-md">
       <div className="mb-8 text-center lg:text-left">
@@ -15,30 +55,36 @@ export default function LoginForm() {
         <p className="text-sm font-medium text-slate-500 mt-2">Log in to your account to continue</p>
       </div>
 
-      <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+      <form className="space-y-5" onSubmit={handleLogin}>
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5" htmlFor="email">
+          <label className={`block text-sm font-semibold mb-1.5 ${error ? 'text-red-500' : 'text-slate-700'}`} htmlFor="email">
             Email
           </label>
           <input
             id="email"
             type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
             placeholder="name@company.com"
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all duration-200"
+            className={`w-full rounded-xl border bg-white px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 disabled:opacity-50 ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-200 focus:ring-blue-600/20 focus:border-blue-600'}`}
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5" htmlFor="password">
+          <label className={`block text-sm font-semibold mb-1.5 ${error ? 'text-red-500' : 'text-slate-700'}`} htmlFor="password">
             Password
           </label>
           <div className="relative">
             <input
               id="password"
               type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
               placeholder="••••••••"
-              className="w-full rounded-xl border border-slate-200 bg-white pl-4 pr-10 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all duration-200"
+              className={`w-full rounded-xl border bg-white pl-4 pr-10 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 disabled:opacity-50 ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-200 focus:ring-blue-600/20 focus:border-blue-600'}`}
               required
             />
             <button
@@ -57,7 +103,10 @@ export default function LoginForm() {
             <input
               id="remember-me"
               type="checkbox"
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 cursor-pointer"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              disabled={loading}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 cursor-pointer disabled:opacity-50"
             />
             <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-700 cursor-pointer">
               Remember me
@@ -70,12 +119,26 @@ export default function LoginForm() {
           </div>
         </div>
 
+        {error && (
+          <div className="text-sm font-medium text-red-500 mt-2">
+            {error}
+          </div>
+        )}
+
         <div>
           <button
             type="submit"
-            className="w-full rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:ring-offset-2 transition-all active:scale-[0.98]"
+            disabled={loading}
+            className="w-full flex justify-center items-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-md hover:shadow-lg hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 transition-all duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Sign in
+            {loading ? (
+              <>
+                <Loader2 size={18} className="animate-spin mr-2" />
+                Signing in...
+              </>
+            ) : (
+              'Sign in'
+            )}
           </button>
         </div>
       </form>

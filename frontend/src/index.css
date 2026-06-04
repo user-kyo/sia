@@ -7,3 +7,18 @@
 body {
   @apply font-inter text-slate-900 bg-slate-50 antialiased;
 }
+
+@layer utilities {
+  .animate-floating {
+    animation: floating 4s ease-in-out infinite;
+  }
+  .animate-floating-delayed {
+    animation: floating 4s ease-in-out 2s infinite;
+  }
+}
+
+@keyframes floating {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}

@@ -11,11 +11,11 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<LoginPage />} />
         
         {/* Protected Routes (Static for now) */}
         <Route element={<MainLayout />}>
-          <Route path="/" element={<AnalyticsDashboard />} />
+          <Route path="/dashboard" element={<AnalyticsDashboard />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/sales" element={<POSPage />} />
           <Route path="/reports" element={<AuditLogsPage />} />
