@@ -144,8 +144,21 @@ const POSPage = () => {
               <p>{t('pos_no_results')}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {products.map(product => {
+            <div className="space-y-10 pb-6">
+              {Object.entries(
+                products.reduce((acc, product) => {
+                  const cat = product.category || 'Uncategorized';
+                  if (!acc[cat]) acc[cat] = [];
+                  acc[cat].push(product);
+                  return acc;
+                }, {})
+              ).map(([category, items]) => (
+                <div key={category}>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4 tracking-tight px-1 transition-colors">
+                    {category}
+                  </h3>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {items.map(product => {
                 const stock = getStockStatus(product.quantity)
                 const price = Number(product.price) || 0
                 const storedCurrency = product.currency || code
@@ -203,6 +216,9 @@ const POSPage = () => {
                   </div>
                 )
               })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -233,7 +249,21 @@ const POSPage = () => {
               <p className="text-xs mt-1 text-slate-400 dark:text-slate-500">{t('pos_empty_hint')}</p>
             </div>
           ) : (
-            cart.map(item => {
+            <div className="space-y-6">
+              {Object.entries(
+                cart.reduce((acc, item) => {
+                  const cat = item.category || 'Uncategorized';
+                  if (!acc[cat]) acc[cat] = [];
+                  acc[cat].push(item);
+                  return acc;
+                }, {})
+              ).map(([category, items]) => (
+                <div key={category} className="space-y-4">
+                  <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1">
+                    {category}
+                  </h4>
+                  <div className="space-y-4">
+                    {items.map(item => {
               const itemStoredCcy = item.currency || code
               const unitInDisplay = convertAmount(item.price, itemStoredCcy, code)
               return (
@@ -270,7 +300,11 @@ const POSPage = () => {
                 </button>
               </div>
               )
-            })
+            })}
+                  </div>
+                </div>
+              ))}
+            </div>
 
           )}
         </div>
