@@ -95,6 +95,10 @@ html.high-contrast:not(.dark) button[class*="bg-indigo"] {
   border-color: #3730a3 !important;
 }
 
+html.high-contrast:not(.dark) button[class*="bg-indigo"] * {
+  color: #ffffff !important;
+}
+
 /* Danger buttons */
 html.high-contrast:not(.dark) button[class*="bg-red"],
 html.high-contrast:not(.dark) button[class*="bg-rose"] {
@@ -107,6 +111,16 @@ html.high-contrast:not(.dark) button[class*="bg-rose"] {
 html.high-contrast:not(.dark) button[class*="border-slate"] {
   border-color: #000000 !important;
   color: #000000 !important;
+}
+
+html.high-contrast:not(.dark) button[class*="bg-red"],
+html.high-contrast:not(.dark) button[class*="bg-rose"] {
+  color: #ffffff !important;
+}
+
+html.high-contrast:not(.dark) button[class*="bg-red"] *,
+html.high-contrast:not(.dark) button[class*="bg-rose"] * {
+  color: #ffffff !important;
 }
 
 /* ── Dark mode high contrast ────────────────────────────────────────── */
@@ -166,10 +180,19 @@ html.high-contrast.dark button[class*="bg-indigo"] {
   color: #ffffff !important;
 }
 
+html.high-contrast.dark button[class*="bg-indigo"] * {
+  color: #ffffff !important;
+}
+
 /* Danger buttons */
 html.high-contrast.dark button[class*="bg-red"],
 html.high-contrast.dark button[class*="bg-rose"] {
   background-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+html.high-contrast.dark button[class*="bg-red"] *,
+html.high-contrast.dark button[class*="bg-rose"] * {
   color: #ffffff !important;
 }
 
