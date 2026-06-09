@@ -202,66 +202,6 @@ const POSPage = () => {
                   </div>
                 )
               })}
-            <div className="space-y-10 pb-6">
-              {Object.entries(
-                products.reduce((acc, product) => {
-                  const cat = product.category || 'Uncategorized';
-                  if (!acc[cat]) acc[cat] = [];
-                  acc[cat].push(product);
-                  return acc;
-                }, {})
-              ).map(([category, items]) => (
-                <div key={category}>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4 tracking-tight px-1 transition-colors">
-                    {category}
-                  </h3>
-                  <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {items.map(product => {
-                      const stock = getStockStatus(product.quantity);
-                      const price = Number(product.price) || 0;
-                      
-                      return (
-                        <div key={product.id} onClick={() => addToCart(product)} className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 hover:shadow-md dark:hover:shadow-none hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:bg-slate-50 dark:hover:bg-white/[0.04] cursor-pointer transition-all duration-300 group flex flex-col items-center shadow-sm dark:shadow-none relative overflow-hidden">
-                          {/* Stock Indicator Pill */}
-                          <div className={`absolute top-3 left-3 px-2 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 ${stock.bg} ${stock.text} shadow-sm dark:shadow-none z-10 transition-colors`}>
-                            <div className={`w-1.5 h-1.5 rounded-full ${stock.dot}`}></div>
-                            {stock.label}
-                          </div>
-
-                          {/* Image Area */}
-                          <div className="w-full h-32 bg-slate-50 dark:bg-white/[0.03] rounded-lg mb-4 flex items-center justify-center border border-slate-100 dark:border-white/5 group-hover:bg-slate-100 dark:group-hover:bg-white/[0.05] transition-colors mt-6 overflow-hidden relative">
-                            {product.image_url ? (
-                              <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <ImageIcon className="w-8 h-8 text-slate-300 dark:text-white/10" />
-                            )}
-                          </div>
-                          
-                          {/* Product Details */}
-                          <div className="w-full text-left space-y-1">
-                            <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-sm w-full line-clamp-2 leading-tight transition-colors" title={product.name}>
-                              {product.name}
-                            </h4>
-                            <p className="text-slate-500 dark:text-slate-400 font-medium text-[11px] uppercase tracking-wider transition-colors">
-                              {product.category || 'Uncategorized'}
-                            </p>
-                          </div>
-                          
-                          <div className="mt-4 w-full flex justify-between items-center border-t border-slate-100 dark:border-white/5 pt-4 transition-colors">
-                            <div>
-                              <p className="text-indigo-600 dark:text-indigo-400 font-bold text-lg leading-none transition-colors">${price.toFixed(2)}</p>
-                              <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mt-1 transition-colors">{Number(product.quantity) || 0} IN STOCK</p>
-                            </div>
-                            <button className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 dark:text-slate-500 p-2.5 rounded-xl transition-all duration-300 group-hover:bg-indigo-600 dark:group-hover:bg-indigo-500 group-hover:border-indigo-600 dark:group-hover:border-indigo-500 group-hover:text-white dark:group-hover:text-white group-hover:shadow-md dark:group-hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] group-hover:scale-105 active:scale-95">
-                              <ShoppingCart className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
             </div>
           )}
         </div>
@@ -330,47 +270,7 @@ const POSPage = () => {
               </div>
               )
             })
-            <div className="space-y-6">
-              {Object.entries(
-                cart.reduce((acc, item) => {
-                  const cat = item.category || 'Uncategorized';
-                  if (!acc[cat]) acc[cat] = [];
-                  acc[cat].push(item);
-                  return acc;
-                }, {})
-              ).map(([category, items]) => (
-                <div key={category} className="space-y-4">
-                  <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1">
-                    {category}
-                  </h4>
-                  <div className="space-y-4">
-                    {items.map(item => (
-                      <div key={item.id} className="flex justify-between items-start group">
-                        <div className="flex-1 pr-4">
-                          <h5 className="font-semibold text-sm text-slate-900 dark:text-slate-100 line-clamp-1" title={item.name}>{item.name}</h5>
-                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">${Number(item.price).toFixed(2)}</p>
-                        </div>
-                        <div className="flex flex-col items-end gap-2.5">
-                          <span className="font-bold text-sm text-slate-900 dark:text-white">${(Number(item.price) * item.cartQuantity).toFixed(2)}</span>
-                          <div className="flex items-center bg-slate-50 dark:bg-white/[0.05] rounded-lg border border-slate-200 dark:border-white/10">
-                            <button onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, -1); }} className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-l-lg transition-colors">
-                              <Minus className="w-4 h-4" />
-                            </button>
-                            <span className="w-8 text-center text-xs font-bold text-slate-900 dark:text-white">{item.cartQuantity}</span>
-                            <button onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, 1); }} disabled={item.cartQuantity >= item.quantity} className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-r-lg transition-colors disabled:opacity-50">
-                              <Plus className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                        <button onClick={(e) => { e.stopPropagation(); removeFromCart(item.id); }} className="ml-4 mt-1 opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-all">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+
           )}
         </div>
 
