@@ -1,7 +1,9 @@
 import { useRef, useEffect } from 'react'
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useCurrency } from '../../../contexts/CurrencyContext'
 import { useAppSettings } from '../../../contexts/AppSettingsContext'
+import { TableSkeleton } from '../../../components/ui/Skeletons'
 
 const COLS = [
   { key: 'name',     tKey: 'col_product'  },
@@ -83,16 +85,19 @@ export default function ProductTable({
     )
   }
 
-  if (isLoading) {
-    return (
-      <div className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-16 flex items-center justify-center shadow-sm dark:shadow-none transition-colors duration-300">
-        <div className="w-6 h-6 border-2 border-slate-200 dark:border-white/10 border-t-indigo-600 dark:border-t-indigo-500 rounded-full animate-spin" />
-      </div>
-    )
-  }
-
   return (
-    <div className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm dark:shadow-none transition-colors duration-300">
+    <AnimatePresence mode="wait" initial={false}>
+      {isLoading ? (
+        <TableSkeleton key="skeleton-table" rows={5} columns={6} />
+      ) : (
+        <motion.div 
+          key="content-table"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm dark:shadow-none transition-colors duration-300"
+        >
       <table className="w-full text-sm text-left">
         <thead className="bg-slate-50 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/10 transition-colors">
           <tr>
@@ -123,15 +128,20 @@ export default function ProductTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-white/5 transition-colors">
-          {items.map(item => {
-            const { dot, text, label } = stockStatus(item.quantity, item.reorder_point, t)
-            const isSelected = selectedIds.has(item.id)
-            const catColor = CATEGORY_COLORS[item.category] || 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10'
-            return (
-              <tr
-                key={item.id}
-                className={`transition-colors ${isSelected ? 'bg-indigo-50 dark:bg-indigo-500/10' : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'}`}
-              >
+          <AnimatePresence>
+            {items.map((item, index) => {
+              const { dot, text, label } = stockStatus(item.quantity, item.reorder_point, t)
+              const isSelected = selectedIds.has(item.id)
+              const catColor = CATEGORY_COLORS[item.category] || 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10'
+              return (
+                <motion.tr
+                  key={item.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ delay: index * 0.05, type: 'spring', stiffness: 380, damping: 30 }}
+                  className={`transition-colors ${isSelected ? 'bg-indigo-50 dark:bg-indigo-500/10' : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'}`}
+                >
                 <td className={`px-4 ${rowPad}`}>
                   <input
                     type="checkbox"
@@ -198,9 +208,10 @@ export default function ProductTable({
                     </button>
                   </div>
                 </td>
-              </tr>
-            )
-          })}
+                </motion.tr>
+              )
+            })}
+          </AnimatePresence>
 
           {items.length === 0 && (
             <tr>
@@ -217,6 +228,8 @@ export default function ProductTable({
           <div className="w-4 h-4 border-2 border-slate-200 dark:border-white/10 border-t-indigo-600 dark:border-t-indigo-500 rounded-full animate-spin transition-colors" />
         )}
       </div>
-    </div>
+      </motion.div>
+      )}
+    </AnimatePresence>
   )
 }

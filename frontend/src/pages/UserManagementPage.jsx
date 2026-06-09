@@ -1,8 +1,16 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Users, Search, MoreVertical, Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { TableSkeleton } from '../components/ui/Skeletons';
 
 export default function UserManagementPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Mocked user data for demonstration purposes
   const mockUsers = [
@@ -66,7 +74,13 @@ export default function UserManagementPage() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }} 
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="space-y-6"
+    >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">User Management</h1>
@@ -78,7 +92,11 @@ export default function UserManagementPage() {
         </button>
       </div>
 
-      <div className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-none overflow-hidden transition-colors duration-300">
+      <AnimatePresence mode="wait" initial={false}>
+        {isLoading ? (
+          <TableSkeleton key="skeleton-users" rows={5} columns={5} />
+        ) : (
+          <motion.div key="content-users" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-none overflow-hidden transition-colors duration-300">
         <div className="p-5 border-b border-slate-200 dark:border-white/10 flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50/50 dark:bg-white/[0.01] transition-colors">
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={18} />
@@ -112,8 +130,16 @@ export default function UserManagementPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5 transition-colors">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors group">
+              <AnimatePresence>
+                {filteredUsers.map((user, index) => (
+                  <motion.tr 
+                    key={user.id} 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ delay: index * 0.05, type: 'spring', stiffness: 380, damping: 30 }}
+                    className="hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors group"
+                  >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-50 dark:from-indigo-500/20 to-purple-50 dark:to-purple-500/20 text-indigo-600 dark:text-indigo-300 flex items-center justify-center font-bold text-sm border border-indigo-100 dark:border-indigo-500/30 shadow-sm transition-colors">
@@ -139,8 +165,9 @@ export default function UserManagementPage() {
                       <MoreVertical size={18} />
                     </button>
                   </td>
-                </tr>
-              ))}
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
               {filteredUsers.length === 0 && (
                 <tr>
                   <td colSpan="5" className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
@@ -151,7 +178,9 @@ export default function UserManagementPage() {
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
+      </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

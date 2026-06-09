@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Search, Plus, Minus, CreditCard, X, Image as ImageIcon, ShoppingCart, Trash2, SlidersHorizontal } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useInventory, useInventorySubscription, useAdjustStock, useCategories } from '../features/inventory/hooks/useInventory'
 import { useAppSettings } from '../contexts/AppSettingsContext'
 import { useCurrency } from '../contexts/CurrencyContext'
 import FiltersPanel from '../features/inventory/components/FiltersPanel'
+import { ProductGridSkeleton } from '../components/ui/Skeletons'
 
 const POSPage = () => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -101,7 +103,13 @@ const POSPage = () => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }} 
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="flex h-[calc(100vh-8rem)] gap-6"
+    >
       {/* Product Selection Area */}
       <div className="flex-1 flex flex-col bg-slate-50/50 dark:bg-white/[0.02] dark:backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm dark:shadow-none transition-colors duration-300">
         <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.01] transition-colors">
@@ -134,17 +142,16 @@ const POSPage = () => {
         </div>
 
         <div className="flex-1 p-6 overflow-y-auto bg-transparent scroll-smooth">
+          <AnimatePresence mode="wait" initial={false}>
           {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 dark:border-white/20 dark:border-t-indigo-500 border-t-indigo-600" />
-            </div>
+            <ProductGridSkeleton key="skeleton-pos" count={8} />
           ) : products.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-400 transition-colors">
+            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-400 transition-colors">
               <Search className="w-12 h-12 mb-4 text-slate-300 dark:text-white/10" />
               <p>{t('pos_no_results')}</p>
-            </div>
+            </motion.div>
           ) : (
-            <div className="space-y-10 pb-6">
+            <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="space-y-10 pb-6">
               {Object.entries(
                 products.reduce((acc, product) => {
                   const cat = product.category || 'Uncategorized';
@@ -158,15 +165,20 @@ const POSPage = () => {
                     {category}
                   </h3>
                   <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {items.map(product => {
+                    <AnimatePresence>
+                    {items.map((product, index) => {
                 const stock = getStockStatus(product.quantity)
                 const price = Number(product.price) || 0
                 const storedCurrency = product.currency || code
                 const showConversion = storedCurrency !== code
 
                 return (
-                  <div
+                  <motion.div
                     key={product.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ delay: index * 0.05, type: 'spring', stiffness: 380, damping: 30 }}
                     onClick={() => addToCart(product)}
                     className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 hover:shadow-md dark:hover:shadow-none hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:bg-slate-50 dark:hover:bg-white/[0.04] cursor-pointer transition-all duration-300 group flex flex-col items-center shadow-sm dark:shadow-none relative overflow-hidden"
                   >
@@ -213,14 +225,16 @@ const POSPage = () => {
                         <ShoppingCart className="w-4 h-4" />
                       </button>
                     </div>
-                  </div>
+                  </motion.div>
                 )
               })}
+                    </AnimatePresence>
                   </div>
                 </div>
               ))}
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -392,7 +406,7 @@ const POSPage = () => {
         filters={filters}
         onApply={setFilters}
       />
-    </div>
+    </motion.div>
   )
 }
 

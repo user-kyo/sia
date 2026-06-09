@@ -4,13 +4,20 @@ import { Box, TrendingUp, ShieldCheck } from 'lucide-react';
 import abstractImage from '../assets/abstract_data.png';
 import { Navigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
+import { motion } from 'framer-motion';
 
 export default function ResetPasswordPage() {
   const { user } = useAuth();
   if (user) return <Navigate to="/dashboard" replace />;
 
   return (
-    <div className="min-h-screen w-full flex bg-white font-inter">
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }} 
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="min-h-screen w-full flex bg-white font-inter"
+    >
       {/* Left Brand Section - Hidden on Mobile */}
       <div className="relative hidden lg:flex w-1/2 flex-col justify-between bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 border-r border-slate-200 p-12 overflow-hidden z-0">
         {/* Background Abstract Image */}
@@ -71,6 +78,6 @@ export default function ResetPasswordPage() {
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 lg:p-24 bg-white">
         <ResetPasswordForm />
       </div>
-    </div>
+    </motion.div>
   );
 }

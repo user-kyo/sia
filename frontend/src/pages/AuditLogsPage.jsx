@@ -1,12 +1,26 @@
-import React from 'react'
+import { useState, useEffect } from 'react'
 import { ShieldAlert, Download, Filter, Search } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAppSettings } from '../contexts/AppSettingsContext'
+import { TableSkeleton } from '../components/ui/Skeletons'
 
 const AuditLogsPage = () => {
   const { t } = useAppSettings()
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1000)
+    return () => clearTimeout(timer)
+  }, [])
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }} 
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="space-y-6"
+    >
       <div className="flex justify-between items-end mb-8">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('audit_title')}</h2>
@@ -24,7 +38,11 @@ const AuditLogsPage = () => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col shadow-sm dark:shadow-none transition-colors duration-300">
+      <AnimatePresence mode="wait" initial={false}>
+        {isLoading ? (
+          <TableSkeleton key="skeleton-audit" rows={5} columns={5} />
+        ) : (
+          <motion.div key="content-audit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col shadow-sm dark:shadow-none transition-colors duration-300">
         <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01] flex justify-between items-center transition-colors">
           <div className="relative w-72">
             <Search className="w-5 h-5 text-slate-400 dark:text-slate-500 absolute left-3.5 top-2.5" />
@@ -51,7 +69,14 @@ const AuditLogsPage = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5 transition-colors">
-              <tr className="hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors">
+              <AnimatePresence>
+              <motion.tr 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ delay: 0.05, type: 'spring', stiffness: 380, damping: 30 }}
+                className="hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
+              >
                 <td className="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400 font-mono text-xs">2026-06-04 14:32:01</td>
                 <td className="px-6 py-4 font-semibold text-slate-900 dark:text-slate-200">john.admin</td>
                 <td className="px-6 py-4">
@@ -59,8 +84,14 @@ const AuditLogsPage = () => {
                 </td>
                 <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium">Inventory</td>
                 <td className="px-6 py-4 text-slate-600 dark:text-slate-400">Deleted product PRD-2023 (MacBook Pro 16")</td>
-              </tr>
-              <tr className="hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors">
+              </motion.tr>
+              <motion.tr 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ delay: 0.1, type: 'spring', stiffness: 380, damping: 30 }}
+                className="hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
+              >
                 <td className="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400 font-mono text-xs">2026-06-04 14:28:15</td>
                 <td className="px-6 py-4 font-semibold text-slate-900 dark:text-slate-200">sarah.staff</td>
                 <td className="px-6 py-4">
@@ -68,8 +99,14 @@ const AuditLogsPage = () => {
                 </td>
                 <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium">Sales</td>
                 <td className="px-6 py-4 text-slate-600 dark:text-slate-400">Processed transaction TRX-99382 ($5,395.68)</td>
-              </tr>
-              <tr className="hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors">
+              </motion.tr>
+              <motion.tr 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ delay: 0.15, type: 'spring', stiffness: 380, damping: 30 }}
+                className="hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
+              >
                 <td className="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400 font-mono text-xs">2026-06-04 09:12:00</td>
                 <td className="px-6 py-4 font-semibold text-slate-900 dark:text-slate-200">system</td>
                 <td className="px-6 py-4">
@@ -77,7 +114,8 @@ const AuditLogsPage = () => {
                 </td>
                 <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium">Authentication</td>
                 <td className="px-6 py-4 text-slate-600 dark:text-slate-400">User john.admin logged in successfully from IP 192.168.1.45</td>
-              </tr>
+              </motion.tr>
+              </AnimatePresence>
             </tbody>
           </table>
         </div>
@@ -89,7 +127,9 @@ const AuditLogsPage = () => {
             <button className="px-4 py-2 border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors text-slate-700 dark:text-slate-200 shadow-sm dark:shadow-none">{t('audit_next')}</button>
           </div>
         </div>
-      </div>
+      </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 rounded-2xl p-6 flex gap-4 mt-6 transition-colors">
         <ShieldAlert className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
@@ -100,7 +140,7 @@ const AuditLogsPage = () => {
           </p>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 

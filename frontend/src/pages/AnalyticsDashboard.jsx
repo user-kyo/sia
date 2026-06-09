@@ -1,14 +1,28 @@
 import React from 'react'
 import { TrendingUp, Package, DollarSign, AlertCircle, ChevronDown, Download } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useCurrency } from '../contexts/CurrencyContext'
 import { useAppSettings } from '../contexts/AppSettingsContext'
+import { CardSkeleton, TableSkeleton } from '../components/ui/Skeletons'
 
 const AnalyticsDashboard = () => {
+  const [isLoading, setIsLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1500)
+    return () => clearTimeout(timer)
+  }, [])
   const { formatPrice } = useCurrency()
   const { t } = useAppSettings()
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }} 
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="space-y-6"
+    >
       <div className="flex justify-between items-end mb-8">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('dash_title')}</h2>
@@ -30,7 +44,24 @@ const AnalyticsDashboard = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
+      <AnimatePresence mode="wait" initial={false}>
+        {isLoading ? (
+          <motion.div key="skeleton-dash" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="space-y-6">
+            <CardSkeleton count={4} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2 h-[350px] bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl animate-pulse" />
+              <div className="h-[350px] bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl animate-pulse" />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="h-[350px] bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl animate-pulse" />
+              <div className="h-[350px] bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden animate-pulse">
+                <TableSkeleton rows={4} columns={3} />
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div key="content-dash" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
+            {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card title={t('dash_revenue')}    value={formatPrice(45231.89)} icon={DollarSign}   trend="+20.1%" trendUp={true}  attention={t('dash_attention')} />
         <Card title={t('dash_sales_txn')} value="1,204"                 icon={TrendingUp}   trend="+12.5%" trendUp={true}  attention={t('dash_attention')} />
@@ -79,8 +110,16 @@ const AnalyticsDashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/5 transition-colors">
-                {[1, 2, 3, 4].map(i => (
-                  <tr key={i} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                <AnimatePresence>
+                  {[1, 2, 3, 4].map((i, index) => (
+                    <motion.tr 
+                      key={i} 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ delay: index * 0.05, type: 'spring', stiffness: 380, damping: 30 }}
+                      className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors"
+                    >
                     <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-200">Sony Alpha a7 IV</td>
                     <td className="px-6 py-4 text-slate-500 dark:text-slate-400">5 units</td>
                     <td className="px-6 py-4 text-right">
@@ -88,14 +127,18 @@ const AnalyticsDashboard = () => {
                         {t('dash_critical')}
                       </span>
                     </td>
-                  </tr>
-                ))}
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
               </tbody>
             </table>
           </div>
         </div>
       </div>
-    </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }
 

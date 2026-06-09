@@ -119,7 +119,11 @@ export default function AuthPage() {
   };
 
   return (
-    <div 
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }} 
+      transition={{ duration: 0.3, ease: 'easeOut' }}
       className="h-screen w-full flex bg-slate-50 dark:bg-[#0A0A0B] font-inter overflow-hidden selection:bg-indigo-500/30 transition-colors duration-300 relative"
       onMouseMove={handleMouseMove}
     >
@@ -256,6 +260,6 @@ export default function AuthPage() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
