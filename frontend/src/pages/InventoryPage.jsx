@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { Plus, SlidersHorizontal, Download } from 'lucide-react'
 import { Search } from 'lucide-react'
 import { useToast } from '../components/ui/Toast'
+import { useCurrency } from '../contexts/CurrencyContext'
+import { useAppSettings } from '../contexts/AppSettingsContext'
 import {
   useInventory, useCategories,
   useCreateProduct, useUpdateProduct, useDeleteProduct, useAdjustStock,
@@ -13,10 +15,10 @@ import ProductModal from '../features/inventory/components/ProductModal'
 import StockAdjustModal from '../features/inventory/components/StockAdjustModal'
 import DeleteConfirmModal from '../features/inventory/components/DeleteConfirmModal'
 
-function exportToCSV(items, filename) {
+function exportToCSV(items, filename, formatPrice) {
   const headers = ['Name', 'SKU', 'Category', 'Price', 'Quantity', 'Reorder Point', 'Unit', 'Description']
   const rows = items.map(i => [
-    i.name, i.sku, i.category, i.price, i.quantity, i.reorder_point, i.unit || '', i.description || '',
+    i.name, i.sku, i.category, formatPrice(i.price), i.quantity, i.reorder_point, i.unit || '', i.description || '',
   ])
   const csv = [headers, ...rows]
     .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
@@ -63,6 +65,8 @@ export default function InventoryPage() {
   const total = data?.pages[0]?.total ?? 0
 
   const toast = useToast()
+  const { formatPrice } = useCurrency()
+  const { t } = useAppSettings()
 
   const createMutation = useCreateProduct()
   const updateMutation = useUpdateProduct()
@@ -99,30 +103,30 @@ export default function InventoryPage() {
       {/* Page header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Inventory</h2>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Manage products, pricing, and view stock levels</p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('inv_title')}</h2>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">{t('inv_subtitle')}</p>
         </div>
         <div className="flex items-center gap-2.5">
           <button
-            onClick={() => exportToCSV(allItems, 'inventory.csv')}
+            onClick={() => exportToCSV(allItems, 'inventory.csv', formatPrice)}
             className="flex items-center gap-2 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all backdrop-blur-md shadow-sm dark:shadow-none"
           >
             <Download size={15} />
-            Export
+            {t('inv_export')}
           </button>
           <button
             onClick={() => setIsFilterOpen(true)}
             className="flex items-center gap-2 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all backdrop-blur-md shadow-sm dark:shadow-none"
           >
             <SlidersHorizontal size={15} />
-            Filters
+            {t('inv_filters')}
           </button>
           <button
             onClick={() => setModal({ type: 'add' })}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]"
           >
             <Plus size={15} />
-            Add Product
+            {t('inv_add')}
           </button>
         </div>
       </div>
@@ -134,12 +138,12 @@ export default function InventoryPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name, SKU, or category..."
+            placeholder={t('inv_search')}
             className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all backdrop-blur-md shadow-sm dark:shadow-none"
           />
         </div>
         <span className="ml-auto text-sm font-medium text-slate-500 dark:text-slate-400">
-          {total.toLocaleString()} Total Products
+          {total.toLocaleString()} {t('inv_total')}
         </span>
       </div>
 
@@ -147,7 +151,7 @@ export default function InventoryPage() {
       {selectedIds.size > 0 && (
         <BulkActionBar
           count={selectedIds.size}
-          onExport={() => exportToCSV(allItems.filter(i => selectedIds.has(i.id)), 'selected.csv')}
+          onExport={() => exportToCSV(allItems.filter(i => selectedIds.has(i.id)), 'selected.csv', formatPrice)}
           onDelete={() => setModal({ type: 'delete', products: allItems.filter(i => selectedIds.has(i.id)) })}
         />
       )}

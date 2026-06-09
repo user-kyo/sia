@@ -1,19 +1,21 @@
 import { NavLink, useNavigate } from 'react-router'
 import { LayoutDashboard, Package, ShoppingCart, FileText, Settings, Users, LogOut } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import { useAppSettings } from '../../contexts/AppSettingsContext'
 
 const ALL_NAV = [
-  { name: 'Dashboard',       path: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin'] },
-  { name: 'Inventory',       path: '/inventory', icon: Package,          roles: ['super_admin', 'admin', 'staff'] },
-  { name: 'Point of Sale',   path: '/sales',     icon: ShoppingCart,     roles: ['super_admin', 'admin', 'staff'] },
-  { name: 'Audit Logs',      path: '/reports',   icon: FileText,         roles: ['super_admin', 'admin'] },
-  { name: 'User Management', path: '/users',     icon: Users,            roles: ['super_admin'] },
-  { name: 'Settings',        path: '/settings',  icon: Settings,         roles: ['super_admin', 'admin', 'staff'] },
+  { key: 'nav_dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin'] },
+  { key: 'nav_inventory',  path: '/inventory', icon: Package,          roles: ['super_admin', 'admin', 'staff'] },
+  { key: 'nav_pos',        path: '/sales',     icon: ShoppingCart,     roles: ['super_admin', 'admin', 'staff'] },
+  { key: 'nav_reports',    path: '/reports',   icon: FileText,         roles: ['super_admin', 'admin'] },
+  { key: 'nav_users',      path: '/users',     icon: Users,            roles: ['super_admin'] },
+  { key: 'nav_settings',   path: '/settings',  icon: Settings,         roles: ['super_admin', 'admin', 'staff'] },
 ]
 
 export default function Sidebar() {
   const navigate = useNavigate()
   const { signOut, userRole } = useAuth()
+  const { t } = useAppSettings()
 
   const role = userRole || 'staff'
   const navItems = ALL_NAV.filter(item => item.roles.includes(role))
@@ -36,7 +38,7 @@ export default function Sidebar() {
         <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-widest px-6 pb-3">
           Main Menu
         </p>
-        {navItems.map(({ name, path, icon: Icon }) => (
+        {navItems.map(({ key, path, icon: Icon }) => (
           <NavLink
             key={path}
             to={path}
@@ -49,7 +51,7 @@ export default function Sidebar() {
             }
           >
             <Icon size={16} />
-            {name}
+            {t(key)}
           </NavLink>
         ))}
       </div>
@@ -60,7 +62,7 @@ export default function Sidebar() {
           className="flex items-center gap-3 text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 text-sm transition-colors font-medium w-full"
         >
           <LogOut size={16} />
-          Logout
+          {t('nav_logout')}
         </button>
       </div>
     </aside>

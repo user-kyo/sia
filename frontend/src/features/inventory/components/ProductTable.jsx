@@ -1,12 +1,20 @@
 import { useRef, useEffect } from 'react'
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { useCurrency } from '../../../contexts/CurrencyContext'
+import { useAppSettings } from '../../../contexts/AppSettingsContext'
 
 const COLS = [
-  { key: 'name', label: 'Product' },
-  { key: 'category', label: 'Category' },
-  { key: 'price', label: 'Price' },
-  { key: 'quantity', label: 'Stock Level' },
+  { key: 'name',     tKey: 'col_product'  },
+  { key: 'category', tKey: 'col_category' },
+  { key: 'price',    tKey: 'col_price'    },
+  { key: 'quantity', tKey: 'col_stock'    },
 ]
+
+const DENSITY_CLS = {
+  compact:     'py-2',
+  default:     'py-3.5',
+  comfortable: 'py-5',
+}
 
 const CATEGORY_COLORS = {
   Electronics: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20',
@@ -14,14 +22,14 @@ const CATEGORY_COLORS = {
   Clothing: 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/20',
 }
 
-function stockStatus(qty, reorder) {
+function stockStatus(qty, reorder, t) {
   if (qty === 0)
-    return { dot: 'bg-slate-400 dark:bg-slate-500', text: 'text-slate-500 dark:text-slate-400', label: 'Out of stock' }
+    return { dot: 'bg-slate-400 dark:bg-slate-500', text: 'text-slate-500 dark:text-slate-400', label: t('stock_out') }
   if (qty <= reorder)
-    return { dot: 'bg-rose-500', text: 'text-rose-600 dark:text-rose-400', label: `${qty} in stock` }
+    return { dot: 'bg-rose-500', text: 'text-rose-600 dark:text-rose-400', label: `${qty} ${t('stock_in')}` }
   if (qty <= Math.ceil(reorder * 1.2))
-    return { dot: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400', label: `${qty} in stock` }
-  return { dot: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', label: `${qty} in stock` }
+    return { dot: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400', label: `${qty} ${t('stock_in')}` }
+  return { dot: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', label: `${qty} ${t('stock_in')}` }
 }
 
 function SortIcon({ colKey, sort }) {
@@ -46,6 +54,9 @@ export default function ProductTable({
   onAdjustStock,
   onDelete,
 }) {
+  const { formatPrice, formatAs, code } = useCurrency()
+  const { t, settings } = useAppSettings()
+  const rowPad = DENSITY_CLS[settings.tableDensity] || DENSITY_CLS.default
   const loaderRef = useRef(null)
 
   useEffect(() => {
@@ -101,19 +112,19 @@ export default function ProductTable({
                 className="px-4 py-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-900 dark:hover:text-white select-none whitespace-nowrap transition-colors"
               >
                 <span className="flex items-center gap-1">
-                  {col.label}
+                  {t(col.tKey)}
                   <SortIcon colKey={col.key} sort={sort} />
                 </span>
               </th>
             ))}
             <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider transition-colors">
-              Actions
+              {t('col_actions')}
             </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-white/5 transition-colors">
           {items.map(item => {
-            const { dot, text, label } = stockStatus(item.quantity, item.reorder_point)
+            const { dot, text, label } = stockStatus(item.quantity, item.reorder_point, t)
             const isSelected = selectedIds.has(item.id)
             const catColor = CATEGORY_COLORS[item.category] || 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10'
             return (
@@ -121,7 +132,7 @@ export default function ProductTable({
                 key={item.id}
                 className={`transition-colors ${isSelected ? 'bg-indigo-50 dark:bg-indigo-500/10' : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'}`}
               >
-                <td className="px-4 py-3.5">
+                <td className={`px-4 ${rowPad}`}>
                   <input
                     type="checkbox"
                     checked={isSelected}
@@ -129,46 +140,61 @@ export default function ProductTable({
                     className="w-4 h-4 rounded bg-white dark:bg-white/5 border-slate-300 dark:border-white/20 cursor-pointer accent-indigo-600 dark:accent-indigo-500 shadow-sm dark:shadow-none"
                   />
                 </td>
-                <td className="px-4 py-3.5">
+                <td className={`px-4 ${rowPad}`}>
                   <p className="font-semibold text-slate-900 dark:text-slate-200 transition-colors">{item.name}</p>
                   <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5 transition-colors">{item.sku}</p>
                 </td>
-                <td className="px-4 py-3.5">
+                <td className={`px-4 ${rowPad}`}>
                   <span className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold border ${catColor} transition-colors`}>
                     {item.category}
                   </span>
                 </td>
-                <td className="px-4 py-3.5 font-medium text-slate-900 dark:text-slate-200 transition-colors">
-                  ${Number(item.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                <td className={`px-4 ${rowPad} transition-colors`}>
+                  {(() => {
+                    const stored = item.currency || code
+                    const showBoth = stored !== code
+                    return showBoth ? (
+                      <>
+                        <p className="font-medium text-slate-900 dark:text-slate-200">
+                          {formatAs(item.price, stored)}
+                        </p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                          ≈ {formatPrice(item.price, stored)}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="font-medium text-slate-900 dark:text-slate-200">
+                        {formatPrice(item.price, stored)}
+                      </p>
+                    )
+                  })()}
                 </td>
-                <td className="px-4 py-3.5">
+                <td className={`px-4 ${rowPad}`}>
                   <div className="flex items-center gap-2">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
                     <span className={`text-sm font-semibold ${text} transition-colors`}>{label}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3.5">
+                <td className={`px-4 ${rowPad}`}>
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => onEdit(item)}
                       title="Edit"
                       className="px-2.5 py-1 text-xs font-medium border border-slate-200 dark:border-white/10 rounded-md text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
-                      Edit
+                      {t('act_edit')}
                     </button>
                     <button
                       onClick={() => onAdjustStock(item)}
-                      title="Adjust Stock"
                       className="px-2.5 py-1 text-xs font-medium border border-slate-200 dark:border-white/10 rounded-md text-slate-600 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-200 dark:hover:border-emerald-500/20 hover:text-emerald-700 dark:hover:text-emerald-400 transition-colors"
                     >
-                      Adjust Stock
+                      {t('act_adjust')}
                     </button>
                     <button
                       onClick={() => onDelete(item)}
-                      title="Delete"
                       className="px-2.5 py-1 text-xs font-medium border border-slate-200 dark:border-white/10 rounded-md text-slate-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:border-rose-200 dark:hover:border-rose-500/20 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
                     >
-                      Delete
+                      {t('act_delete')}
                     </button>
                   </div>
                 </td>
@@ -179,7 +205,7 @@ export default function ProductTable({
           {items.length === 0 && (
             <tr>
               <td colSpan={6} className="px-4 py-16 text-center text-slate-500 dark:text-slate-400 text-sm">
-                No products found.
+                {t('inv_no_results')}
               </td>
             </tr>
           )}
@@ -188,10 +214,7 @@ export default function ProductTable({
 
       <div ref={loaderRef} className="flex items-center justify-center py-4 gap-2 text-sm text-slate-500 dark:text-slate-400 min-h-[56px] border-t border-slate-200 dark:border-white/5 transition-colors">
         {isFetchingNextPage && (
-          <>
-            <div className="w-4 h-4 border-2 border-slate-200 dark:border-white/10 border-t-indigo-600 dark:border-t-indigo-500 rounded-full animate-spin transition-colors" />
-            Loading more products…
-          </>
+          <div className="w-4 h-4 border-2 border-slate-200 dark:border-white/10 border-t-indigo-600 dark:border-t-indigo-500 rounded-full animate-spin transition-colors" />
         )}
       </div>
     </div>

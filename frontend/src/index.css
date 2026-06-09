@@ -15,27 +15,238 @@ body {
 
 /* Hide scrollbar globally for IE, Edge and Firefox */
 * {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 @layer utilities {
   .animate-floating {
     animation: floating 4s ease-in-out infinite;
   }
+
   .animate-floating-delayed {
     animation: floating 4s ease-in-out 2s infinite;
   }
 }
 
+/* ── High Contrast Mode ──────────────────────────────────────────────────
+   Enhances contrast within the current theme (light or dark).
+   Does NOT force a different color scheme.
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Shared: remove blur and glow effects in both modes */
+html.high-contrast * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* ── Light mode high contrast ───────────────────────────────────────── */
+html.high-contrast:not(.dark),
+html.high-contrast:not(.dark) body {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Solid white for panels and sidebars */
+html.high-contrast:not(.dark) aside,
+html.high-contrast:not(.dark) header,
+html.high-contrast:not(.dark) nav {
+  background-color: #ffffff !important;
+  border-color: #000000 !important;
+}
+
+/* Card backgrounds → pure white */
+html.high-contrast:not(.dark) [class*="bg-white"],
+html.high-contrast:not(.dark) [class*="bg-slate-50"] {
+  background-color: #ffffff !important;
+}
+
+/* All borders → crisp black */
+html.high-contrast:not(.dark) [class*="border-slate-1"],
+html.high-contrast:not(.dark) [class*="border-slate-2"],
+html.high-contrast:not(.dark) [class*="border-slate-3"] {
+  border-color: #000000 !important;
+}
+
+/* Muted gray text → near-black */
+html.high-contrast:not(.dark) [class*="text-slate-4"],
+html.high-contrast:not(.dark) [class*="text-slate-5"],
+html.high-contrast:not(.dark) [class*="text-slate-6"] {
+  color: #111111 !important;
+}
+
+/* Form inputs */
+html.high-contrast:not(.dark) input,
+html.high-contrast:not(.dark) select,
+html.high-contrast:not(.dark) textarea {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: 2px solid #000000 !important;
+}
+
+/* Primary buttons: keep indigo, fully saturated */
+html.high-contrast:not(.dark) button[class*="bg-indigo"] {
+  background-color: #3730a3 !important;
+  color: #ffffff !important;
+  border-color: #3730a3 !important;
+}
+
+/* Danger buttons */
+html.high-contrast:not(.dark) button[class*="bg-red"],
+html.high-contrast:not(.dark) button[class*="bg-rose"] {
+  background-color: #b91c1c !important;
+  color: #ffffff !important;
+  border-color: #b91c1c !important;
+}
+
+/* Ghost buttons */
+html.high-contrast:not(.dark) button[class*="border-slate"] {
+  border-color: #000000 !important;
+  color: #000000 !important;
+}
+
+/* ── Dark mode high contrast ────────────────────────────────────────── */
+html.high-contrast.dark,
+html.high-contrast.dark body {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* Solid dark backgrounds for panels (remove translucency) */
+html.high-contrast.dark aside,
+html.high-contrast.dark header,
+html.high-contrast.dark nav {
+  background-color: #111111 !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Translucent bg-white/* → solid */
+html.high-contrast.dark [class*="bg-white/"] {
+  background-color: #111111 !important;
+}
+
+/* Arbitrary dark backgrounds → solid */
+html.high-contrast.dark [class*="[#0d0f1a]"],
+html.high-contrast.dark [class*="[#0A0A0B]"] {
+  background-color: #0a0a0a !important;
+}
+
+/* Borders → more visible */
+html.high-contrast.dark [class*="border-white/"] {
+  border-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+html.high-contrast.dark [class*="border-slate"] {
+  border-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+/* Muted text → near-white */
+html.high-contrast.dark [class*="text-slate-4"],
+html.high-contrast.dark [class*="text-slate-5"],
+html.high-contrast.dark [class*="text-slate-6"] {
+  color: #d1d5db !important;
+}
+
+/* Form inputs */
+html.high-contrast.dark input,
+html.high-contrast.dark select,
+html.high-contrast.dark textarea {
+  background-color: #0f0f0f !important;
+  color: #ffffff !important;
+  border: 2px solid rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Primary buttons: keep indigo */
+html.high-contrast.dark button[class*="bg-indigo"] {
+  background-color: #4f46e5 !important;
+  color: #ffffff !important;
+}
+
+/* Danger buttons */
+html.high-contrast.dark button[class*="bg-red"],
+html.high-contrast.dark button[class*="bg-rose"] {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+/* Ghost buttons */
+html.high-contrast.dark button[class*="border-white"] {
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  color: #ffffff !important;
+}
+
 @keyframes floating {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
 }
 
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
   }
+}
+
+@keyframes float-up {
+  0% {
+    transform: translateY(100px) rotate(0deg) scale(0.8);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: var(--float-opacity, 0.1);
+  }
+
+  80% {
+    opacity: var(--float-opacity, 0.1);
+  }
+
+  100% {
+    transform: translateY(-800px) rotate(360deg) scale(1.2);
+    opacity: 0;
+  }
+}
+
+@layer utilities {
+  .animate-float-up {
+    animation: float-up 15s linear infinite;
+  }
+}
+
+/* ── Browser Autofill Overrides ─────────────────────────────────────────── */
+/* Prevents Chrome from turning input backgrounds solid white/yellow */
+
+/* Light Mode */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #f8fafc inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #0f172a !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Dark Mode */
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark input:-webkit-autofill:active {
+  /* Using a solid color that visually matches bg-white/[0.03] over #0A0A0B */
+  -webkit-box-shadow: 0 0 0 30px #121213 inset !important;
+  -webkit-text-fill-color: #f1f5f9 !important;
+  caret-color: #f1f5f9 !important;
+  transition: background-color 5000s ease-in-out 0s;
 }

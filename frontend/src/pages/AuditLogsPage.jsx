@@ -1,22 +1,25 @@
-import React from 'react';
-import { ShieldAlert, Download, Filter, Search } from 'lucide-react';
+import React from 'react'
+import { ShieldAlert, Download, Filter, Search } from 'lucide-react'
+import { useAppSettings } from '../contexts/AppSettingsContext'
 
 const AuditLogsPage = () => {
+  const { t } = useAppSettings()
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex justify-between items-end mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Audit Logs</h2>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">System-wide activity monitoring and security tracking</p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('audit_title')}</h2>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">{t('audit_subtitle')}</p>
         </div>
         <div className="flex gap-3">
           <button className="flex items-center gap-2 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all backdrop-blur-md shadow-sm dark:shadow-none">
             <Filter className="w-4 h-4" />
-            Filters
+            {t('audit_btn_filters')}
           </button>
           <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
             <Download className="w-4 h-4" />
-            Export Logs
+            {t('audit_btn_export')}
           </button>
         </div>
       </div>
@@ -25,14 +28,14 @@ const AuditLogsPage = () => {
         <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01] flex justify-between items-center transition-colors">
           <div className="relative w-72">
             <Search className="w-5 h-5 text-slate-400 dark:text-slate-500 absolute left-3.5 top-2.5" />
-            <input 
-              type="text" 
-              placeholder="Search user, action, or module..." 
+            <input
+              type="text"
+              placeholder={t('audit_search_ph')}
               className="w-full bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all backdrop-blur-md shadow-sm dark:shadow-none"
             />
           </div>
           <div className="text-sm font-medium text-slate-600 dark:text-slate-400 px-4 py-2 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm dark:shadow-none transition-colors">
-            Past 7 days
+            {t('audit_period')}
           </div>
         </div>
 
@@ -40,11 +43,11 @@ const AuditLogsPage = () => {
           <table className="w-full text-sm text-left">
             <thead className="text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold bg-slate-50 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/10 transition-colors">
               <tr>
-                <th className="px-6 py-4">Timestamp</th>
-                <th className="px-6 py-4">User</th>
-                <th className="px-6 py-4">Action</th>
-                <th className="px-6 py-4">Module</th>
-                <th className="px-6 py-4">Description</th>
+                <th className="px-6 py-4">{t('audit_col_ts')}</th>
+                <th className="px-6 py-4">{t('audit_col_user')}</th>
+                <th className="px-6 py-4">{t('audit_col_action')}</th>
+                <th className="px-6 py-4">{t('audit_col_module')}</th>
+                <th className="px-6 py-4">{t('audit_col_desc')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5 transition-colors">
@@ -78,27 +81,27 @@ const AuditLogsPage = () => {
             </tbody>
           </table>
         </div>
-        
+
         <div className="px-6 py-5 border-t border-slate-200 dark:border-white/10 flex justify-between items-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-white/[0.01] transition-colors">
-          <span>Showing 1-3 of 1,294 entries</span>
+          <span>{t('audit_showing', { from: '1', to: '3', total: '1,294' })}</span>
           <div className="flex gap-2">
-            <button className="px-4 py-2 border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors disabled:opacity-50 text-slate-700 dark:text-slate-200 shadow-sm dark:shadow-none">Previous</button>
-            <button className="px-4 py-2 border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors text-slate-700 dark:text-slate-200 shadow-sm dark:shadow-none">Next</button>
+            <button className="px-4 py-2 border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors disabled:opacity-50 text-slate-700 dark:text-slate-200 shadow-sm dark:shadow-none">{t('audit_prev')}</button>
+            <button className="px-4 py-2 border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors text-slate-700 dark:text-slate-200 shadow-sm dark:shadow-none">{t('audit_next')}</button>
           </div>
         </div>
       </div>
-      
+
       <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 rounded-2xl p-6 flex gap-4 mt-6 transition-colors">
         <ShieldAlert className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
         <div>
-          <h4 className="font-semibold text-indigo-800 dark:text-indigo-300 text-sm">Administrative Access Only</h4>
+          <h4 className="font-semibold text-indigo-800 dark:text-indigo-300 text-sm">{t('audit_notice_title')}</h4>
           <p className="text-sm text-indigo-700 dark:text-indigo-400/80 mt-1.5 leading-relaxed">
-            This module is strictly restricted to Administrators. Staff members attempting to access this route will be automatically redirected to their dashboard and the attempt will be logged.
+            {t('audit_notice_body')}
           </p>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default AuditLogsPage;
+export default AuditLogsPage
