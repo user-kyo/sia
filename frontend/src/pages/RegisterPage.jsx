@@ -1,11 +1,11 @@
 import React from 'react';
-import LoginForm from '../components/LoginForm';
+import RegisterForm from '../components/RegisterForm';
 import { Box, TrendingUp, ShieldCheck } from 'lucide-react';
 import abstractImage from '../assets/abstract_data.png';
 import { Navigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const { user } = useAuth();
   if (user) return <Navigate to="/dashboard" replace />;
 
@@ -69,7 +69,7 @@ export default function LoginPage() {
 
       {/* Right Auth Section */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 lg:p-24 bg-white">
-        <LoginForm />
+        <RegisterForm />
       </div>
     </div>
   );

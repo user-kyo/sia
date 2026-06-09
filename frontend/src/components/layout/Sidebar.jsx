@@ -1,10 +1,14 @@
 import React from 'react';
-import { NavLink } from 'react-router';
+import { NavLink, useNavigate } from 'react-router';
 import { LayoutDashboard, Package, ShoppingCart, FileText, Settings, LogOut, Activity } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Sidebar = () => {
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+
   const navItems = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Inventory', path: '/inventory', icon: Package },
     { name: 'Point of Sale', path: '/sales', icon: ShoppingCart },
     { name: 'Audit Logs', path: '/reports', icon: FileText },
@@ -42,7 +46,13 @@ const Sidebar = () => {
       </nav>
 
       <div className="p-4 border-t border-slate-100">
-        <button className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium text-slate-500 hover:text-slate-900">
+        <button 
+          onClick={async () => {
+            await signOut();
+            navigate('/');
+          }}
+          className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium text-slate-500 hover:text-slate-900"
+        >
           <LogOut className="w-[18px] h-[18px] text-slate-400" />
           <span>Logout</span>
         </button>
