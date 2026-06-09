@@ -4,7 +4,8 @@ import { useCurrency, CURRENCIES } from '../contexts/CurrencyContext'
 import { useAppSettings } from '../contexts/AppSettingsContext'
 import { useToast } from '../components/ui/Toast'
 import { Moon, Sun, Store, Package, Clock, Type, LayoutList, Globe, Contrast, DollarSign, AlertTriangle } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+import { SectionSkeleton } from '../components/ui/Skeletons'
 
 const DATE_FORMATS = ['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD']
 
@@ -35,6 +36,12 @@ export default function SettingsPage() {
   const { settings, updateSettings, t } = useAppSettings()
   const toast = useToast()
 
+  const [isLoading, setIsLoading] = useState(true)
+  React.useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 800)
+    return () => clearTimeout(timer)
+  }, [])
+
   const [biz, setBiz] = useState({
     storeName:    settings.storeName,
     storeAddress: settings.storeAddress,
@@ -48,17 +55,24 @@ export default function SettingsPage() {
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      exit={{ opacity: 0 }} 
-      transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="space-y-6 max-w-4xl"
-    >
+    <div className="space-y-6 max-w-4xl">
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('set_title')}</h2>
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">{t('set_subtitle')}</p>
       </div>
+
+      <AnimatePresence mode="wait" initial={false}>
+        {isLoading ? (
+          <SectionSkeleton key="skeleton-settings" count={3} />
+        ) : (
+          <motion.div 
+            key="content-settings"
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="space-y-6"
+          >
 
       {/* ── 1. Business Info ───────────────────────────────── */}
       <Section icon={Store} title={t('set_biz_title')} subtitle={t('set_biz_sub')}>
@@ -341,6 +355,9 @@ export default function SettingsPage() {
           </p>
         </div>
       </Section>
-    </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   )
 }

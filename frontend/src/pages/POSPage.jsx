@@ -103,13 +103,7 @@ const POSPage = () => {
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      exit={{ opacity: 0 }} 
-      transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="flex h-[calc(100vh-8rem)] gap-6"
-    >
+    <div className="flex h-[calc(100vh-8rem)] gap-6">
       {/* Product Selection Area */}
       <div className="flex-1 flex flex-col bg-slate-50/50 dark:bg-white/[0.02] dark:backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm dark:shadow-none transition-colors duration-300">
         <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.01] transition-colors">
@@ -406,7 +400,7 @@ const POSPage = () => {
         filters={filters}
         onApply={setFilters}
       />
-    </motion.div>
+    </div>
   )
 }
 
