@@ -1,23 +1,36 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router';
+import { Eye, EyeOff, Loader2, ArrowRight, ChevronDown, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import PasswordStrengthIndicator from './PasswordStrengthIndicator';
+import { useNavigate } from 'react-router';
 
-export default function RegisterForm() {
+export default function RegisterForm({ onToggle }) {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [role, setRole] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isRoleOpen, setIsRoleOpen] = useState(false);
+
+  const roleOptions = [
+    { id: 'staff', label: 'Staff' },
+    { id: 'admin', label: 'Admin' }
+  ];
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    if (!role) {
+      setError("Please select a role.");
+      setLoading(false);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
@@ -39,12 +52,26 @@ export default function RegisterForm() {
       options: {
         data: {
           full_name: fullName,
+          role: role,
+          status: 'pending',
         }
       }
     });
 
     if (authError) {
-      setError(authError.message);
+      const isAlreadyRegistered = authError.message.toLowerCase().includes('already registered') || authError.message.toLowerCase().includes('already exists');
+      if (isAlreadyRegistered) {
+        setError(
+          <span className="flex flex-col gap-1">
+            <span>This email is already registered.</span>
+            <button type="button" onClick={() => onToggle('login')} className="text-left font-bold underline hover:text-rose-700 w-fit transition-colors">
+              Log in instead
+            </button>
+          </span>
+        );
+      } else {
+        setError(authError.message);
+      }
       setLoading(false);
     } else {
       console.log('Registered successfully', data);
@@ -54,18 +81,18 @@ export default function RegisterForm() {
   };
 
   return (
-    <div className="w-full max-w-md">
-      <div className="mb-8 text-center lg:text-left">
-        <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900 text-white font-bold mb-6 lg:hidden">
+    <div className="w-full max-w-[400px]">
+      <div className="mb-10 text-center lg:text-left">
+        <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-xl shadow-[0_0_20px_rgba(99,102,241,0.3)] mb-6 lg:hidden">
           SI
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Create an account</h2>
-        <p className="text-sm font-medium text-slate-500 mt-2">Register to get started with SalesInvent</p>
+        <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Create an account</h2>
+        <p className="text-base font-medium text-slate-500 mt-3">Register to get started with SalesInvent</p>
       </div>
 
-      <form className="space-y-4" onSubmit={handleRegister}>
-        <div>
-          <label className={`block text-sm font-semibold mb-1.5 ${error ? 'text-red-500' : 'text-slate-700'}`} htmlFor="fullName">
+      <form className="space-y-6" onSubmit={handleRegister}>
+        <div className="space-y-1.5">
+          <label className={`block text-sm font-semibold ${error ? 'text-rose-500' : 'text-slate-700'}`} htmlFor="fullName">
             Full Name
           </label>
           <input
@@ -75,14 +102,14 @@ export default function RegisterForm() {
             onChange={(e) => setFullName(e.target.value)}
             disabled={loading}
             placeholder="e.g. John Doe"
-            className={`w-full rounded-xl border bg-white px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 disabled:opacity-50 border-slate-200 focus:ring-blue-600/20 focus:border-blue-600`}
+            className={`w-full rounded-xl border bg-slate-50/50 px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 transition-all duration-300 disabled:opacity-50 hover:bg-slate-50 ${error ? 'border-rose-300 focus:ring-rose-500/20 focus:border-rose-500 bg-rose-50/30' : 'border-slate-200 focus:ring-indigo-600/10 focus:border-indigo-600 hover:border-slate-300'}`}
             required
           />
         </div>
 
-        <div>
-          <label className={`block text-sm font-semibold mb-1.5 ${error ? 'text-red-500' : 'text-slate-700'}`} htmlFor="email">
-            Email
+        <div className="space-y-1.5">
+          <label className={`block text-sm font-semibold ${error ? 'text-rose-500' : 'text-slate-700'}`} htmlFor="email">
+            Email address
           </label>
           <input
             id="email"
@@ -91,39 +118,87 @@ export default function RegisterForm() {
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
             placeholder="e.g. name@company.com"
-            className={`w-full rounded-xl border bg-white px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 disabled:opacity-50 ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-200 focus:ring-blue-600/20 focus:border-blue-600'}`}
+            className={`w-full rounded-xl border bg-slate-50/50 px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 transition-all duration-300 disabled:opacity-50 hover:bg-slate-50 ${error ? 'border-rose-300 focus:ring-rose-500/20 focus:border-rose-500 bg-rose-50/30' : 'border-slate-200 focus:ring-indigo-600/10 focus:border-indigo-600 hover:border-slate-300'}`}
             required
           />
         </div>
 
-        <div>
-          <label className={`block text-sm font-semibold mb-1.5 ${error ? 'text-red-500' : 'text-slate-700'}`} htmlFor="password">
-            Password
+        <div className="space-y-1.5 relative z-20">
+          <label className={`block text-sm font-semibold ${error ? 'text-rose-500' : 'text-slate-700'}`}>
+            Role
           </label>
           <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsRoleOpen(!isRoleOpen)}
+              disabled={loading}
+              className={`w-full flex items-center justify-between rounded-xl border bg-slate-50/50 px-4 py-3 text-slate-900 focus:outline-none focus:ring-4 transition-all duration-300 disabled:opacity-50 hover:bg-slate-50 ${error ? 'border-rose-300 focus:ring-rose-500/20 border-rose-500 bg-rose-50/30' : 'border-slate-200 focus:ring-indigo-600/10 focus:border-indigo-600 hover:border-slate-300'}`}
+            >
+              <span className={`font-medium ${role ? 'text-slate-700' : 'text-slate-400'}`}>
+                {role ? roleOptions.find(r => r.id === role)?.label : 'Select a role'}
+              </span>
+              <ChevronDown size={18} className={`text-slate-400 transition-transform duration-300 ${isRoleOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            <div 
+              className={`absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-hidden transition-all duration-300 origin-top ${
+                isRoleOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+              }`}
+            >
+              <div className="p-1.5">
+                {roleOptions.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => {
+                      setRole(r.id);
+                      setIsRoleOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      role === r.id 
+                        ? 'bg-indigo-50 text-indigo-700' 
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                  >
+                    {r.label}
+                    {role === r.id && <Check size={16} className="text-indigo-600" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className={`block text-sm font-semibold ${error ? 'text-rose-500' : 'text-slate-700'}`} htmlFor="password">
+            Password
+          </label>
+          <div className="relative group">
             <input
               id="password"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
-              placeholder="e.g. ••••••••"
-              className={`w-full rounded-xl border bg-white pl-4 pr-10 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 disabled:opacity-50 ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-200 focus:ring-blue-600/20 focus:border-blue-600'}`}
+              placeholder="Enter password"
+              className={`w-full rounded-xl border bg-slate-50/50 pl-4 pr-12 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 transition-all duration-300 disabled:opacity-50 hover:bg-slate-50 tracking-widest placeholder:tracking-normal ${error ? 'border-rose-300 focus:ring-rose-500/20 focus:border-rose-500 bg-rose-50/30' : 'border-slate-200 focus:ring-indigo-600/10 focus:border-indigo-600 hover:border-slate-300'}`}
               required
             />
             <button
               type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors p-1.5 rounded-lg hover:bg-slate-100"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
-          <PasswordStrengthIndicator password={password} />
+          <div className="pt-1">
+            <PasswordStrengthIndicator password={password} />
+          </div>
         </div>
 
-        <div>
-          <label className={`block text-sm font-semibold mb-1.5 ${error ? 'text-red-500' : 'text-slate-700'}`} htmlFor="confirmPassword">
+        <div className="space-y-1.5">
+          <label className={`block text-sm font-semibold ${error ? 'text-rose-500' : 'text-slate-700'}`} htmlFor="confirmPassword">
             Confirm Password
           </label>
           <input
@@ -132,15 +207,16 @@ export default function RegisterForm() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             disabled={loading}
-            placeholder="e.g. ••••••••"
-            className={`w-full rounded-xl border bg-white px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 disabled:opacity-50 ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-200 focus:ring-blue-600/20 focus:border-blue-600'}`}
+            placeholder="Enter password"
+            className={`w-full rounded-xl border bg-slate-50/50 px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 transition-all duration-300 disabled:opacity-50 hover:bg-slate-50 tracking-widest placeholder:tracking-normal ${error ? 'border-rose-300 focus:ring-rose-500/20 focus:border-rose-500 bg-rose-50/30' : 'border-slate-200 focus:ring-indigo-600/10 focus:border-indigo-600 hover:border-slate-300'}`}
             required
           />
         </div>
 
         {error && (
-          <div className="text-sm font-medium text-red-500 mt-2">
-            {error}
+          <div className="text-sm font-medium text-rose-500 bg-rose-50 px-4 py-3 rounded-xl border border-rose-100 flex items-start gap-2">
+            <div className="mt-0.5">⚠️</div>
+            <div>{error}</div>
           </div>
         )}
 
@@ -148,27 +224,32 @@ export default function RegisterForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center items-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-md hover:shadow-lg hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 transition-all duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+            className="group relative w-full flex justify-center items-center rounded-xl bg-slate-900 overflow-hidden px-4 py-3.5 text-sm font-semibold text-white shadow-[0_4px_14px_0_rgba(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] hover:bg-slate-800 transition-all duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100"
           >
+            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
             {loading ? (
               <>
                 <Loader2 size={18} className="animate-spin mr-2" />
                 Registering...
               </>
             ) : (
-              'Register'
+              <span className="flex items-center gap-2 relative z-10">
+                Create account
+                <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
+              </span>
             )}
           </button>
         </div>
       </form>
 
-      <div className="mt-8">
-        <div className="mt-6 text-center text-sm">
-          <span className="text-slate-500">Already have an account? </span>
-          <Link to="/" className="font-medium text-blue-600 hover:text-blue-700 transition-colors">
-            Login
-          </Link>
-        </div>
+      <div className="mt-10 text-center text-sm font-medium">
+        <span className="text-slate-500">Already have an account? </span>
+        <button
+          onClick={() => onToggle('login')}
+          className="text-indigo-600 hover:text-indigo-500 transition-colors font-semibold bg-transparent border-none p-0 cursor-pointer"
+        >
+          Log in
+        </button>
       </div>
     </div>
   );
