@@ -3,7 +3,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { supabase } from '../../../lib/supabase'
 import {
   fetchInventory, createProduct, updateProduct,
-  deleteProduct, adjustStock, fetchCategories,
+  deleteProduct, adjustStock, fetchCategories, uploadProductImage
 } from '../api/inventoryApi'
 
 const LIMIT = 20
@@ -58,6 +58,12 @@ export const useCreateProduct = () => {
       qc.invalidateQueries({ queryKey: ['inventory'] })
       qc.invalidateQueries({ queryKey: ['categories'] })
     },
+  })
+}
+
+export const useUploadProductImage = () => {
+  return useMutation({
+    mutationFn: uploadProductImage,
   })
 }
 

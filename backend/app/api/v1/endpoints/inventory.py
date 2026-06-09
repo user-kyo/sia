@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, UploadFile, File
 from typing import Optional
 from app.schemas.inventory import (
     InventoryItemCreate, InventoryItemUpdate, InventoryItemResponse,
@@ -161,3 +161,25 @@ def adjust_stock(item_id: str, adjustment: StockAdjustment):
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to adjust stock")
     return result.data[0]
+
+@router.post("/upload-image")
+async def upload_image(file: UploadFile = File(...)):
+    if not supabase_client:
+        raise HTTPException(status_code=500, detail="Database connection error")
+        
+    try:
+        file_ext = file.filename.split(".")[-1]
+        file_name = f"{uuid.uuid4()}.{file_ext}"
+        
+        file_bytes = await file.read()
+        res = supabase_client.storage.from_("product-images").upload(
+            file_name, 
+            file_bytes, 
+            file_options={"content-type": file.content_type}
+        )
+        
+        public_url = supabase_client.storage.from_("product-images").get_public_url(file_name)
+        
+        return {"image_url": public_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")

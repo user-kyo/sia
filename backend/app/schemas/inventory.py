@@ -13,6 +13,7 @@ class InventoryItemCreate(BaseModel):
     reorder_point: int = Field(default=10, ge=0, description="Low-stock threshold")
     description: Optional[str] = None
     unit: str = Field(default="pcs")
+    image_url: Optional[str] = None
 
 
 class InventoryItemUpdate(BaseModel):
@@ -25,6 +26,7 @@ class InventoryItemUpdate(BaseModel):
     reorder_point: Optional[int] = Field(None, ge=0)
     description: Optional[str] = None
     unit: Optional[str] = None
+    image_url: Optional[str] = None
 
 
 class StockAdjustment(BaseModel):
@@ -44,6 +46,7 @@ class InventoryItemResponse(BaseModel):
     reorder_point: int
     description: Optional[str] = None
     unit: str
+    image_url: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 
