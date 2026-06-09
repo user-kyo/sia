@@ -2,24 +2,53 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
-class InventoryItemBase(BaseModel):
-    name: str = Field(..., description="The name of the inventory item")
-    sku: str = Field(..., description="Stock Keeping Unit identifier")
-    quantity: int = Field(default=0, ge=0, description="Current stock quantity")
-    price: float = Field(default=0.0, ge=0.0, description="Price per unit")
 
-class InventoryItemCreate(InventoryItemBase):
-    pass
+class InventoryItemCreate(BaseModel):
+    name: str = Field(..., description="Product name")
+    sku: Optional[str] = Field(None, description="SKU — auto-generated if omitted")
+    category: str = Field(..., description="Product category")
+    quantity: int = Field(default=0, ge=0)
+    price: float = Field(default=0.0, ge=0.0)
+    reorder_point: int = Field(default=10, ge=0, description="Low-stock threshold")
+    description: Optional[str] = None
+    unit: str = Field(default="pcs")
+
 
 class InventoryItemUpdate(BaseModel):
     name: Optional[str] = None
     sku: Optional[str] = None
+    category: Optional[str] = None
     quantity: Optional[int] = Field(None, ge=0)
     price: Optional[float] = Field(None, ge=0.0)
+    reorder_point: Optional[int] = Field(None, ge=0)
+    description: Optional[str] = None
+    unit: Optional[str] = None
 
-class InventoryItemResponse(InventoryItemBase):
+
+class StockAdjustment(BaseModel):
+    adjustment_type: str = Field(..., description="add | remove | set")
+    quantity: int = Field(..., ge=0)
+    note: Optional[str] = None
+
+
+class InventoryItemResponse(BaseModel):
     id: str
+    name: str
+    sku: str
+    category: str
+    quantity: int
+    price: float
+    reorder_point: int
+    description: Optional[str] = None
+    unit: str
     created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
+
+class InventoryListResponse(BaseModel):
+    data: list[InventoryItemResponse]
+    total: int
+    has_more: bool

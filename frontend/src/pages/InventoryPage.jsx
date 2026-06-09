@@ -1,102 +1,214 @@
-import React from 'react';
-import { Plus, Filter, Edit2, Trash2, Search, MoreHorizontal } from 'lucide-react';
+import { useState, useEffect } from 'react'
+import { Plus, SlidersHorizontal, Download } from 'lucide-react'
+import { Search } from 'lucide-react'
+import {
+  useInventory, useCategories,
+  useCreateProduct, useUpdateProduct, useDeleteProduct, useAdjustStock,
+} from '../features/inventory/hooks/useInventory'
+import ProductTable from '../features/inventory/components/ProductTable'
+import FiltersPanel from '../features/inventory/components/FiltersPanel'
+import BulkActionBar from '../features/inventory/components/BulkActionBar'
+import ProductModal from '../features/inventory/components/ProductModal'
+import StockAdjustModal from '../features/inventory/components/StockAdjustModal'
+import DeleteConfirmModal from '../features/inventory/components/DeleteConfirmModal'
 
-const InventoryPage = () => {
+function exportToCSV(items, filename) {
+  const headers = ['Name', 'SKU', 'Category', 'Price', 'Quantity', 'Reorder Point', 'Unit', 'Description']
+  const rows = items.map(i => [
+    i.name, i.sku, i.category, i.price, i.quantity, i.reorder_point, i.unit || '', i.description || '',
+  ])
+  const csv = [headers, ...rows]
+    .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export default function InventoryPage() {
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [filters, setFilters] = useState({ category: '', stockStatus: '', minPrice: '', maxPrice: '' })
+  const [sort, setSort] = useState({ by: 'created_at', order: 'desc' })
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [modal, setModal] = useState(null)
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(t)
+  }, [search])
+
+  useEffect(() => { setSelectedIds(new Set()) }, [debouncedSearch, filters, sort])
+
+  const queryFilters = {
+    search: debouncedSearch || undefined,
+    category: filters.category || undefined,
+    stockStatus: filters.stockStatus || undefined,
+    minPrice: filters.minPrice || undefined,
+    maxPrice: filters.maxPrice || undefined,
+    sortBy: sort.by,
+    sortOrder: sort.order,
+  }
+
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInventory(queryFilters)
+  const { data: categories = [] } = useCategories()
+
+  const allItems = data?.pages.flatMap(p => p.data) ?? []
+  const total = data?.pages[0]?.total ?? 0
+
+  const createMutation = useCreateProduct()
+  const updateMutation = useUpdateProduct()
+  const deleteMutation = useDeleteProduct()
+  const adjustMutation = useAdjustStock()
+
+  const closeModal = () => setModal(null)
+
+  const handleSelectAll = () => {
+    setSelectedIds(prev =>
+      prev.size === allItems.length ? new Set() : new Set(allItems.map(i => i.id))
+    )
+  }
+
+  const handleSelectOne = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const handleDeleteConfirm = async () => {
+    const ids = modal.products.map(p => p.id)
+    await Promise.all(ids.map(id => deleteMutation.mutateAsync(id)))
+    setSelectedIds(new Set())
+    closeModal()
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-end mb-8">
+    <div>
+      {/* Page header */}
+      <div className="flex items-start justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Inventory</h2>
           <p className="text-sm font-medium text-slate-500 mt-1">Manage products, pricing, and view stock levels</p>
         </div>
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all">
-            <Filter className="w-4 h-4" />
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => exportToCSV(allItems, 'inventory.csv')}
+            className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+          >
+            <Download size={15} />
+            Export
+          </button>
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+          >
+            <SlidersHorizontal size={15} />
             Filters
           </button>
-          <button className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] shadow-sm">
-            <Plus className="w-4 h-4" />
+          <button
+            onClick={() => setModal({ type: 'add' })}
+            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] shadow-sm"
+          >
+            <Plus size={15} />
             Add Product
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-slate-100 bg-white flex justify-between items-center">
-          <div className="relative w-72">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <input 
-              type="text" 
-              placeholder="Search by name, ID, or category..." 
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
-            />
-          </div>
-          <div className="text-sm font-medium text-slate-500">
-            142 Total Products
-          </div>
+      {/* Search + count */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="relative w-80">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name, SKU, or category..."
+            className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
+          />
         </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold bg-slate-50 border-b border-slate-100">
-              <tr>
-                <th className="px-6 py-3">Product</th>
-                <th className="px-6 py-3">Category</th>
-                <th className="px-6 py-3">Price</th>
-                <th className="px-6 py-3">Stock Level</th>
-                <th className="px-6 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-slate-900">MacBook Pro 16" (M3 Max)</span>
-                      <span className="text-xs text-slate-500 mt-0.5 font-medium">PRD-202{i}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                      Electronics
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-medium text-slate-900">$3,499.00</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-1.5 h-1.5 rounded-full ${i % 3 === 0 ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
-                      <span className="font-medium text-slate-700">{i % 3 === 0 ? '5' : '42'} in stock</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-1.5 text-slate-400 hover:text-slate-900 rounded-md hover:bg-slate-100 transition-colors">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button className="p-1.5 text-slate-400 hover:text-red-600 rounded-md hover:bg-red-50 transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      <button className="p-1.5 text-slate-400 hover:text-slate-900 rounded-md hover:bg-slate-100 transition-colors">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
-        <div className="px-6 py-4 border-t border-slate-100 flex justify-between items-center text-sm font-medium text-slate-500 bg-slate-50">
-          <span>Showing 1-6 of 142 entries</span>
-          <div className="flex gap-1.5">
-            <button className="px-3 py-1.5 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 text-slate-900 shadow-sm">Previous</button>
-            <button className="px-3 py-1.5 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 transition-colors text-slate-900 shadow-sm">Next</button>
-          </div>
-        </div>
+        <span className="ml-auto text-sm font-medium text-slate-500">
+          {total.toLocaleString()} Total Products
+        </span>
       </div>
-    </div>
-  );
-};
 
-export default InventoryPage;
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <BulkActionBar
+          count={selectedIds.size}
+          onExport={() => exportToCSV(allItems.filter(i => selectedIds.has(i.id)), 'selected.csv')}
+          onDelete={() => setModal({ type: 'delete', products: allItems.filter(i => selectedIds.has(i.id)) })}
+        />
+      )}
+
+      {/* Table */}
+      <ProductTable
+        items={allItems}
+        isLoading={isLoading}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        fetchNextPage={fetchNextPage}
+        sort={sort}
+        onSortChange={setSort}
+        selectedIds={selectedIds}
+        onSelectAll={handleSelectAll}
+        onSelectOne={handleSelectOne}
+        onEdit={product => setModal({ type: 'edit', product })}
+        onAdjustStock={product => setModal({ type: 'adjust', product })}
+        onDelete={product => setModal({ type: 'delete', products: [product] })}
+      />
+
+      {/* Filters panel */}
+      <FiltersPanel
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        categories={categories}
+        filters={filters}
+        onApply={setFilters}
+      />
+
+      {/* Modals */}
+      {modal?.type === 'add' && (
+        <ProductModal
+          mode="add"
+          categories={categories}
+          onClose={closeModal}
+          onSubmit={async data => { await createMutation.mutateAsync(data); closeModal() }}
+          isPending={createMutation.isPending}
+        />
+      )}
+      {modal?.type === 'edit' && (
+        <ProductModal
+          mode="edit"
+          product={modal.product}
+          categories={categories}
+          onClose={closeModal}
+          onSubmit={async data => { await updateMutation.mutateAsync(data); closeModal() }}
+          isPending={updateMutation.isPending}
+        />
+      )}
+      {modal?.type === 'adjust' && (
+        <StockAdjustModal
+          product={modal.product}
+          onClose={closeModal}
+          onSubmit={async data => { await adjustMutation.mutateAsync(data); closeModal() }}
+          isPending={adjustMutation.isPending}
+        />
+      )}
+      {modal?.type === 'delete' && (
+        <DeleteConfirmModal
+          products={modal.products}
+          onClose={closeModal}
+          onConfirm={handleDeleteConfirm}
+          isPending={deleteMutation.isPending}
+        />
+      )}
+    </div>
+  )
+}
