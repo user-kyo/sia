@@ -113,7 +113,7 @@ export default function FiltersPanel({ isOpen, onClose, categories = [], filters
             onClick={handleReset}
             className="flex-1 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
-            Reset
+            Clear
           </button>
           <button
             onClick={handleApply}
