@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 export const CURRENCIES = [
   { code: 'PHP', label: 'Philippine Peso',  symbol: '₱',  locale: 'en-PH' },
   { code: 'USD', label: 'US Dollar',        symbol: '$',  locale: 'en-US' },
-  { code: 'EUR', label: 'Euro',             symbol: '€',  locale: 'de-DE' },
+  { code: 'EUR', label: 'Euro',             symbol: '€',  locale: 'en-IE' },
   { code: 'GBP', label: 'British Pound',    symbol: '£',  locale: 'en-GB' },
   { code: 'JPY', label: 'Japanese Yen',     symbol: '¥',  locale: 'ja-JP' },
   { code: 'SGD', label: 'Singapore Dollar', symbol: 'S$', locale: 'en-SG' },
