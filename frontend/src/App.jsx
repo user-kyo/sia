@@ -1,11 +1,11 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router';
 import MainLayout from './components/layout/MainLayout';
-import AnalyticsDashboard from './features/dashboard/AnalyticsDashboard';
-import InventoryPage from './features/inventory/InventoryPage';
-import POSPage from './features/sales/POSPage';
-import AuditLogsPage from './features/reports/AuditLogsPage';
-import LoginPage from './features/auth/LoginPage';
+import AnalyticsDashboard from './pages/AnalyticsDashboard';
+import InventoryPage from './pages/InventoryPage';
+import POSPage from './pages/POSPage';
+import AuditLogsPage from './pages/AuditLogsPage';
+import LoginPage from './pages/LoginPage';
 
 function App() {
   return (

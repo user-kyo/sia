@@ -1,7 +1,7 @@
 import React from 'react';
 import LoginForm from '../components/LoginForm';
 import { Box, TrendingUp, ShieldCheck } from 'lucide-react';
-import abstractImage from '../../../assets/abstract_data.png';
+import abstractImage from '../assets/abstract_data.png';
 
 export default function LoginPage() {
   return (
