@@ -6,9 +6,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const usersToSeed = [
-  { email: 'super@salesinvent.com', role: 'super_admin', name: 'Super Admin User' },
-  { email: 'admin@salesinvent.com', role: 'admin', name: 'Admin User' },
-  { email: 'staff@salesinvent.com', role: 'staff', name: 'Staff User' },
+  { email: 'super@stocknroll.com', role: 'super_admin', name: 'Super Admin User' },
+  { email: 'admin@stocknroll.com', role: 'admin', name: 'Admin User' },
+  { email: 'staff@stocknroll.com', role: 'staff', name: 'Staff User' },
 ];
 
 async function seed() {
