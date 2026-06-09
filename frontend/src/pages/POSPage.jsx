@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Minus, CreditCard, X, Image as ImageIcon, ShoppingCart, Trash2, SlidersHorizontal } from 'lucide-react';
+import { Search, Plus, Minus, CreditCard, X, Image as ImageIcon, ShoppingCart, Trash2, SlidersHorizontal, Package } from 'lucide-react';
 import { useInventory, useInventorySubscription, useAdjustStock, useCategories } from '../features/inventory/hooks/useInventory';
 import FiltersPanel from '../features/inventory/components/FiltersPanel';
 
@@ -170,7 +170,10 @@ const POSPage = () => {
                             {product.image_url ? (
                               <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                             ) : (
-                              <ImageIcon className="w-8 h-8 text-slate-300 dark:text-white/10" />
+                              <div className="w-full h-full bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-500/10 dark:to-purple-500/10 flex flex-col items-center justify-center text-indigo-300 dark:text-indigo-500/40 group-hover:scale-105 transition-transform duration-500">
+                                <Package className="w-10 h-10 mb-1 drop-shadow-sm" strokeWidth={1.5} />
+                                <span className="text-[9px] font-bold uppercase tracking-widest opacity-60">Photo</span>
+                              </div>
                             )}
                           </div>
                           

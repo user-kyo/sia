@@ -40,6 +40,15 @@ export const deleteProduct = async (id) => {
   await api.delete(`/inventory/${id}`)
 }
 
+export const uploadProductImage = async (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  const { data } = await api.post('/inventory/upload-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return data
+}
+
 export const adjustStock = async ({ id, ...adjustment }) => {
   const { data } = await api.post(`/inventory/${id}/adjust-stock`, adjustment)
   return data
