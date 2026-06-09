@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
