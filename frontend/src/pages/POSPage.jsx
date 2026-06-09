@@ -1,7 +1,44 @@
-import React from 'react';
-import { Search, Plus, Minus, CreditCard, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, Minus, CreditCard, X, Image as ImageIcon, ShoppingCart } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 const POSPage = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('*');
+      
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStockStatus = (quantity) => {
+    const qty = Number(quantity) || 0;
+    if (qty <= 0) return { label: 'Out of Stock', color: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-50', dot: 'bg-red-500' };
+    if (qty <= 10) return { label: 'Low Stock', color: 'bg-yellow-500', text: 'text-yellow-700', bg: 'bg-yellow-50', dot: 'bg-yellow-500' };
+    return { label: 'In Stock', color: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', dot: 'bg-emerald-500' };
+  };
+
+  const filteredProducts = products.filter(p => 
+    (p.name && p.name.toLowerCase().includes(searchTerm.toLowerCase())) || 
+    (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (p.category && p.category.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-6">
       {/* Product Selection Area */}
@@ -11,28 +48,70 @@ const POSPage = () => {
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input 
               type="text" 
-              placeholder="Scan barcode or search products..." 
+              placeholder="Scan barcode or search products by name, sku, or category..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
             />
           </div>
         </div>
         <div className="flex-1 p-6 overflow-y-auto bg-[#F8FAFC]">
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-              <div key={i} className="bg-white p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-sm cursor-pointer transition-all group flex flex-col items-center">
-                <div className="w-full h-32 bg-slate-50 rounded-lg mb-4 flex items-center justify-center border border-slate-100 group-hover:bg-slate-100/50 transition-colors">
-                  {/* Placeholder for Product Image */}
-                  <div className="w-12 h-12 rounded bg-slate-200"></div>
-                </div>
-                <h4 className="font-semibold text-slate-900 text-sm text-center w-full truncate">Sony Alpha a7 IV</h4>
-                <p className="text-slate-500 font-medium text-xs mt-1">PRD-202{i}</p>
-                <div className="mt-3 w-full flex justify-between items-center">
-                  <p className="text-slate-900 font-bold">$2,498.00</p>
-                  <p className="text-[10px] font-semibold bg-slate-100 text-slate-600 px-2 py-1 rounded">12 IN STOCK</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-slate-500">
+              <Search className="w-12 h-12 mb-4 text-slate-300" />
+              <p>No products found matching your search.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredProducts.map(product => {
+                const stock = getStockStatus(product.quantity);
+                const price = Number(product.price) || 0;
+                
+                return (
+                  <div key={product.id} className="bg-white p-4 rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-md cursor-pointer transition-all group flex flex-col items-center relative overflow-hidden">
+                    {/* Stock Indicator Pill */}
+                    <div className={`absolute top-3 left-3 px-2 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 ${stock.bg} ${stock.text} shadow-sm z-10`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${stock.dot}`}></div>
+                      {stock.label}
+                    </div>
+
+                    {/* Image Area */}
+                    <div className="w-full h-32 bg-slate-50 rounded-lg mb-4 flex items-center justify-center border border-slate-100 group-hover:bg-slate-100/50 transition-colors overflow-hidden mt-6 relative">
+                      {product.image_url ? (
+                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <ImageIcon className="w-8 h-8 text-slate-300" />
+                      )}
+                    </div>
+                    
+                    {/* Product Details */}
+                    <div className="w-full text-left space-y-1">
+                      <h4 className="font-semibold text-slate-900 text-sm w-full line-clamp-2 leading-tight" title={product.name}>
+                        {product.name}
+                      </h4>
+                      <p className="text-slate-500 font-medium text-[11px] uppercase tracking-wider">
+                        {product.category || 'Uncategorized'}
+                      </p>
+                    </div>
+                    
+                    <div className="mt-4 w-full flex justify-between items-center border-t border-slate-100 pt-4">
+                      <div>
+                        <p className="text-blue-600 font-bold text-lg leading-none">${price.toFixed(2)}</p>
+                        <p className="text-[10px] font-semibold text-slate-500 mt-1">{Number(product.quantity) || 0} IN STOCK</p>
+                      </div>
+                      <button className="bg-slate-50 border border-slate-200 text-slate-400 p-2.5 rounded-xl transition-all duration-300 group-hover:bg-blue-600 group-hover:border-blue-600 group-hover:text-white group-hover:shadow-md group-hover:scale-105 active:scale-95">
+                        <ShoppingCart className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -92,3 +171,4 @@ const POSPage = () => {
 };
 
 export default POSPage;
+
