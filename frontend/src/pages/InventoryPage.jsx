@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Plus, SlidersHorizontal, Download } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { Search } from 'lucide-react'
 import { useToast } from '../components/ui/Toast'
 import { useCurrency } from '../contexts/CurrencyContext'
@@ -99,7 +100,12 @@ export default function InventoryPage() {
   }
 
   return (
-    <div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+    >
       {/* Page header */}
       <div className="flex items-start justify-between mb-6">
         <div>
@@ -230,6 +236,6 @@ export default function InventoryPage() {
           isPending={deleteMutation.isPending}
         />
       )}
-    </div>
+    </motion.div>
   )
 }

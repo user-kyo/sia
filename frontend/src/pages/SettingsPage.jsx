@@ -4,6 +4,7 @@ import { useCurrency, CURRENCIES } from '../contexts/CurrencyContext'
 import { useAppSettings } from '../contexts/AppSettingsContext'
 import { useToast } from '../components/ui/Toast'
 import { Moon, Sun, Store, Package, Clock, Type, LayoutList, Globe, Contrast, DollarSign, AlertTriangle } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 const DATE_FORMATS = ['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD']
 
@@ -47,7 +48,13 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }} 
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="space-y-6 max-w-4xl"
+    >
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('set_title')}</h2>
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">{t('set_subtitle')}</p>
@@ -334,6 +341,6 @@ export default function SettingsPage() {
           </p>
         </div>
       </Section>
-    </div>
+    </motion.div>
   )
 }
