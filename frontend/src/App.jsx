@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ToastProvider } from './components/ui/Toast';
 import RoleProtectedRoute from './components/layout/RoleProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 import AnalyticsDashboard from './pages/AnalyticsDashboard';
@@ -23,6 +24,22 @@ function App() {
           <Route path="/register" element={<AuthPage />} />
           <Route path="/forgot-password" element={<AuthPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+    <AuthProvider>
+      <ToastProvider>
+      <BrowserRouter>
+        <Routes>
+        <Route path="/" element={<AuthPage />} />
+        <Route path="/register" element={<AuthPage />} />
+        <Route path="/forgot-password" element={<AuthPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        
+        {/* Protected Routes */}
+        <Route element={<MainLayout />}>
+          {/* Inventory and POS are accessible to all roles */}
+          <Route element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin', 'staff']} />}>
+            <Route path="/inventory" element={<InventoryPage />} />
+            <Route path="/sales" element={<POSPage />} />
+          </Route>
           
           {/* Protected Routes */}
           <Route element={<MainLayout />}>
@@ -48,6 +65,11 @@ function App() {
       </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>
+        </Route>
+      </Routes>
+      </BrowserRouter>
+      </ToastProvider>
+    </AuthProvider>
   );
 }
 

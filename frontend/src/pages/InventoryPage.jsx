@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, SlidersHorizontal, Download } from 'lucide-react'
 import { Search } from 'lucide-react'
+import { useToast } from '../components/ui/Toast'
 import {
   useInventory, useCategories,
   useCreateProduct, useUpdateProduct, useDeleteProduct, useAdjustStock,
@@ -61,6 +62,8 @@ export default function InventoryPage() {
   const allItems = data?.pages.flatMap(p => p.data) ?? []
   const total = data?.pages[0]?.total ?? 0
 
+  const toast = useToast()
+
   const createMutation = useCreateProduct()
   const updateMutation = useUpdateProduct()
   const deleteMutation = useDeleteProduct()
@@ -87,6 +90,8 @@ export default function InventoryPage() {
     await Promise.all(ids.map(id => deleteMutation.mutateAsync(id)))
     setSelectedIds(new Set())
     closeModal()
+    const count = ids.length
+    toast(count === 1 ? `"${modal.products[0].name}" deleted.` : `${count} products deleted.`)
   }
 
   return (
@@ -179,7 +184,11 @@ export default function InventoryPage() {
           mode="add"
           categories={categories}
           onClose={closeModal}
-          onSubmit={async data => { await createMutation.mutateAsync(data); closeModal() }}
+          onSubmit={async data => {
+            const result = await createMutation.mutateAsync(data)
+            closeModal()
+            toast(`"${result.name}" added to inventory!`)
+          }}
           isPending={createMutation.isPending}
         />
       )}
@@ -189,7 +198,11 @@ export default function InventoryPage() {
           product={modal.product}
           categories={categories}
           onClose={closeModal}
-          onSubmit={async data => { await updateMutation.mutateAsync(data); closeModal() }}
+          onSubmit={async data => {
+            const result = await updateMutation.mutateAsync(data)
+            closeModal()
+            toast(`"${result.name}" updated successfully.`)
+          }}
           isPending={updateMutation.isPending}
         />
       )}
@@ -197,7 +210,11 @@ export default function InventoryPage() {
         <StockAdjustModal
           product={modal.product}
           onClose={closeModal}
-          onSubmit={async data => { await adjustMutation.mutateAsync(data); closeModal() }}
+          onSubmit={async data => {
+            await adjustMutation.mutateAsync(data)
+            closeModal()
+            toast(`Stock adjusted for "${modal.product.name}".`)
+          }}
           isPending={adjustMutation.isPending}
         />
       )}

@@ -5,7 +5,7 @@ from app.db.supabase import supabase_client
 router = APIRouter()
 
 
-@router.get("/", response_model=List[str])
+@router.get("", response_model=List[str])
 def get_categories():
     if not supabase_client:
         raise HTTPException(status_code=500, detail="Supabase client not initialized")
