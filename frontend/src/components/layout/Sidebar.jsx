@@ -1,37 +1,26 @@
 import { NavLink, useNavigate } from 'react-router'
-import { LayoutDashboard, Package, ShoppingCart, FileText, LogOut } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, FileText, Settings, LogOut } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 
-const NAV = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/inventory', icon: Package, label: 'Inventory' },
-  { to: '/sales', icon: ShoppingCart, label: 'Point of Sale' },
-  { to: '/reports', icon: FileText, label: 'Audit Logs' },
+const ALL_NAV = [
+  { name: 'Dashboard',       path: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin'] },
+  { name: 'Inventory',       path: '/inventory', icon: Package,          roles: ['super_admin', 'admin', 'staff'] },
+  { name: 'Point of Sale',   path: '/sales',     icon: ShoppingCart,     roles: ['super_admin', 'admin', 'staff'] },
+  { name: 'Audit Logs',      path: '/reports',   icon: FileText,         roles: ['super_admin', 'admin'] },
+  { name: 'User Management', path: '/users',     icon: Settings,         roles: ['super_admin'] },
 ]
 
 export default function Sidebar() {
   const navigate = useNavigate()
-  const { signOut } = useAuth()
+  const { signOut, userRole } = useAuth()
+
+  const role = userRole || 'staff'
+  const navItems = ALL_NAV.filter(item => item.roles.includes(role))
 
   const handleLogout = async () => {
     await signOut()
     navigate('/')
   }
-const Sidebar = () => {
-  const navigate = useNavigate();
-  const { signOut, userRole } = useAuth();
-
-  const currentRole = userRole || 'staff';
-
-  const allNavItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin'] },
-    { name: 'Inventory', path: '/inventory', icon: Package, roles: ['super_admin', 'admin', 'staff'] },
-    { name: 'Point of Sale', path: '/sales', icon: ShoppingCart, roles: ['super_admin', 'admin', 'staff'] },
-    { name: 'Audit Logs', path: '/reports', icon: FileText, roles: ['super_admin', 'admin'] },
-    { name: 'User Management', path: '/users', icon: Settings, roles: ['super_admin'] },
-  ];
-
-  const navItems = allNavItems.filter(item => item.roles.includes(currentRole));
 
   return (
     <aside className="w-[210px] min-w-[210px] bg-[#1b2035] flex flex-col h-screen">
@@ -46,10 +35,10 @@ const Sidebar = () => {
         <p className="text-[10px] font-semibold text-[#4b5680] uppercase tracking-widest px-4 pb-2">
           Main Menu
         </p>
-        {NAV.map(({ to, icon: Icon, label }) => (
+        {navItems.map(({ name, path, icon: Icon }) => (
           <NavLink
-            key={to}
-            to={to}
+            key={path}
+            to={path}
             className={({ isActive }) =>
               `flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${
                 isActive
@@ -59,7 +48,7 @@ const Sidebar = () => {
             }
           >
             <Icon size={16} />
-            {label}
+            {name}
           </NavLink>
         ))}
       </div>
