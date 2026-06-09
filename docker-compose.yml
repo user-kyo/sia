@@ -1,0 +1,32 @@
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sia_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app  # Maps local backend code for hot reloading
+    env_file:
+      - ./backend/.env
+    environment:
+      - ENVIRONMENT=development
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sia_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app # Maps local frontend code for hot reloading
+      - /app/node_modules # Prevents local node_modules from overwriting the container's
+    env_file:
+      - ./frontend/.env
+    environment:
+      - CHOKIDAR_USEPOLLING=true # Helps with hot-reloading on Windows via volumes
+    restart: unless-stopped
