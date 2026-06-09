@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react'
-import { Edit2, BarChart2, Trash2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 
 const COLS = [
   { key: 'name', label: 'Product' },
@@ -9,26 +9,26 @@ const COLS = [
 ]
 
 const CATEGORY_COLORS = {
-  Electronics: 'bg-blue-50 text-blue-700',
-  Furniture: 'bg-green-50 text-green-700',
-  Clothing: 'bg-purple-50 text-purple-700',
+  Electronics: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20',
+  Furniture: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20',
+  Clothing: 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/20',
 }
 
 function stockStatus(qty, reorder) {
   if (qty === 0)
-    return { dot: 'bg-slate-400', text: 'text-slate-400', label: 'Out of stock' }
+    return { dot: 'bg-slate-400 dark:bg-slate-500', text: 'text-slate-500 dark:text-slate-400', label: 'Out of stock' }
   if (qty <= reorder)
-    return { dot: 'bg-red-500', text: 'text-red-500', label: `${qty} in stock` }
+    return { dot: 'bg-rose-500', text: 'text-rose-600 dark:text-rose-400', label: `${qty} in stock` }
   if (qty <= Math.ceil(reorder * 1.2))
-    return { dot: 'bg-amber-400', text: 'text-amber-600', label: `${qty} in stock` }
-  return { dot: 'bg-emerald-500', text: 'text-slate-700', label: `${qty} in stock` }
+    return { dot: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400', label: `${qty} in stock` }
+  return { dot: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', label: `${qty} in stock` }
 }
 
 function SortIcon({ colKey, sort }) {
-  if (sort.by !== colKey) return <ChevronsUpDown size={11} className="text-slate-300" />
+  if (sort.by !== colKey) return <ChevronsUpDown size={11} className="text-slate-400 dark:text-slate-500" />
   return sort.order === 'asc'
-    ? <ChevronUp size={11} className="text-indigo-500" />
-    : <ChevronDown size={11} className="text-indigo-500" />
+    ? <ChevronUp size={11} className="text-indigo-600 dark:text-indigo-400" />
+    : <ChevronDown size={11} className="text-indigo-600 dark:text-indigo-400" />
 }
 
 export default function ProductTable({
@@ -74,16 +74,16 @@ export default function ProductTable({
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 p-16 flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-600 rounded-full animate-spin" />
+      <div className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-16 flex items-center justify-center shadow-sm dark:shadow-none transition-colors duration-300">
+        <div className="w-6 h-6 border-2 border-slate-200 dark:border-white/10 border-t-indigo-600 dark:border-t-indigo-500 rounded-full animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+    <div className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm dark:shadow-none transition-colors duration-300">
       <table className="w-full text-sm text-left">
-        <thead className="border-b border-slate-100">
+        <thead className="bg-slate-50 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/10 transition-colors">
           <tr>
             <th className="w-10 px-4 py-3">
               <input
@@ -91,14 +91,14 @@ export default function ProductTable({
                 checked={allSelected}
                 ref={el => { if (el) el.indeterminate = someSelected }}
                 onChange={onSelectAll}
-                className="w-4 h-4 rounded border-slate-300 cursor-pointer accent-slate-900"
+                className="w-4 h-4 rounded bg-white dark:bg-white/5 border-slate-300 dark:border-white/20 cursor-pointer accent-indigo-600 dark:accent-indigo-500 shadow-sm dark:shadow-none"
               />
             </th>
             {COLS.map(col => (
               <th
                 key={col.key}
                 onClick={() => handleSort(col.key)}
-                className="px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-600 select-none whitespace-nowrap"
+                className="px-4 py-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-900 dark:hover:text-white select-none whitespace-nowrap transition-colors"
               >
                 <span className="flex items-center gap-1">
                   {col.label}
@@ -106,69 +106,72 @@ export default function ProductTable({
                 </span>
               </th>
             ))}
-            <th className="px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider transition-colors">
               Actions
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-50">
+        <tbody className="divide-y divide-slate-100 dark:divide-white/5 transition-colors">
           {items.map(item => {
             const { dot, text, label } = stockStatus(item.quantity, item.reorder_point)
             const isSelected = selectedIds.has(item.id)
-            const catColor = CATEGORY_COLORS[item.category] || 'bg-slate-100 text-slate-700'
+            const catColor = CATEGORY_COLORS[item.category] || 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10'
             return (
               <tr
                 key={item.id}
-                className={`transition-colors ${isSelected ? 'bg-blue-50/50' : 'hover:bg-slate-50/70'}`}
+                className={`transition-colors ${isSelected ? 'bg-indigo-50 dark:bg-indigo-500/10' : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'}`}
               >
                 <td className="px-4 py-3.5">
                   <input
                     type="checkbox"
                     checked={isSelected}
                     onChange={() => onSelectOne(item.id)}
-                    className="w-4 h-4 rounded border-slate-300 cursor-pointer accent-slate-900"
+                    className="w-4 h-4 rounded bg-white dark:bg-white/5 border-slate-300 dark:border-white/20 cursor-pointer accent-indigo-600 dark:accent-indigo-500 shadow-sm dark:shadow-none"
                   />
                 </td>
                 <td className="px-4 py-3.5">
-                  <p className="font-semibold text-slate-900">{item.name}</p>
-                  <p className="text-xs text-indigo-500 mt-0.5">{item.sku}</p>
+                  <p className="font-semibold text-slate-900 dark:text-slate-200 transition-colors">{item.name}</p>
+                  <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5 transition-colors">{item.sku}</p>
                 </td>
                 <td className="px-4 py-3.5">
-                  <span className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-medium border border-transparent ${catColor}`}>
+                  <span className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold border ${catColor} transition-colors`}>
                     {item.category}
                   </span>
                 </td>
-                <td className="px-4 py-3.5 font-medium text-slate-900">
+                <td className="px-4 py-3.5 font-medium text-slate-900 dark:text-slate-200 transition-colors">
                   ${Number(item.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </td>
                 <td className="px-4 py-3.5">
                   <div className="flex items-center gap-2">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
-                    <span className={`text-sm font-medium ${text}`}>{label}</span>
+                    <span className={`text-sm font-semibold ${text} transition-colors`}>{label}</span>
                   </div>
                 </td>
                 <td className="px-4 py-3.5">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => onEdit(item)}
                       title="Edit"
-                      className="w-7 h-7 flex items-center justify-center border border-slate-200 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                      className="w-7 h-7 flex items-center justify-center border border-slate-200 dark:border-white/10 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors"
+                      className="px-2.5 py-1 text-xs font-medium border border-slate-200 rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
                     >
-                      <Edit2 size={12} />
+                      Edit
                     </button>
                     <button
                       onClick={() => onAdjustStock(item)}
                       title="Adjust Stock"
-                      className="w-7 h-7 flex items-center justify-center border border-slate-200 rounded-md text-slate-400 hover:bg-green-50 hover:border-green-200 hover:text-green-600 transition-colors"
+                      className="w-7 h-7 flex items-center justify-center border border-slate-200 dark:border-white/10 rounded-md text-slate-500 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-200 dark:hover:border-emerald-500/20 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                      className="px-2.5 py-1 text-xs font-medium border border-slate-200 rounded-md text-slate-600 hover:bg-green-50 hover:border-green-200 hover:text-green-700 transition-colors"
                     >
-                      <BarChart2 size={12} />
+                      Adjust Stock
                     </button>
                     <button
                       onClick={() => onDelete(item)}
                       title="Delete"
-                      className="w-7 h-7 flex items-center justify-center border border-slate-200 rounded-md text-slate-400 hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors"
+                      className="w-7 h-7 flex items-center justify-center border border-slate-200 dark:border-white/10 rounded-md text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:border-rose-200 dark:hover:border-rose-500/20 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                      className="px-2.5 py-1 text-xs font-medium border border-slate-200 rounded-md text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
                     >
-                      <Trash2 size={12} />
+                      Delete
                     </button>
                   </div>
                 </td>
@@ -178,7 +181,7 @@ export default function ProductTable({
 
           {items.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-4 py-16 text-center text-slate-400 text-sm">
+              <td colSpan={6} className="px-4 py-16 text-center text-slate-500 dark:text-slate-400 text-sm">
                 No products found.
               </td>
             </tr>
@@ -186,10 +189,10 @@ export default function ProductTable({
         </tbody>
       </table>
 
-      <div ref={loaderRef} className="flex items-center justify-center py-4 gap-2 text-sm text-slate-400 min-h-[56px]">
+      <div ref={loaderRef} className="flex items-center justify-center py-4 gap-2 text-sm text-slate-500 dark:text-slate-400 min-h-[56px] border-t border-slate-200 dark:border-white/5 transition-colors">
         {isFetchingNextPage && (
           <>
-            <div className="w-4 h-4 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-slate-200 dark:border-white/10 border-t-indigo-600 dark:border-t-indigo-500 rounded-full animate-spin transition-colors" />
             Loading more products…
           </>
         )}
