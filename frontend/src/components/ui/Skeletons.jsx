@@ -105,3 +105,32 @@ export const ProductGridSkeleton = ({ count = 8 }) => {
     </motion.div>
   );
 };
+
+export const SectionSkeleton = ({ count = 3 }) => {
+  return (
+    <motion.div
+      key="skeleton-sections"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className="space-y-6 w-full"
+    >
+      {[...Array(count)].map((_, i) => (
+        <div key={i} className="bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm animate-pulse">
+          <div className="p-6 border-b border-slate-100 dark:border-white/10 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-white/10" />
+            <div className="space-y-2">
+              <div className="h-4 w-32 bg-slate-200 dark:bg-white/10 rounded" />
+              <div className="h-3 w-48 bg-slate-200 dark:bg-white/10 rounded" />
+            </div>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="h-4 w-1/4 bg-slate-200 dark:bg-white/10 rounded" />
+            <div className="h-10 w-full bg-slate-200 dark:bg-white/10 rounded-xl" />
+          </div>
+        </div>
+      ))}
+    </motion.div>
+  );
+};

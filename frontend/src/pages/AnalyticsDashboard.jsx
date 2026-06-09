@@ -16,13 +16,7 @@ const AnalyticsDashboard = () => {
   const { t } = useAppSettings()
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      exit={{ opacity: 0 }} 
-      transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <div className="flex justify-between items-end mb-8">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('dash_title')}</h2>
@@ -138,7 +132,7 @@ const AnalyticsDashboard = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   )
 }
 

@@ -100,12 +100,7 @@ export default function InventoryPage() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
-    >
+    <div className="space-y-6">
       {/* Page header */}
       <div className="flex items-start justify-between mb-6">
         <div>
@@ -236,6 +231,6 @@ export default function InventoryPage() {
           isPending={deleteMutation.isPending}
         />
       )}
-    </motion.div>
+    </div>
   )
 }

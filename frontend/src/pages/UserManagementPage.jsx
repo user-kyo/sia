@@ -74,13 +74,7 @@ export default function UserManagementPage() {
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      exit={{ opacity: 0 }} 
-      transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">User Management</h1>
@@ -181,6 +175,6 @@ export default function UserManagementPage() {
       </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }

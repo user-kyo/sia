@@ -14,13 +14,7 @@ const AuditLogsPage = () => {
   }, [])
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      exit={{ opacity: 0 }} 
-      transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <div className="flex justify-between items-end mb-8">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('audit_title')}</h2>
@@ -140,7 +134,7 @@ const AuditLogsPage = () => {
           </p>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
