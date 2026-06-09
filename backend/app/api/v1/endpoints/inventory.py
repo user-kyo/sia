@@ -16,7 +16,7 @@ def _generate_sku() -> str:
     return f"PRD-{str(uuid.uuid4())[:8].upper()}"
 
 
-@router.get("/", response_model=InventoryListResponse)
+@router.get("", response_model=InventoryListResponse)
 def list_inventory(
     search: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
@@ -83,7 +83,7 @@ def get_inventory_item(item_id: str):
     return result.data[0]
 
 
-@router.post("/", response_model=InventoryItemResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=InventoryItemResponse, status_code=status.HTTP_201_CREATED)
 def create_inventory_item(item: InventoryItemCreate):
     if not supabase_client:
         raise HTTPException(status_code=500, detail="Supabase client not initialized")
@@ -98,9 +98,12 @@ def create_inventory_item(item: InventoryItemCreate):
 
     payload = item.model_dump()
     payload["sku"] = sku
-    result = supabase_client.table("inventory").insert(payload).execute()
+    try:
+        result = supabase_client.table("inventory").insert(payload).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     if not result.data:
-        raise HTTPException(status_code=500, detail="Failed to create item")
+        raise HTTPException(status_code=500, detail="Failed to create item — the inventory table may be missing required columns (category, reorder_point, description, unit). Please add them in Supabase.")
     return result.data[0]
 
 

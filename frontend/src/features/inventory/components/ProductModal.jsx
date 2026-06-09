@@ -10,6 +10,7 @@ const EMPTY = {
 
 export default function ProductModal({ mode = 'add', product = null, categories = [], onClose, onSubmit, isPending }) {
   const [form, setForm] = useState(EMPTY)
+  const [localError, setLocalError] = useState(null)
 
   useEffect(() => {
     if (mode === 'edit' && product) {
@@ -30,19 +31,25 @@ export default function ProductModal({ mode = 'add', product = null, categories 
 
   const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }))
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    onSubmit({
-      ...(mode === 'edit' && { id: product.id }),
-      name: form.name.trim(),
-      sku: form.sku.trim() || undefined,
-      category: form.category.trim(),
-      price: parseFloat(form.price),
-      quantity: parseInt(form.quantity, 10),
-      reorder_point: parseInt(form.reorder_point, 10),
-      unit: form.unit,
-      description: form.description.trim() || undefined,
-    })
+    setLocalError(null)
+    try {
+      await onSubmit({
+        ...(mode === 'edit' && { id: product.id }),
+        name: form.name.trim(),
+        sku: form.sku.trim() || undefined,
+        category: form.category.trim(),
+        price: parseFloat(form.price),
+        quantity: parseInt(form.quantity, 10),
+        reorder_point: parseInt(form.reorder_point, 10),
+        unit: form.unit,
+        description: form.description.trim() || undefined,
+      })
+    } catch (err) {
+      const msg = err?.response?.data?.detail || err?.message || 'Something went wrong. Please try again.'
+      setLocalError(msg)
+    }
   }
 
   const inputCls = 'w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-slate-400 bg-white'
@@ -62,7 +69,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-2 gap-3.5">
             <div className="col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Product Name</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Product Name <span className="text-red-500">*</span></label>
               <input required value={form.name} onChange={set('name')} placeholder='e.g. MacBook Pro 16"' className={inputCls} />
             </div>
 
@@ -73,7 +80,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Category</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Category <span className="text-red-500">*</span></label>
               <input
                 required
                 list="inv-categories"
@@ -88,7 +95,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Price ($)</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Price ($) <span className="text-red-500">*</span></label>
               <input required type="number" min="0" step="0.01" value={form.price} onChange={set('price')} placeholder="0.00" className={inputCls} />
             </div>
 
@@ -101,7 +108,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                {mode === 'add' ? 'Initial Quantity' : 'Quantity'}
+                {mode === 'add' ? 'Initial Quantity' : 'Quantity'} <span className="text-red-500">*</span>
               </label>
               <input required type="number" min="0" value={form.quantity} onChange={set('quantity')} placeholder="0" className={inputCls} />
             </div>
@@ -119,6 +126,12 @@ export default function ProductModal({ mode = 'add', product = null, categories 
               <textarea value={form.description} onChange={set('description')} placeholder="Short product description…" rows={2} className={`${inputCls} resize-none`} />
             </div>
           </div>
+
+          {localError && (
+            <div className="mt-4 px-3 py-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 leading-relaxed">
+              {localError}
+            </div>
+          )}
 
           <div className="flex gap-2.5 mt-5">
             <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">

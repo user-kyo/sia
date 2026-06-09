@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router';
 import { AuthProvider } from './contexts/AuthContext';
+import { ToastProvider } from './components/ui/Toast';
 import RoleProtectedRoute from './components/layout/RoleProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 import AnalyticsDashboard from './pages/AnalyticsDashboard';
@@ -14,6 +15,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 function App() {
   return (
     <AuthProvider>
+      <ToastProvider>
       <BrowserRouter>
         <Routes>
         <Route path="/" element={<AuthPage />} />
@@ -41,7 +43,8 @@ function App() {
           </Route>
         </Route>
       </Routes>
-    </BrowserRouter>
+      </BrowserRouter>
+      </ToastProvider>
     </AuthProvider>
   );
 }
