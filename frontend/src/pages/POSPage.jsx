@@ -1,30 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Search, Plus, Minus, CreditCard, X, Image as ImageIcon, ShoppingCart } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { useInventory, useInventorySubscription } from '../features/inventory/hooks/useInventory';
 
 const POSPage = () => {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+  // Setup realtime subscription (if enabled in DB)
+  useInventorySubscription();
 
-  const fetchProducts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('inventory')
-        .select('*');
-      
-      if (error) throw error;
-      setProducts(data || []);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Also add polling as a fallback every 3 seconds to guarantee it shows up instantly 
+  // even if Supabase Realtime isn't configured in the database dashboard.
+  const { data, isLoading: loading } = useInventory({}, { refetchInterval: 3000 });
+  const products = data?.pages.flatMap(page => page.data) || [];
 
   const getStockStatus = (quantity) => {
     const qty = Number(quantity) || 0;

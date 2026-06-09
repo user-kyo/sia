@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '../../../lib/supabase'
 import {
   fetchInventory, createProduct, updateProduct,
   deleteProduct, adjustStock, fetchCategories,
@@ -6,7 +8,29 @@ import {
 
 const LIMIT = 20
 
-export const useInventory = (filters = {}) =>
+export const useInventorySubscription = () => {
+  const qc = useQueryClient()
+  
+  useEffect(() => {
+    const channel = supabase
+      .channel('inventory-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'inventory' },
+        (payload) => {
+          console.log('Realtime change received:', payload)
+          qc.invalidateQueries({ queryKey: ['inventory'] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [qc])
+}
+
+export const useInventory = (filters = {}, options = {}) =>
   useInfiniteQuery({
     queryKey: ['inventory', filters],
     queryFn: ({ pageParam = 0 }) =>
@@ -16,6 +40,7 @@ export const useInventory = (filters = {}) =>
       const fetched = pages.reduce((acc, p) => acc + p.data.length, 0)
       return fetched < lastPage.total ? fetched : undefined
     },
+    ...options,
   })
 
 export const useCategories = () =>
