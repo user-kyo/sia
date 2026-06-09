@@ -152,24 +152,21 @@ export default function ProductTable({
                     <button
                       onClick={() => onEdit(item)}
                       title="Edit"
-                      className="w-7 h-7 flex items-center justify-center border border-slate-200 dark:border-white/10 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors"
-                      className="px-2.5 py-1 text-xs font-medium border border-slate-200 rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                      className="px-2.5 py-1 text-xs font-medium border border-slate-200 dark:border-white/10 rounded-md text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => onAdjustStock(item)}
                       title="Adjust Stock"
-                      className="w-7 h-7 flex items-center justify-center border border-slate-200 dark:border-white/10 rounded-md text-slate-500 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-200 dark:hover:border-emerald-500/20 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
-                      className="px-2.5 py-1 text-xs font-medium border border-slate-200 rounded-md text-slate-600 hover:bg-green-50 hover:border-green-200 hover:text-green-700 transition-colors"
+                      className="px-2.5 py-1 text-xs font-medium border border-slate-200 dark:border-white/10 rounded-md text-slate-600 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-200 dark:hover:border-emerald-500/20 hover:text-emerald-700 dark:hover:text-emerald-400 transition-colors"
                     >
                       Adjust Stock
                     </button>
                     <button
                       onClick={() => onDelete(item)}
                       title="Delete"
-                      className="w-7 h-7 flex items-center justify-center border border-slate-200 dark:border-white/10 rounded-md text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:border-rose-200 dark:hover:border-rose-500/20 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
-                      className="px-2.5 py-1 text-xs font-medium border border-slate-200 rounded-md text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
+                      className="px-2.5 py-1 text-xs font-medium border border-slate-200 dark:border-white/10 rounded-md text-slate-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:border-rose-200 dark:hover:border-rose-500/20 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
                     >
                       Delete
                     </button>

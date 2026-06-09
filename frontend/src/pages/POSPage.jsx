@@ -98,45 +98,34 @@ const POSPage = () => {
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Product Selection Area */}
-      <div className="flex-1 flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-100 bg-white">
+      <div className="flex-1 flex flex-col bg-slate-50/50 dark:bg-white/[0.02] dark:backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm dark:shadow-none transition-colors duration-300">
+        <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.01] transition-colors">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <Search className="w-5 h-5 text-slate-400 dark:text-slate-500 absolute left-4 top-2.5" />
               <input 
                 type="text" 
                 placeholder="Scan barcode or search products by name, sku, or category..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-10 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
+                className="w-full bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl pl-12 pr-10 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all backdrop-blur-md shadow-sm dark:shadow-none"
               />
               {searchTerm && (
                 <button 
                   onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute right-4 top-2.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-white transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               )}
             </div>
             <button 
               onClick={() => setIsFilterOpen(true)}
-              className="flex items-center justify-center w-10 h-10 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-500 transition-colors"
+              className="flex items-center justify-center w-[46px] h-[46px] border border-slate-200 dark:border-white/10 rounded-xl bg-white dark:bg-white/[0.03] text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors shadow-sm dark:shadow-none"
               title="Filters"
             >
-              <SlidersHorizontal className="w-4 h-4" />
+              <SlidersHorizontal className="w-5 h-5" />
             </button>
-      <div className="flex-1 flex flex-col bg-slate-50/50 dark:bg-white/[0.02] dark:backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm dark:shadow-none transition-colors duration-300">
-        <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.01] transition-colors">
-          <div className="relative">
-            <Search className="w-5 h-5 text-slate-400 dark:text-slate-500 absolute left-4 top-2.5" />
-            <input 
-              type="text" 
-              placeholder="Scan barcode or search products by name, sku, or category..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl pl-12 pr-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all backdrop-blur-md shadow-sm dark:shadow-none"
-            />
           </div>
         </div>
         <div className="flex-1 p-6 overflow-y-auto bg-transparent scroll-smooth">
@@ -144,13 +133,9 @@ const POSPage = () => {
             <div className="flex items-center justify-center h-full">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 dark:border-white/20 dark:border-t-indigo-500 border-t-indigo-600"></div>
             </div>
-          ) : filteredProducts.length === 0 ? (
+          ) : products.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-400 transition-colors">
               <Search className="w-12 h-12 mb-4 text-slate-300 dark:text-white/10" />
-              <p>No products found matching your search.</p>
-          ) : products.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-500">
-              <Search className="w-12 h-12 mb-4 text-slate-300" />
               <p>No products found matching your search or filters.</p>
             </div>
           ) : (
@@ -160,8 +145,7 @@ const POSPage = () => {
                 const price = Number(product.price) || 0;
                 
                 return (
-                  <div key={product.id} className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 hover:shadow-md dark:hover:shadow-none hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:bg-slate-50 dark:hover:bg-white/[0.04] cursor-pointer transition-all duration-300 group flex flex-col items-center shadow-sm dark:shadow-none relative overflow-hidden">
-                  <div key={product.id} onClick={() => addToCart(product)} className="bg-white p-4 rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-md cursor-pointer transition-all group flex flex-col items-center relative overflow-hidden">
+                  <div key={product.id} onClick={() => addToCart(product)} className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 hover:shadow-md dark:hover:shadow-none hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:bg-slate-50 dark:hover:bg-white/[0.04] cursor-pointer transition-all duration-300 group flex flex-col items-center shadow-sm dark:shadow-none relative overflow-hidden">
                     {/* Stock Indicator Pill */}
                     <div className={`absolute top-3 left-3 px-2 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 ${stock.bg} ${stock.text} shadow-sm dark:shadow-none z-10 transition-colors`}>
                       <div className={`w-1.5 h-1.5 rounded-full ${stock.dot}`}></div>
@@ -205,110 +189,69 @@ const POSPage = () => {
       </div>
 
       {/* Current Order Area */}
-      <div className="w-96 flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-        <div className="p-5 border-b border-slate-100 bg-white flex justify-between items-center">
+      <div className="w-96 flex flex-col bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm dark:shadow-none transition-colors duration-300">
+        <div className="p-6 border-b border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01] flex justify-between items-center transition-colors">
           <div>
-            <h3 className="font-bold text-slate-900 tracking-tight">Current Order</h3>
-            <p className="text-xs font-medium text-slate-500 mt-1">{cart.length} Item{cart.length !== 1 ? 's' : ''}</p>
+            <h3 className="font-bold text-slate-900 dark:text-white text-lg tracking-tight">Current Order</h3>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">{cart.length} Item{cart.length !== 1 ? 's' : ''}</p>
           </div>
           {cart.length > 0 && (
-            <button onClick={clearCart} className="text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors flex items-center gap-1">
+            <button onClick={clearCart} className="text-xs font-semibold text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors flex items-center gap-1">
               <Trash2 className="w-3.5 h-3.5" />
               Clear Cart
             </button>
           )}
         </div>
         
-        <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-slate-50/30">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-transparent">
           {cart.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-400">
-              <ShoppingCart className="w-12 h-12 mb-3 text-slate-300" />
+            <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-500">
+              <ShoppingCart className="w-12 h-12 mb-3 text-slate-300 dark:text-white/10" />
               <p className="font-medium text-sm">Your cart is empty</p>
-              <p className="text-xs mt-1 text-slate-400">Click on a product to add it</p>
+              <p className="text-xs mt-1 text-slate-400 dark:text-slate-500">Click on a product to add it</p>
             </div>
           ) : (
             cart.map(item => (
               <div key={item.id} className="flex justify-between items-start group">
                 <div className="flex-1 pr-4">
-                  <h5 className="font-semibold text-sm text-slate-900 line-clamp-1" title={item.name}>{item.name}</h5>
-                  <p className="text-xs font-medium text-slate-500 mt-0.5">${Number(item.price).toFixed(2)}</p>
+                  <h5 className="font-semibold text-sm text-slate-900 dark:text-slate-100 line-clamp-1" title={item.name}>{item.name}</h5>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">${Number(item.price).toFixed(2)}</p>
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                  <span className="font-bold text-sm text-slate-900">${(Number(item.price) * item.cartQuantity).toFixed(2)}</span>
-                  <div className="flex items-center bg-white rounded-md border border-slate-200 shadow-sm">
-                    <button onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, -1); }} className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-l-md transition-colors"><Minus className="w-3.5 h-3.5" /></button>
-                    <span className="w-8 text-center text-xs font-semibold text-slate-900">{item.cartQuantity}</span>
-                    <button onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, 1); }} disabled={item.cartQuantity >= item.quantity} className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-r-md transition-colors disabled:opacity-50"><Plus className="w-3.5 h-3.5" /></button>
+                <div className="flex flex-col items-end gap-2.5">
+                  <span className="font-bold text-sm text-slate-900 dark:text-white">${(Number(item.price) * item.cartQuantity).toFixed(2)}</span>
+                  <div className="flex items-center bg-slate-50 dark:bg-white/[0.05] rounded-lg border border-slate-200 dark:border-white/10">
+                    <button onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, -1); }} className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-l-lg transition-colors">
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="w-8 text-center text-xs font-bold text-slate-900 dark:text-white">{item.cartQuantity}</span>
+                    <button onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, 1); }} disabled={item.cartQuantity >= item.quantity} className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-r-lg transition-colors disabled:opacity-50">
+                      <Plus className="w-4 h-4" />
+                    </button>
                   </div>
-      <div className="w-96 flex flex-col bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm dark:shadow-none transition-colors duration-300">
-        <div className="p-6 border-b border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01] transition-colors">
-          <h3 className="font-bold text-slate-900 dark:text-white text-lg tracking-tight">Current Order</h3>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">Order #TRX-99382</p>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-transparent">
-          {[1, 2].map(i => (
-            <div key={i} className="flex justify-between items-start group">
-              <div className="flex-1 pr-4">
-                <h5 className="font-semibold text-sm text-slate-900 dark:text-slate-100">Sony Alpha a7 IV</h5>
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">$2,498.00</p>
-              </div>
-              <div className="flex flex-col items-end gap-2.5">
-                <span className="font-bold text-sm text-slate-900 dark:text-white">$2,498.00</span>
-                <div className="flex items-center bg-slate-50 dark:bg-white/[0.05] rounded-lg border border-slate-200 dark:border-white/10">
-                  <button className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-l-lg transition-colors"><Minus className="w-4 h-4" /></button>
-                  <span className="w-8 text-center text-xs font-bold text-slate-900 dark:text-white">1</span>
-                  <button className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-r-lg transition-colors"><Plus className="w-4 h-4" /></button>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); removeFromCart(item.id); }} className="ml-3 mt-1 p-1 text-slate-400 hover:text-red-500 transition-all">
-                  <Trash2 className="w-4 h-4" />
+                <button onClick={(e) => { e.stopPropagation(); removeFromCart(item.id); }} className="ml-4 mt-1 opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-all">
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             ))
           )}
         </div>
 
-        <div className="p-5 border-t border-slate-100 bg-white">
-          <div className="mb-6">
-            <div className="flex justify-between items-center text-xl pt-2">
-              <span className="font-bold text-slate-900">Total</span>
-              <span className="font-bold text-slate-900">${total.toFixed(2)}</span>
+        <div className="p-6 border-t border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01] transition-colors">
+          <div className="space-y-4 mb-6">
+            <div className="flex justify-between text-xl pt-4 border-t border-slate-200 dark:border-white/10 mt-2 transition-colors">
+              <span className="font-bold text-slate-900 dark:text-white tracking-tight">Total</span>
+              <span className="font-bold text-indigo-600 dark:text-indigo-400">${total.toFixed(2)}</span>
             </div>
           </div>
           
           <button 
             onClick={() => setIsModalOpen(true)}
             disabled={cart.length === 0}
-            className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white py-3.5 rounded-xl font-semibold transition-all active:scale-[0.98] shadow-sm"
+            className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-300 dark:disabled:bg-white/10 text-white py-4 rounded-xl font-bold transition-all active:scale-[0.98] shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)] disabled:shadow-none"
           >
-            <CreditCard className="w-4 h-4" />
-            Charge ${total.toFixed(2)}
-              <button className="ml-4 mt-1 opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-all">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
-        </div>
-
-        <div className="p-6 border-t border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01] transition-colors">
-          <div className="space-y-4 mb-6">
-            <div className="flex justify-between text-sm">
-              <span className="font-medium text-slate-500 dark:text-slate-400">Subtotal</span>
-              <span className="font-semibold text-slate-900 dark:text-white">$4,996.00</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="font-medium text-slate-500 dark:text-slate-400">Tax (8%)</span>
-              <span className="font-semibold text-slate-900 dark:text-white">$399.68</span>
-            </div>
-            <div className="flex justify-between text-xl pt-4 border-t border-slate-200 dark:border-white/10 mt-2 transition-colors">
-              <span className="font-bold text-slate-900 dark:text-white tracking-tight">Total</span>
-              <span className="font-bold text-indigo-600 dark:text-indigo-400">$5,395.68</span>
-            </div>
-          </div>
-          
-          <button className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-xl font-bold transition-all active:scale-[0.98] shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
             <CreditCard className="w-5 h-5" />
-            Charge $5,395.68
+            Charge ${total.toFixed(2)}
           </button>
         </div>
       </div>
