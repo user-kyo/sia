@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, ArrowRight } from 'lucide-react';
 import { useNavigate, Link } from 'react-router';
 import { supabase } from '../lib/supabase';
 
-export default function LoginForm() {
+export default function LoginForm({ onToggle }) {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
@@ -11,6 +11,7 @@ export default function LoginForm() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [failedAttempts, setFailedAttempts] = useState(0);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem('sia_saved_email');
@@ -41,35 +42,39 @@ export default function LoginForm() {
       return;
     }
 
-    const { data, authError } = await supabase.auth.signInWithPassword({
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (authError) {
-      setError(authError.message);
+      const isInvalid = authError.message.toLowerCase().includes('invalid login credentials');
+      setError(isInvalid ? "Invalid email or password. Please try again." : authError.message);
+      setFailedAttempts(prev => prev + 1);
       setLoading(false);
     } else {
       console.log('Logged in successfully', data);
+      setFailedAttempts(0);
       setLoading(false);
       navigate('/dashboard');
     }
   };
+
   return (
-    <div className="w-full max-w-md">
-      <div className="mb-8 text-center lg:text-left">
-        {/* Placeholder Logo */}
-        <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900 text-white font-bold mb-6 lg:hidden">
+    <div className="w-full max-w-[400px]">
+      <div className="mb-10 text-center lg:text-left">
+        {/* Mobile Logo */}
+        <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-xl shadow-[0_0_20px_rgba(99,102,241,0.3)] mb-6 lg:hidden">
           SI
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome back</h2>
-        <p className="text-sm font-medium text-slate-500 mt-2">Log in to your account to continue</p>
+        <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Welcome back</h2>
+        <p className="text-base font-medium text-slate-500 mt-3">Log in to your account to continue</p>
       </div>
 
-      <form className="space-y-5" onSubmit={handleLogin}>
-        <div>
-          <label className={`block text-sm font-semibold mb-1.5 ${error ? 'text-red-500' : 'text-slate-700'}`} htmlFor="email">
-            Email
+      <form className="space-y-6" onSubmit={handleLogin}>
+        <div className="space-y-1.5">
+          <label className={`block text-sm font-semibold ${error ? 'text-rose-500' : 'text-slate-700'}`} htmlFor="email">
+            Email address
           </label>
           <input
             id="email"
@@ -78,97 +83,121 @@ export default function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
             placeholder="e.g. name@company.com"
-            className={`w-full rounded-xl border bg-white px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 disabled:opacity-50 ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-200 focus:ring-blue-600/20 focus:border-blue-600'}`}
+            className={`w-full rounded-xl border bg-slate-50/50 px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 transition-all duration-300 disabled:opacity-50 hover:bg-slate-50 ${error ? 'border-rose-300 focus:ring-rose-500/20 focus:border-rose-500 bg-rose-50/30' : 'border-slate-200 focus:ring-indigo-600/10 focus:border-indigo-600 hover:border-slate-300'}`}
             required
           />
         </div>
 
-        <div>
-          <label className={`block text-sm font-semibold mb-1.5 ${error ? 'text-red-500' : 'text-slate-700'}`} htmlFor="password">
+        <div className="space-y-1.5">
+          <label className={`block text-sm font-semibold ${error ? 'text-rose-500' : 'text-slate-700'}`} htmlFor="password">
             Password
           </label>
-          <div className="relative">
+          <div className="relative group">
             <input
               id="password"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
-              placeholder="e.g. ••••••••"
-              className={`w-full rounded-xl border bg-white pl-4 pr-10 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 disabled:opacity-50 ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-200 focus:ring-blue-600/20 focus:border-blue-600'}`}
+              placeholder="Enter password"
+              className={`w-full rounded-xl border bg-slate-50/50 pl-4 pr-12 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 transition-all duration-300 disabled:opacity-50 hover:bg-slate-50 tracking-widest placeholder:tracking-normal ${error ? 'border-rose-300 focus:ring-rose-500/20 focus:border-rose-500 bg-rose-50/30' : 'border-slate-200 focus:ring-indigo-600/10 focus:border-indigo-600 hover:border-slate-300'}`}
               required
             />
             <button
               type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors p-1.5 rounded-lg hover:bg-slate-100"
               onClick={() => setShowPassword(!showPassword)}
               aria-label="Toggle password visibility"
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center group">
             <input
               id="remember-me"
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
               disabled={loading}
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 cursor-pointer disabled:opacity-50"
+              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer disabled:opacity-50 transition-all"
             />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-700 cursor-pointer">
+            <label htmlFor="remember-me" className="ml-2.5 block text-sm font-medium text-slate-600 cursor-pointer group-hover:text-slate-900 transition-colors">
               Remember me
             </label>
           </div>
           <div className="text-sm">
-            <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-700 transition-colors">
+            <button 
+              type="button"
+              onClick={() => onToggle('forgot_password')} 
+              className="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors bg-transparent border-none p-0 cursor-pointer"
+            >
               Forgot password?
-            </Link>
+            </button>
           </div>
         </div>
 
         {error && (
-          <div className="text-sm font-medium text-red-500 mt-2">
-            {error}
+          <div className="text-sm font-medium text-rose-500 bg-rose-50 px-4 py-3 rounded-xl border border-rose-100 flex flex-col gap-2">
+            <div className="flex items-start gap-2">
+              <div className="mt-0.5">⚠️</div>
+              <div>{error}</div>
+            </div>
+            {failedAttempts >= 3 && (
+              <button 
+                type="button" 
+                onClick={() => onToggle('forgot_password')}
+                className="text-left ml-6 text-rose-600 font-semibold hover:text-rose-700 hover:underline transition-colors"
+              >
+                Too many failed attempts. Forgot your password?
+              </button>
+            )}
           </div>
         )}
 
-        <div>
+        <div className="pt-2">
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center items-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-md hover:shadow-lg hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 transition-all duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+            className="group relative w-full flex justify-center items-center rounded-xl bg-slate-900 overflow-hidden px-4 py-3.5 text-sm font-semibold text-white shadow-[0_4px_14px_0_rgba(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] hover:bg-slate-800 transition-all duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100"
           >
+            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
             {loading ? (
               <>
                 <Loader2 size={18} className="animate-spin mr-2" />
-                Logging in...
+                Signing in...
               </>
             ) : (
-              'Login'
+              <span className="flex items-center gap-2 relative z-10">
+                Sign in
+                <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
+              </span>
             )}
           </button>
         </div>
       </form>
 
-      <div className="mt-8">
+      <div className="mt-10">
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-slate-200" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-slate-500">Or continue with</span>
+            <span className="bg-white px-4 text-slate-400 font-medium">Or continue with</span>
           </div>
         </div>
 
-        <div className="mt-6 text-center text-sm">
+        <div className="mt-8 text-center text-sm font-medium">
           <span className="text-slate-500">Don't have an account? </span>
-          <Link to="/register" className="font-medium text-blue-600 hover:text-blue-700 transition-colors">
-            Register
-          </Link>
+          <button 
+            type="button"
+            onClick={() => onToggle('register')} 
+            className="text-indigo-600 hover:text-indigo-500 transition-colors font-semibold bg-transparent border-none p-0 cursor-pointer"
+          >
+            Create an account
+          </button>
         </div>
       </div>
     </div>

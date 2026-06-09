@@ -7,12 +7,16 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState(null);
+  const [userStatus, setUserStatus] = useState(null);
 
   useEffect(() => {
     // Check active session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setUserRole(session?.user?.user_metadata?.role || 'staff'); // Default to staff if not set
+      setUserStatus(session?.user?.user_metadata?.status || 'approved'); // Default to approved for older accounts
       setLoading(false);
     });
 
@@ -20,6 +24,8 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setUserRole(session?.user?.user_metadata?.role || 'staff');
+      setUserStatus(session?.user?.user_metadata?.status || 'approved');
       setLoading(false);
     });
 
@@ -31,7 +37,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, userRole, userStatus, signOut }}>
       {!loading && children}
     </AuthContext.Provider>
   );

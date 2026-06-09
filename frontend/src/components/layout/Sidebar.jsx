@@ -17,6 +17,21 @@ export default function Sidebar() {
     await signOut()
     navigate('/')
   }
+const Sidebar = () => {
+  const navigate = useNavigate();
+  const { signOut, userRole } = useAuth();
+
+  const currentRole = userRole || 'staff';
+
+  const allNavItems = [
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin'] },
+    { name: 'Inventory', path: '/inventory', icon: Package, roles: ['super_admin', 'admin', 'staff'] },
+    { name: 'Point of Sale', path: '/sales', icon: ShoppingCart, roles: ['super_admin', 'admin', 'staff'] },
+    { name: 'Audit Logs', path: '/reports', icon: FileText, roles: ['super_admin', 'admin'] },
+    { name: 'User Management', path: '/users', icon: Settings, roles: ['super_admin'] },
+  ];
+
+  const navItems = allNavItems.filter(item => item.roles.includes(currentRole));
 
   return (
     <aside className="w-[210px] min-w-[210px] bg-[#1b2035] flex flex-col h-screen">
