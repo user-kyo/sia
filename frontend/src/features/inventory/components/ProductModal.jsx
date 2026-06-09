@@ -1,0 +1,135 @@
+import { useState, useEffect } from 'react'
+import { X } from 'lucide-react'
+
+const UNITS = ['pcs', 'kg', 'box', 'liter', 'set', 'pair']
+
+const EMPTY = {
+  name: '', sku: '', category: '', price: '',
+  quantity: '', reorder_point: '10', unit: 'pcs', description: '',
+}
+
+export default function ProductModal({ mode = 'add', product = null, categories = [], onClose, onSubmit, isPending }) {
+  const [form, setForm] = useState(EMPTY)
+
+  useEffect(() => {
+    if (mode === 'edit' && product) {
+      setForm({
+        name: product.name,
+        sku: product.sku,
+        category: product.category,
+        price: String(product.price),
+        quantity: String(product.quantity),
+        reorder_point: String(product.reorder_point),
+        unit: product.unit || 'pcs',
+        description: product.description || '',
+      })
+    } else {
+      setForm(EMPTY)
+    }
+  }, [mode, product])
+
+  const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }))
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    onSubmit({
+      ...(mode === 'edit' && { id: product.id }),
+      name: form.name.trim(),
+      sku: form.sku.trim() || undefined,
+      category: form.category.trim(),
+      price: parseFloat(form.price),
+      quantity: parseInt(form.quantity, 10),
+      reorder_point: parseInt(form.reorder_point, 10),
+      unit: form.unit,
+      description: form.description.trim() || undefined,
+    })
+  }
+
+  const inputCls = 'w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-slate-400 bg-white'
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl w-full max-w-md shadow-2xl">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100">
+          <h2 className="text-base font-semibold text-slate-900">
+            {mode === 'add' ? 'Add Product' : 'Edit Product'}
+          </h2>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center border border-slate-200 rounded-md hover:bg-slate-50 text-slate-400">
+            <X size={13} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="grid grid-cols-2 gap-3.5">
+            <div className="col-span-2">
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Product Name</label>
+              <input required value={form.name} onChange={set('name')} placeholder='e.g. MacBook Pro 16"' className={inputCls} />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">SKU</label>
+              <input value={form.sku} onChange={set('sku')} placeholder="Auto-generated" className={inputCls} />
+              <p className="text-[11px] text-slate-400 mt-1">Leave blank to auto-generate</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Category</label>
+              <input
+                required
+                list="inv-categories"
+                value={form.category}
+                onChange={set('category')}
+                placeholder="e.g. Electronics"
+                className={inputCls}
+              />
+              <datalist id="inv-categories">
+                {categories.map(c => <option key={c} value={c} />)}
+              </datalist>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Price ($)</label>
+              <input required type="number" min="0" step="0.01" value={form.price} onChange={set('price')} placeholder="0.00" className={inputCls} />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Unit</label>
+              <select value={form.unit} onChange={set('unit')} className={inputCls}>
+                {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                {mode === 'add' ? 'Initial Quantity' : 'Quantity'}
+              </label>
+              <input required type="number" min="0" value={form.quantity} onChange={set('quantity')} placeholder="0" className={inputCls} />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Reorder Point</label>
+              <input required type="number" min="0" value={form.reorder_point} onChange={set('reorder_point')} placeholder="e.g. 10" className={inputCls} />
+              <p className="text-[11px] text-slate-400 mt-1">Stock alert triggers below this</p>
+            </div>
+
+            <div className="col-span-2">
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Description <span className="font-normal text-slate-400">(optional)</span>
+              </label>
+              <textarea value={form.description} onChange={set('description')} placeholder="Short product description…" rows={2} className={`${inputCls} resize-none`} />
+            </div>
+          </div>
+
+          <div className="flex gap-2.5 mt-5">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+              Cancel
+            </button>
+            <button type="submit" disabled={isPending} className="flex-1 py-2.5 bg-slate-900 rounded-lg text-sm font-medium text-white hover:opacity-90 disabled:opacity-60">
+              {isPending ? 'Saving…' : mode === 'add' ? 'Add Product' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
