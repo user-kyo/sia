@@ -1,38 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router';
 import { supabase } from '../lib/supabase';
+import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 
-export default function LoginForm() {
+export default function RegisterForm() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const savedEmail = localStorage.getItem('sia_saved_email');
-    if (savedEmail) {
-      setEmail(savedEmail);
-      setRememberMe(true);
-    }
-  }, []);
-
-  const handleLogin = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    // Simple email persistence if remember me is checked
-    if (rememberMe) {
-      localStorage.setItem('sia_saved_email', email);
-    } else {
-      localStorage.removeItem('sia_saved_email');
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      setLoading(false);
+      return;
     }
 
-    // Mock login if using placeholder Supabase URL (no .env file)
     if (!import.meta.env.VITE_SUPABASE_URL) {
       setTimeout(() => {
         setLoading(false);
@@ -41,32 +33,53 @@ export default function LoginForm() {
       return;
     }
 
-    const { data, authError } = await supabase.auth.signInWithPassword({
+    const { data, error: authError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          full_name: fullName,
+        }
+      }
     });
 
     if (authError) {
       setError(authError.message);
       setLoading(false);
     } else {
-      console.log('Logged in successfully', data);
+      console.log('Registered successfully', data);
       setLoading(false);
       navigate('/dashboard');
     }
   };
+
   return (
     <div className="w-full max-w-md">
       <div className="mb-8 text-center lg:text-left">
-        {/* Placeholder Logo */}
         <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900 text-white font-bold mb-6 lg:hidden">
           SI
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome back</h2>
-        <p className="text-sm font-medium text-slate-500 mt-2">Log in to your account to continue</p>
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Create an account</h2>
+        <p className="text-sm font-medium text-slate-500 mt-2">Register to get started with SalesInvent</p>
       </div>
 
-      <form className="space-y-5" onSubmit={handleLogin}>
+      <form className="space-y-4" onSubmit={handleRegister}>
+        <div>
+          <label className={`block text-sm font-semibold mb-1.5 ${error ? 'text-red-500' : 'text-slate-700'}`} htmlFor="fullName">
+            Full Name
+          </label>
+          <input
+            id="fullName"
+            type="text"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            disabled={loading}
+            placeholder="e.g. John Doe"
+            className={`w-full rounded-xl border bg-white px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 disabled:opacity-50 border-slate-200 focus:ring-blue-600/20 focus:border-blue-600`}
+            required
+          />
+        </div>
+
         <div>
           <label className={`block text-sm font-semibold mb-1.5 ${error ? 'text-red-500' : 'text-slate-700'}`} htmlFor="email">
             Email
@@ -102,32 +115,27 @@ export default function LoginForm() {
               type="button"
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               onClick={() => setShowPassword(!showPassword)}
-              aria-label="Toggle password visibility"
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
+          <PasswordStrengthIndicator password={password} />
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <input
-              id="remember-me"
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              disabled={loading}
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 cursor-pointer disabled:opacity-50"
-            />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-700 cursor-pointer">
-              Remember me
-            </label>
-          </div>
-          <div className="text-sm">
-            <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-700 transition-colors">
-              Forgot password?
-            </Link>
-          </div>
+        <div>
+          <label className={`block text-sm font-semibold mb-1.5 ${error ? 'text-red-500' : 'text-slate-700'}`} htmlFor="confirmPassword">
+            Confirm Password
+          </label>
+          <input
+            id="confirmPassword"
+            type={showPassword ? 'text' : 'password'}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            disabled={loading}
+            placeholder="e.g. ••••••••"
+            className={`w-full rounded-xl border bg-white px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 disabled:opacity-50 ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-200 focus:ring-blue-600/20 focus:border-blue-600'}`}
+            required
+          />
         </div>
 
         {error && (
@@ -136,7 +144,7 @@ export default function LoginForm() {
           </div>
         )}
 
-        <div>
+        <div className="pt-2">
           <button
             type="submit"
             disabled={loading}
@@ -145,29 +153,20 @@ export default function LoginForm() {
             {loading ? (
               <>
                 <Loader2 size={18} className="animate-spin mr-2" />
-                Logging in...
+                Registering...
               </>
             ) : (
-              'Login'
+              'Register'
             )}
           </button>
         </div>
       </form>
 
       <div className="mt-8">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-slate-500">Or continue with</span>
-          </div>
-        </div>
-
         <div className="mt-6 text-center text-sm">
-          <span className="text-slate-500">Don't have an account? </span>
-          <Link to="/register" className="font-medium text-blue-600 hover:text-blue-700 transition-colors">
-            Register
+          <span className="text-slate-500">Already have an account? </span>
+          <Link to="/" className="font-medium text-blue-600 hover:text-blue-700 transition-colors">
+            Login
           </Link>
         </div>
       </div>
