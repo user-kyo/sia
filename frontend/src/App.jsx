@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { CurrencyProvider } from './contexts/CurrencyContext';
+import { AppSettingsProvider } from './contexts/AppSettingsContext';
 import { ToastProvider } from './components/ui/Toast';
 import RoleProtectedRoute from './components/layout/RoleProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
@@ -18,37 +20,37 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <ToastProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<AuthPage />} />
-              <Route path="/register" element={<AuthPage />} />
-              <Route path="/forgot-password" element={<AuthPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              
-              {/* Protected Routes */}
-              <Route element={<MainLayout />}>
-                {/* Inventory and POS are accessible to all roles */}
-                <Route element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin', 'staff']} />}>
-                  <Route path="/inventory" element={<InventoryPage />} />
-                  <Route path="/sales" element={<POSPage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                </Route>
-                
-                {/* Dashboard and Reports accessible to admin and super_admin */}
-                <Route element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin']} />}>
-                  <Route path="/dashboard" element={<AnalyticsDashboard />} />
-                  <Route path="/reports" element={<AuditLogsPage />} />
-                </Route>
+        <CurrencyProvider>
+          <AppSettingsProvider>
+          <ToastProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<AuthPage />} />
+                <Route path="/register" element={<AuthPage />} />
+                <Route path="/forgot-password" element={<AuthPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-                {/* User Management accessible only to super_admin */}
-                <Route element={<RoleProtectedRoute allowedRoles={['super_admin']} />}>
-                  <Route path="/users" element={<UserManagementPage />} />
+                <Route element={<MainLayout />}>
+                  <Route element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin', 'staff']} />}>
+                    <Route path="/inventory" element={<InventoryPage />} />
+                    <Route path="/sales" element={<POSPage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+                  </Route>
+
+                  <Route element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin']} />}>
+                    <Route path="/dashboard" element={<AnalyticsDashboard />} />
+                    <Route path="/reports" element={<AuditLogsPage />} />
+                  </Route>
+
+                  <Route element={<RoleProtectedRoute allowedRoles={['super_admin']} />}>
+                    <Route path="/users" element={<UserManagementPage />} />
+                  </Route>
                 </Route>
-              </Route>
-            </Routes>
-          </BrowserRouter>
-        </ToastProvider>
+              </Routes>
+            </BrowserRouter>
+          </ToastProvider>
+          </AppSettingsProvider>
+        </CurrencyProvider>
       </AuthProvider>
     </ThemeProvider>
   );

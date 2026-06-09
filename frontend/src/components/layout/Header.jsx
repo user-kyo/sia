@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Search, User } from 'lucide-react';
+import { Bell, User } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Header = () => {
@@ -13,17 +13,7 @@ const Header = () => {
 
   return (
     <header className="h-20 bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl border-b border-slate-200 dark:border-white/10 flex items-center justify-between px-10 sticky top-0 z-20 transition-colors">
-      <div className="flex items-center relative w-[400px]">
-        <Search className="w-4 h-4 text-slate-400 absolute left-4" />
-        <input 
-          type="text" 
-          placeholder="Search everywhere..." 
-          className="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/50 dark:focus:bg-white/[0.05] transition-all"
-        />
-        <div className="absolute right-3 text-[10px] font-bold text-slate-400 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded flex items-center gap-0.5">
-          <span>⌘</span><span>K</span>
-        </div>
-      </div>
+      <div />
 
       <div className="flex items-center gap-6">
         <button className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors relative focus:outline-none">

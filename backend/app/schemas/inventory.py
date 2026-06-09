@@ -9,6 +9,7 @@ class InventoryItemCreate(BaseModel):
     category: str = Field(..., description="Product category")
     quantity: int = Field(default=0, ge=0)
     price: float = Field(default=0.0, ge=0.0)
+    currency: str = Field(default="PHP", description="ISO 4217 currency code the price is denominated in")
     reorder_point: int = Field(default=10, ge=0, description="Low-stock threshold")
     description: Optional[str] = None
     unit: str = Field(default="pcs")
@@ -20,6 +21,7 @@ class InventoryItemUpdate(BaseModel):
     category: Optional[str] = None
     quantity: Optional[int] = Field(None, ge=0)
     price: Optional[float] = Field(None, ge=0.0)
+    currency: Optional[str] = None
     reorder_point: Optional[int] = Field(None, ge=0)
     description: Optional[str] = None
     unit: Optional[str] = None
@@ -38,6 +40,7 @@ class InventoryItemResponse(BaseModel):
     category: str
     quantity: int
     price: float
+    currency: str = "PHP"
     reorder_point: int
     description: Optional[str] = None
     unit: str
