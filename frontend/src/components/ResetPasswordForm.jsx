@@ -3,6 +3,7 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { supabase } from '../lib/supabase';
 import PasswordStrengthIndicator from './PasswordStrengthIndicator';
+import { useToast } from './ui/Toast';
 
 export default function ResetPasswordForm() {
   const navigate = useNavigate();
@@ -10,15 +11,17 @@ export default function ResetPasswordForm() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [errorField, setErrorField] = useState(null);
+  const toast = useToast();
 
   const handleReset = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
+    setErrorField(null);
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      toast("Passwords do not match.", 'error');
+      setErrorField("password");
       setLoading(false);
       return;
     }
@@ -36,7 +39,8 @@ export default function ResetPasswordForm() {
     });
 
     if (authError) {
-      setError(authError.message);
+      toast(authError.message, 'error');
+      setErrorField("password");
       setLoading(false);
     } else {
       console.log('Password reset successfully');
@@ -54,8 +58,8 @@ export default function ResetPasswordForm() {
 
       <form className="space-y-4" onSubmit={handleReset}>
         <div>
-          <label className={`block text-sm font-semibold mb-1.5 ${error ? 'text-red-500' : 'text-slate-700'}`} htmlFor="password">
-            New Password
+          <label className={`block text-sm font-semibold mb-1.5 ${errorField === 'password' ? 'text-red-500' : 'text-slate-700'}`} htmlFor="password">
+            New Password <span className="text-red-500">*</span>
           </label>
           <div className="relative">
             <input
@@ -65,7 +69,7 @@ export default function ResetPasswordForm() {
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
               placeholder="Enter password"
-              className={`w-full rounded-xl border bg-white pl-4 pr-10 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 disabled:opacity-50 ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-200 focus:ring-blue-600/20 focus:border-blue-600'}`}
+              className={`w-full rounded-xl border bg-white pl-4 pr-10 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 disabled:opacity-50 ${errorField === 'password' ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-200 focus:ring-blue-600/20 focus:border-blue-600'}`}
               required
             />
             <button
@@ -80,8 +84,8 @@ export default function ResetPasswordForm() {
         </div>
 
         <div>
-          <label className={`block text-sm font-semibold mb-1.5 ${error ? 'text-red-500' : 'text-slate-700'}`} htmlFor="confirmPassword">
-            Confirm Password
+          <label className={`block text-sm font-semibold mb-1.5 ${errorField === 'password' ? 'text-red-500' : 'text-slate-700'}`} htmlFor="confirmPassword">
+            Confirm Password <span className="text-red-500">*</span>
           </label>
           <input
             id="confirmPassword"
@@ -90,16 +94,10 @@ export default function ResetPasswordForm() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             disabled={loading}
             placeholder="Enter password"
-            className={`w-full rounded-xl border bg-white px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 disabled:opacity-50 ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-200 focus:ring-blue-600/20 focus:border-blue-600'}`}
+            className={`w-full rounded-xl border bg-white px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 disabled:opacity-50 ${errorField === 'password' ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-200 focus:ring-blue-600/20 focus:border-blue-600'}`}
             required
           />
         </div>
-
-        {error && (
-          <div className="text-sm font-medium text-red-500 mt-2">
-            {error}
-          </div>
-        )}
 
         <div className="pt-2">
           <button
