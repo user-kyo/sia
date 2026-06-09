@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react'
-import { Edit2, BarChart2, Trash2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 
 const COLS = [
   { key: 'name', label: 'Product' },
@@ -148,27 +148,24 @@ export default function ProductTable({
                   </div>
                 </td>
                 <td className="px-4 py-3.5">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => onEdit(item)}
-                      title="Edit"
-                      className="w-7 h-7 flex items-center justify-center border border-slate-200 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                      className="px-2.5 py-1 text-xs font-medium border border-slate-200 rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
                     >
-                      <Edit2 size={12} />
+                      Edit
                     </button>
                     <button
                       onClick={() => onAdjustStock(item)}
-                      title="Adjust Stock"
-                      className="w-7 h-7 flex items-center justify-center border border-slate-200 rounded-md text-slate-400 hover:bg-green-50 hover:border-green-200 hover:text-green-600 transition-colors"
+                      className="px-2.5 py-1 text-xs font-medium border border-slate-200 rounded-md text-slate-600 hover:bg-green-50 hover:border-green-200 hover:text-green-700 transition-colors"
                     >
-                      <BarChart2 size={12} />
+                      Adjust Stock
                     </button>
                     <button
                       onClick={() => onDelete(item)}
-                      title="Delete"
-                      className="w-7 h-7 flex items-center justify-center border border-slate-200 rounded-md text-slate-400 hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors"
+                      className="px-2.5 py-1 text-xs font-medium border border-slate-200 rounded-md text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
                     >
-                      <Trash2 size={12} />
+                      Delete
                     </button>
                   </div>
                 </td>
