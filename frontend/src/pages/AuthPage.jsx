@@ -5,6 +5,7 @@ import ForgotPasswordForm from '../components/ForgotPasswordForm';
 import { Box, TrendingUp, ShieldCheck, Sparkles, DollarSign, Euro, PoundSterling, LineChart, PieChart, Coins } from 'lucide-react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 
 const FloatingBackgroundElements = () => {
   const elements = [
@@ -62,6 +63,37 @@ export default function AuthPage() {
     }
   }, [location.pathname]);
 
+  // Mouse parallax effect for background shapes
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  const handleMouseMove = (e) => {
+    const x = (e.clientX / window.innerWidth - 0.5) * 2;
+    const y = (e.clientY / window.innerHeight - 0.5) * 2;
+    mouseX.set(x);
+    mouseY.set(y);
+  };
+
+  const springConfig = { damping: 25, stiffness: 100, mass: 1.5 };
+  const smoothX = useSpring(mouseX, springConfig);
+  const smoothY = useSpring(mouseY, springConfig);
+
+  // Different depths for parallax
+  const x1 = useTransform(smoothX, [-1, 1], [-30, 30]);
+  const y1 = useTransform(smoothY, [-1, 1], [-30, 30]);
+
+  const x2 = useTransform(smoothX, [-1, 1], [40, -40]);
+  const y2 = useTransform(smoothY, [-1, 1], [40, -40]);
+
+  const x3 = useTransform(smoothX, [-1, 1], [-50, 50]);
+  const y3 = useTransform(smoothY, [-1, 1], [-50, 50]);
+
+  const x4 = useTransform(smoothX, [-1, 1], [25, -25]);
+  const y4 = useTransform(smoothY, [-1, 1], [-25, 25]);
+
+  const x5 = useTransform(smoothX, [-1, 1], [-60, 60]);
+  const y5 = useTransform(smoothY, [-1, 1], [60, -60]);
+
   if (user && userStatus !== 'pending' && userStatus !== 'revoked' && userStatus !== 'Revoked' && userStatus !== 'Pending') {
     return <Navigate to="/dashboard" replace />;
   }
@@ -87,7 +119,10 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="h-screen w-full flex bg-slate-50 dark:bg-[#0A0A0B] font-inter overflow-hidden selection:bg-indigo-500/30 transition-colors duration-300 relative">
+    <div 
+      className="h-screen w-full flex bg-slate-50 dark:bg-[#0A0A0B] font-inter overflow-hidden selection:bg-indigo-500/30 transition-colors duration-300 relative"
+      onMouseMove={handleMouseMove}
+    >
       
       {/* Global Backgrounds (Moved out of Left Section to fix boundary gap bug) */}
       <div className="absolute inset-0 z-0 pointer-events-none">
@@ -122,10 +157,26 @@ export default function AuthPage() {
       {/* Left Brand Section - Hidden on Mobile */}
       <div className="relative hidden lg:flex w-[55%] flex-col justify-between p-12 z-10">
 
-        {/* Abstract Glass Shapes for Premium Aesthetic */}
-        <div className="absolute top-[10%] right-[5%] w-64 h-64 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-[40%] backdrop-blur-3xl animate-floating mix-blend-multiply dark:mix-blend-screen border border-white/20 dark:border-white/5 shadow-2xl z-0 transform rotate-12 pointer-events-none"></div>
-        <div className="absolute bottom-[20%] left-[2%] w-80 h-80 bg-purple-500/10 dark:bg-purple-500/20 rounded-[30%] backdrop-blur-3xl animate-floating-delayed mix-blend-multiply dark:mix-blend-screen border border-white/20 dark:border-white/5 shadow-2xl z-0 transform -rotate-12 pointer-events-none"></div>
-        <div className="absolute top-[40%] left-[10%] w-32 h-32 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-full backdrop-blur-2xl animate-floating mix-blend-multiply dark:mix-blend-screen border border-white/20 dark:border-white/5 shadow-xl z-0 pointer-events-none"></div>
+        {/* Abstract Glass Shapes for Premium Aesthetic with Mouse Parallax */}
+        <motion.div style={{ x: x1, y: y1 }} className="absolute top-[10%] right-[5%] z-0 pointer-events-none">
+          <div className="w-64 h-64 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-[40%] backdrop-blur-3xl animate-floating mix-blend-multiply dark:mix-blend-screen border border-white/20 dark:border-white/5 shadow-2xl transform rotate-12"></div>
+        </motion.div>
+        
+        <motion.div style={{ x: x2, y: y2 }} className="absolute bottom-[20%] left-[2%] z-0 pointer-events-none">
+          <div className="w-80 h-80 bg-purple-500/10 dark:bg-purple-500/20 rounded-[30%] backdrop-blur-3xl animate-floating-delayed mix-blend-multiply dark:mix-blend-screen border border-white/20 dark:border-white/5 shadow-2xl transform -rotate-12"></div>
+        </motion.div>
+
+        <motion.div style={{ x: x3, y: y3 }} className="absolute top-[40%] left-[10%] z-0 pointer-events-none">
+          <div className="w-32 h-32 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-full backdrop-blur-2xl animate-floating mix-blend-multiply dark:mix-blend-screen border border-white/20 dark:border-white/5 shadow-xl"></div>
+        </motion.div>
+
+        <motion.div style={{ x: x4, y: y4 }} className="absolute bottom-[40%] right-[15%] z-0 pointer-events-none">
+          <div className="w-20 h-20 bg-rose-500/10 dark:bg-rose-500/20 rounded-[20%] backdrop-blur-2xl animate-floating mix-blend-multiply dark:mix-blend-screen border border-white/20 dark:border-white/5 shadow-xl transform rotate-45"></div>
+        </motion.div>
+
+        <motion.div style={{ x: x5, y: y5 }} className="absolute top-[25%] left-[30%] z-0 pointer-events-none">
+          <div className="w-40 h-40 bg-amber-500/10 dark:bg-amber-500/20 rounded-full backdrop-blur-3xl animate-floating-delayed mix-blend-multiply dark:mix-blend-screen border border-white/20 dark:border-white/5 shadow-2xl"></div>
+        </motion.div>
 
         <div className="relative z-10 flex flex-col h-full">
           <div className="flex items-center gap-3 mb-auto">
