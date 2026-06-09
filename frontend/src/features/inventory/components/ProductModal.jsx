@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X, Upload, Image as ImageIcon } from 'lucide-react'
 import { useUploadProductImage } from '../hooks/useInventory'
-import { X } from 'lucide-react'
 import { useCurrency } from '../../../contexts/CurrencyContext'
 import { useAppSettings } from '../../../contexts/AppSettingsContext'
 
@@ -9,8 +8,7 @@ const UNITS = ['pcs', 'kg', 'box', 'liter', 'set', 'pair']
 
 const EMPTY = {
   name: '', sku: '', category: '', price: '',
-  quantity: '', reorder_point: '10', unit: 'pcs', description: '', image_url: ''
-  quantity: '', reorder_point: '10', unit: 'pcs', description: '',
+  quantity: '', reorder_point: '10', unit: 'pcs', description: '', image_url: '',
   currency: 'PHP', // overwritten by useEffect based on display currency
 }
 
@@ -21,10 +19,11 @@ export default function ProductModal({ mode = 'add', product = null, categories 
   const [previewUrl, setPreviewUrl] = useState('')
   const uploadMutation = useUploadProductImage()
 
-  const { current: currency, code } = useCurrency()
+  const { code } = useCurrency()
   const { settings, t } = useAppSettings()
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (mode === 'edit' && product) {
       setForm({
         name: product.name,
@@ -40,14 +39,10 @@ export default function ProductModal({ mode = 'add', product = null, categories 
       })
       setPreviewUrl(product.image_url || '')
     } else {
-      setForm(EMPTY)
+      setForm({ ...EMPTY, reorder_point: String(settings.defaultReorderPoint), currency: code })
       setPreviewUrl('')
     }
     setImageFile(null)
-  }, [mode, product])
-      // Lock the currency to whatever is selected when the modal opens
-      setForm({ ...EMPTY, reorder_point: String(settings.defaultReorderPoint), currency: code })
-    }
   }, [mode, product]) // intentionally omit `code` — currency is locked at open time
 
   const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }))
@@ -198,8 +193,6 @@ export default function ProductModal({ mode = 'add', product = null, categories 
             </div>
 
             <div className="col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Description <span className="font-normal text-slate-400">(optional)</span>
               <label className={labelCls}>
                 {t('field_description')} <span className="font-normal text-slate-400 dark:text-slate-500">{t('field_optional')}</span>
               </label>
@@ -221,14 +214,12 @@ export default function ProductModal({ mode = 'add', product = null, categories 
             >
               {t('modal_cancel')}
             </button>
-            <button type="submit" disabled={isPending || uploadMutation.isPending} className="flex-1 py-2.5 bg-slate-900 rounded-lg text-sm font-medium text-white hover:opacity-90 disabled:opacity-60">
-              {isPending || uploadMutation.isPending ? 'Saving…' : mode === 'add' ? 'Add Product' : 'Save Changes'}
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || uploadMutation.isPending}
               className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold text-white disabled:opacity-60 transition-colors shadow-[0_4px_14px_0_rgba(99,102,241,0.2)]"
             >
-              {isPending ? t('modal_saving') : mode === 'add' ? t('modal_add_btn') : t('modal_save')}
+              {isPending || uploadMutation.isPending ? t('modal_saving') : mode === 'add' ? t('modal_add_btn') : t('modal_save')}
             </button>
           </div>
         </form>
