@@ -14,6 +14,7 @@ import POSPage from './pages/POSPage';
 import AuditLogsPage from './pages/AuditLogsPage';
 import ReportsPage from './pages/ReportsPage';
 import UserManagementPage from './pages/UserManagementPage';
+import UserProfilePage from './pages/UserProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import AuthPage from './pages/AuthPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
@@ -48,6 +49,7 @@ function App() {
 
                   <Route element={<RoleProtectedRoute allowedRoles={['super_admin']} />}>
                     <Route path="/users" element={<UserManagementPage />} />
+                    <Route path="/users/:id" element={<UserProfilePage />} />
                   </Route>
                 </Route>
               </Routes>
