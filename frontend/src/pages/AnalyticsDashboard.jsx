@@ -7,9 +7,11 @@ import {
   PieChart, Pie, Cell,
   BarChart, Bar
 } from 'recharts'
+import { useQuery } from '@tanstack/react-query'
 import { useCurrency } from '../contexts/CurrencyContext'
 import { useAppSettings } from '../contexts/AppSettingsContext'
 import { CardSkeleton, TableSkeleton, ChartCardSkeleton, TrendsChartSkeleton, CategoryChartSkeleton } from '../components/ui/Skeletons'
+import { fetchInventory } from '../features/inventory/api/inventoryApi'
 
 // --- Mock Data ---
 const revenueData = Array.from({ length: 30 }, (_, i) => ({
@@ -49,14 +51,6 @@ const recentTransactions = [
   { id: 'TXN-9828', amount: 599.00, items: 1, status: 'Completed', time: '4 hours ago' },
 ];
 
-const lowStockData = [
-  { name: 'Sony Alpha a7 IV', stock: 2, threshold: 10, status: 'Critical' },
-  { name: 'AirPods Pro Gen 2', stock: 5, threshold: 20, status: 'Low' },
-  { name: 'LG 27" Monitor', stock: 8, threshold: 15, status: 'Low' },
-  { name: 'Logitech MX Master 3S', stock: 1, threshold: 10, status: 'Critical' },
-  { name: 'Canon RF 24-70mm', stock: 3, threshold: 5, status: 'Critical' },
-  { name: 'Rode VideoMic Pro', stock: 4, threshold: 12, status: 'Low' },
-];
 
 // --- Custom Tooltips ---
 const CustomTooltip = ({ active, payload, label, prefix = '', isDay = false }) => {
@@ -169,8 +163,15 @@ const RecentOrdersTable = ({ limit, formatPrice }) => {
   );
 };
 
-const LowStockTable = ({ limit, t }) => {
-  const data = limit ? lowStockData.slice(0, limit) : lowStockData;
+const LowStockTable = ({ limit, t, items = [] }) => {
+  const data = limit ? items.slice(0, limit) : items;
+  if (data.length === 0) {
+    return (
+      <div className="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+        No low stock or out-of-stock items.
+      </div>
+    )
+  }
   return (
     <table className="w-full text-sm text-left">
       <thead className="text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold bg-slate-50 dark:bg-white/[0.03] border-b border-slate-100 dark:border-white/10 transition-colors">
@@ -183,7 +184,7 @@ const LowStockTable = ({ limit, t }) => {
         <AnimatePresence>
           {data.map((item, index) => (
             <motion.tr
-              key={item.name}
+              key={item.id ?? item.name}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
@@ -191,14 +192,14 @@ const LowStockTable = ({ limit, t }) => {
             >
               <td className="px-6 py-3">
                 <div className="font-medium text-slate-900 dark:text-slate-200 line-clamp-1" title={item.name}>{item.name}</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">{item.stock} / {item.threshold} units</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">{item.quantity} / {item.reorder_point} units</div>
               </td>
               <td className="px-6 py-3 text-right">
-                <span className={`inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${item.status === 'Critical'
+                <span className={`inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${item.quantity === 0
                   ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
                   : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/20'
                   }`}>
-                  {item.status}
+                  {item.quantity === 0 ? 'Out of Stock' : 'Low Stock'}
                 </span>
               </td>
             </motion.tr>
@@ -209,7 +210,7 @@ const LowStockTable = ({ limit, t }) => {
   );
 };
 
-const InsightSidebar = ({ activeModal, formatPrice, code, insight, isGenerating, generateInsight }) => {
+const InsightSidebar = ({ activeModal, formatPrice, code, insight, isGenerating, generateInsight, lowStockItems = [] }) => {
   const metrics = React.useMemo(() => {
     switch (activeModal) {
       case 'area': {
@@ -255,12 +256,12 @@ const InsightSidebar = ({ activeModal, formatPrice, code, insight, isGenerating,
         ];
       }
       case 'stock': {
-        const critical = lowStockData.filter(i => i.status === 'Critical').length;
-        const low = lowStockData.filter(i => i.status === 'Low').length;
+        const outOfStock = lowStockItems.filter(i => i.quantity === 0).length;
+        const lowStock = lowStockItems.filter(i => i.quantity > 0).length;
         return [
-          { label: "Critical Items", value: critical.toString() },
-          { label: "Low Stock Items", value: low.toString() },
-          { label: "Est. Restock Cost", value: formatPrice(4500) }
+          { label: "Out of Stock", value: outOfStock.toString() },
+          { label: "Low Stock Items", value: lowStock.toString() },
+          { label: "Total Alerts", value: lowStockItems.length.toString() },
         ];
       }
       case 'global_forecast': {
@@ -411,6 +412,22 @@ const AnalyticsDashboard = () => {
   const { formatPrice, code } = useCurrency()
   const { t } = useAppSettings()
 
+  const { data: inventoryTotalData } = useQuery({
+    queryKey: ['dashboard-inventory-total'],
+    queryFn: () => fetchInventory({ limit: 1, offset: 0 }),
+    staleTime: 60_000,
+  })
+
+  const { data: lowStockQueryData, isLoading: isLowStockLoading } = useQuery({
+    queryKey: ['dashboard-low-stock'],
+    queryFn: () => fetchInventory({ stockStatus: 'low_stock,out_of_stock', limit: 100, offset: 0 }),
+    staleTime: 60_000,
+  })
+
+  const totalInventoryItems = inventoryTotalData?.total ?? null
+  const lowStockItems = lowStockQueryData?.data ?? []
+  const lowStockCount = lowStockQueryData?.total ?? null
+
   const renderModalContent = () => {
     switch (activeModal) {
       case 'area':
@@ -456,7 +473,7 @@ const AnalyticsDashboard = () => {
       case 'stock':
         return (
           <div className="w-full">
-            <LowStockTable t={t} />
+            <LowStockTable t={t} items={lowStockItems} />
           </div>
         )
       case 'global_forecast':
@@ -700,7 +717,7 @@ const AnalyticsDashboard = () => {
       case 'kpi_alerts':
         return (
           <div className="w-full">
-            <LowStockTable t={t} />
+            <LowStockTable t={t} items={lowStockItems} />
           </div>
         )
       default:
@@ -798,7 +815,7 @@ const AnalyticsDashboard = () => {
                   </div>
                   {!['global_forecast', 'kpi_revenue', 'kpi_sales', 'kpi_inventory', 'kpi_alerts'].includes(activeModal) && (
                     <div className="w-full lg:w-80 shrink-0 bg-slate-50/30 dark:bg-white/[0.01] overflow-y-auto">
-                      <InsightSidebar activeModal={activeModal} formatPrice={formatPrice} code={code} insight={insight} isGenerating={isGenerating} generateInsight={generateInsight} />
+                      <InsightSidebar activeModal={activeModal} formatPrice={formatPrice} code={code} insight={insight} isGenerating={isGenerating} generateInsight={generateInsight} lowStockItems={lowStockItems} />
                     </div>
                   )}
                 </div>
@@ -886,8 +903,8 @@ const AnalyticsDashboard = () => {
             <motion.div key="kpi-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card onClick={() => setActiveModal('kpi_revenue')} title={t('dash_revenue')} value={formatPrice(45231.89)} icon={DollarSign} trend="+20.1%" trendUp={true} attention={t('dash_attention')} />
               <Card onClick={() => setActiveModal('kpi_sales')} title={t('dash_sales_txn')} value="1,204" icon={TrendingUp} trend="+12.5%" trendUp={true} attention={t('dash_attention')} />
-              <Card onClick={() => setActiveModal('kpi_inventory')} title={t('dash_inv_items')} value="8,432" icon={Package} trend="-4.2%" trendUp={false} attention={t('dash_attention')} />
-              <Card onClick={() => setActiveModal('kpi_alerts')} title={t('dash_low_alerts')} value="12" icon={AlertCircle} trend={t('dash_attention')} alert={true} attention={t('dash_attention')} />
+              <Card onClick={() => setActiveModal('kpi_inventory')} title={t('dash_inv_items')} value={totalInventoryItems !== null ? totalInventoryItems.toLocaleString() : '—'} icon={Package} trend="-4.2%" trendUp={false} attention={t('dash_attention')} />
+              <Card onClick={() => setActiveModal('kpi_alerts')} title={t('dash_low_alerts')} value={lowStockCount !== null ? lowStockCount.toString() : '—'} icon={AlertCircle} trend={t('dash_attention')} alert={true} attention={t('dash_attention')} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -1028,7 +1045,7 @@ const AnalyticsDashboard = () => {
                     </div>
                   </div>
                   <div className="overflow-x-auto flex-1">
-                    <LowStockTable limit={3} t={t} />
+                    <LowStockTable limit={3} t={t} items={lowStockItems} />
                   </div>
                 </ChartCard>
               </motion.div>
