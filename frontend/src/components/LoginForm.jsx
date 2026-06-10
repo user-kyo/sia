@@ -259,14 +259,14 @@ export default function LoginForm({ onToggle }) {
         </div>
       </form>
 
-      <div className="mt-8 text-center">
-        <span className="text-slate-500 dark:text-slate-400">Don't have an account? </span>
+      <div className="mt-8 text-center text-sm font-medium">
+        <span className="text-slate-500 dark:text-slate-400">Don't have a company account? </span>
         <button
           type="button"
           onClick={() => onToggle('register')}
           className="text-indigo-600 hover:text-indigo-500 transition-colors font-semibold bg-transparent border-none p-0 cursor-pointer"
         >
-          Register
+          Join or Register
         </button>
       </div>
     </div>

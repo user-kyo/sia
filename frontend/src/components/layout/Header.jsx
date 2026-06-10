@@ -4,14 +4,16 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
+import { api } from '../../lib/axios';
 
 const Header = ({ onLogoutClick }) => {
-  const { user, userRole } = useAuth();
+  const { user, userRole, companyId } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [companyName, setCompanyName] = useState('');
   const profileRef = useRef(null);
   const notifRef = useRef(null);
 
@@ -23,6 +25,23 @@ const Header = ({ onLogoutClick }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (companyId) {
+      const fetchCompany = async () => {
+        try {
+          const response = await api.get('/companies');
+          const company = response.data.find(c => c.id === companyId);
+          if (company) {
+            setCompanyName(company.name);
+          }
+        } catch (err) {
+          console.error("Error fetching company name:", err);
+        }
+      };
+      fetchCompany();
+    }
+  }, [companyId]);
 
   const roleDisplay = {
     'super_admin': 'Super Admin',
@@ -40,7 +59,14 @@ const Header = ({ onLogoutClick }) => {
 
   return (
     <header className="h-20 bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl border-b border-slate-200 dark:border-white/10 flex items-center justify-between px-10 sticky top-0 z-20 transition-colors">
-      <div className="flex-1" />
+      <div className="flex-1 flex items-center">
+        {companyName && (
+          <div className="flex flex-col">
+            <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Company</span>
+            <span className="text-xl font-bold text-slate-900 dark:text-white leading-tight">{companyName}</span>
+          </div>
+        )}
+      </div>
 
       <div className="flex items-center gap-6">
         {/* Notifications */}
