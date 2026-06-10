@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, User, Settings, LogOut, Moon, Sun } from 'lucide-react';
+import { Bell, User, Settings, LogOut, Moon, Sun, X, AlertTriangle, PackageX, ChevronDown, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useNotifications } from '../../contexts/NotificationContext';
+import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/axios';
@@ -9,8 +11,10 @@ import { api } from '../../lib/axios';
 const Header = ({ onLogoutClick }) => {
   const { user, userRole, companyId } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { notifications, unreadCount, markRead, markAllRead, dismiss, clearAll } = useNotifications();
+  const { t } = useAppSettings();
   const navigate = useNavigate();
-  
+
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [companyName, setCompanyName] = useState('');
@@ -49,13 +53,33 @@ const Header = ({ onLogoutClick }) => {
     'staff': 'Staff Member'
   };
 
-  // Mock notifications
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: 'Low Stock Alert', desc: 'Product "Wireless Mouse" is below reorder point.', time: '10m ago', unread: true },
-    { id: 2, title: 'System Update', desc: 'Version 1.0.1 has been deployed successfully.', time: '2h ago', unread: true },
-  ]);
+  const relativeTime = (ts) => {
+    const mins = Math.floor((Date.now() - ts) / 60000);
+    if (mins < 1) return t('notif_just_now');
+    if (mins < 60) return t('notif_min_ago', { n: mins });
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return t('notif_hr_ago', { n: hrs });
+    return t('notif_day_ago', { n: Math.floor(hrs / 24) });
+  };
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const notifMeta = (n) => n.type === 'out_of_stock'
+    ? {
+        title: t('notif_out_title'),
+        desc: t('notif_out_desc', { name: n.product.name }),
+        icon: <PackageX size={15} className="text-rose-500" />,
+        iconBg: 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20',
+      }
+    : {
+        title: t('notif_low_title'),
+        desc: t('notif_low_desc', { name: n.product.name, qty: n.product.quantity, reorder: n.product.reorder_point }),
+        icon: <AlertTriangle size={15} className="text-amber-500" />,
+        iconBg: 'bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20',
+      };
+
+  const handleNotifClick = (n) => {
+    setExpandedId(prev => (prev === n.id ? null : n.id));
+    if (n.unread) markRead(n.id);
+  };
 
   return (
     <header className="h-20 bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl border-b border-slate-200 dark:border-white/10 flex items-center justify-between px-10 sticky top-0 z-20 transition-colors">
@@ -77,13 +101,15 @@ const Header = ({ onLogoutClick }) => {
           >
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full border-2 border-white dark:border-[#0A0A0B]"></span>
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-[#0A0A0B] flex items-center justify-center leading-none">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
             )}
           </button>
 
           {/* Tooltip */}
           <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1 bg-slate-800 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none whitespace-nowrap z-[60]">
-            Notifications
+            {t('notif_title')}
           </div>
 
           <AnimatePresence>
@@ -96,31 +122,104 @@ const Header = ({ onLogoutClick }) => {
                 className="absolute right-0 mt-3 w-80 bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl overflow-hidden z-50"
               >
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-white/10">
-                  <span className="font-semibold text-slate-900 dark:text-white">Notifications</span>
-                  {unreadCount > 0 && (
-                    <button 
-                      onClick={() => setNotifications(prev => prev.map(n => ({...n, unread: false})))}
-                      className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 focus:outline-none focus-visible:underline"
-                    >
-                      Mark all read
-                    </button>
-                  )}
+                  <span className="font-semibold text-slate-900 dark:text-white">{t('notif_title')}</span>
+                  <div className="flex items-center gap-3">
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllRead}
+                        className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 focus:outline-none focus-visible:underline"
+                      >
+                        {t('notif_mark_all')}
+                      </button>
+                    )}
+                    {notifications.length > 0 && (
+                      <button
+                        onClick={() => { clearAll(); setExpandedId(null); }}
+                        className="text-xs font-medium text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 focus:outline-none focus-visible:underline"
+                      >
+                        {t('notif_clear_all')}
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="max-h-[300px] overflow-y-auto">
+                <div className="max-h-[340px] overflow-y-auto">
                   {notifications.length === 0 ? (
                     <div className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
-                      No new notifications.
+                      {t('notif_empty')}
                     </div>
                   ) : (
-                    notifications.map(n => (
-                      <div key={n.id} className={`px-4 py-3 border-b border-slate-50 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer ${n.unread ? 'bg-indigo-50/50 dark:bg-indigo-500/5' : ''}`}>
-                        <div className="flex justify-between items-start mb-1">
-                          <h4 className="text-sm font-medium text-slate-900 dark:text-white">{n.title}</h4>
-                          <span className="text-[10px] text-slate-400">{n.time}</span>
+                    notifications.map(n => {
+                      const meta = notifMeta(n);
+                      const expanded = expandedId === n.id;
+                      return (
+                        <div
+                          key={n.id}
+                          onClick={() => handleNotifClick(n)}
+                          className={`group/item px-4 py-3 border-b border-slate-50 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer ${n.unread ? 'bg-indigo-50/50 dark:bg-indigo-500/5' : ''}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center ${meta.iconBg}`}>
+                              {meta.icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-start gap-2 mb-0.5">
+                                <h4 className="text-sm font-medium text-slate-900 dark:text-white flex items-center gap-1.5">
+                                  {n.unread && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />}
+                                  {meta.title}
+                                </h4>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className="text-[10px] text-slate-400">{relativeTime(n.time)}</span>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); dismiss(n.id); if (expandedId === n.id) setExpandedId(null); }}
+                                    title={t('notif_dismiss')}
+                                    className="opacity-0 group-hover/item:opacity-100 p-0.5 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded"
+                                  >
+                                    <X size={13} />
+                                  </button>
+                                </div>
+                              </div>
+                              <p className={`text-xs text-slate-500 dark:text-slate-400 leading-snug ${expanded ? '' : 'line-clamp-1'}`}>
+                                {meta.desc}
+                              </p>
+
+                              <AnimatePresence>
+                                {expanded && (
+                                  <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="overflow-hidden"
+                                  >
+                                    <div className="mt-2 flex items-center justify-between gap-2 text-[11px]">
+                                      <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-mono">
+                                        {n.product.sku}
+                                      </span>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setIsNotifOpen(false);
+                                          setExpandedId(null);
+                                          navigate('/inventory');
+                                        }}
+                                        className="flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 focus:outline-none focus-visible:underline"
+                                      >
+                                        {t('notif_view_inventory')}
+                                        <ArrowRight size={11} />
+                                      </button>
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                            <ChevronDown
+                              size={13}
+                              className={`shrink-0 mt-1 text-slate-300 dark:text-slate-600 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+                            />
+                          </div>
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">{n.desc}</p>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </motion.div>
