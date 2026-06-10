@@ -22,8 +22,10 @@ const translations = {
 
     // Table columns
     col_product: 'Product',
+    col_brand: 'Brand',
     col_category: 'Category',
-    col_price: 'Price',
+    col_cost: 'Cost',
+    col_selling_price: 'Selling Price',
     col_stock: 'Stock Level',
     col_actions: 'Actions',
 
@@ -79,8 +81,10 @@ const translations = {
     // Modal form fields
     field_name: 'Product Name',
     field_sku: 'SKU',
+    field_brand: 'Brand',
     field_category: 'Category',
-    field_price: 'Price',
+    field_cost: 'Cost',
+    field_selling_price: 'Selling Price',
     field_unit: 'Unit',
     field_qty_initial: 'Initial Quantity',
     field_qty: 'Quantity',
@@ -273,8 +277,10 @@ const translations = {
 
     // Table columns
     col_product: 'Produkto',
+    col_brand: 'Brand',
     col_category: 'Kategorya',
-    col_price: 'Presyo',
+    col_cost: 'Halaga',
+    col_selling_price: 'Presyo ng Pagbebenta',
     col_stock: 'Antas ng Stock',
     col_actions: 'Mga Aksyon',
 
@@ -330,8 +336,10 @@ const translations = {
     // Modal form fields
     field_name: 'Pangalan ng Produkto',
     field_sku: 'SKU',
+    field_brand: 'Brand',
     field_category: 'Kategorya',
-    field_price: 'Presyo',
+    field_cost: 'Halaga ng Gastos',
+    field_selling_price: 'Presyo ng Pagbebenta',
     field_unit: 'Yunit',
     field_qty_initial: 'Paunang Dami',
     field_qty: 'Dami',

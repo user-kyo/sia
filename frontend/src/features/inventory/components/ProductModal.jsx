@@ -8,7 +8,7 @@ import { useAppSettings } from '../../../contexts/AppSettingsContext'
 const UNITS = ['pcs', 'kg', 'box', 'liter', 'set', 'pair']
 
 const EMPTY = {
-  name: '', sku: '', category: '', price: '',
+  name: '', sku: '', brand: '', category: '', cost: '', selling_price: '',
   quantity: '', reorder_point: '10', unit: 'pcs', description: '', image_url: '',
   currency: 'PHP', // overwritten by useEffect based on display currency
 }
@@ -29,8 +29,10 @@ export default function ProductModal({ mode = 'add', product = null, categories 
       setForm({
         name: product.name,
         sku: product.sku,
+        brand: product.brand || '',
         category: product.category,
-        price: String(product.price),
+        cost: String(product.cost ?? 0),
+        selling_price: String(product.selling_price || product.price || 0),
         quantity: String(product.quantity),
         reorder_point: String(product.reorder_point),
         unit: product.unit || 'pcs',
@@ -71,8 +73,11 @@ export default function ProductModal({ mode = 'add', product = null, categories 
         ...(mode === 'edit' && { id: product.id }),
         name: form.name.trim(),
         sku: form.sku.trim() || undefined,
+        brand: form.brand.trim() || undefined,
         category: form.category.trim(),
-        price: parseFloat(form.price),
+        cost: parseFloat(form.cost) || 0,
+        selling_price: parseFloat(form.selling_price) || 0,
+        price: parseFloat(form.selling_price) || 0,
         currency: form.currency,
         quantity: parseInt(form.quantity, 10),
         reorder_point: parseInt(form.reorder_point, 10),
@@ -133,6 +138,13 @@ export default function ProductModal({ mode = 'add', product = null, categories 
             </div>
 
             <div>
+              <label className={labelCls}>
+                {t('field_brand')} <span className="font-normal text-slate-400 dark:text-slate-500">{t('field_optional')}</span>
+              </label>
+              <input value={form.brand} onChange={set('brand')} placeholder="e.g. Apple" className={inputCls} />
+            </div>
+
+            <div>
               <label className={labelCls}>{t('field_category')} <span className="text-red-500">*</span></label>
               <input
                 required
@@ -149,14 +161,16 @@ export default function ProductModal({ mode = 'add', product = null, categories 
 
             <div>
               <label className={labelCls}>
-                {t('field_price')} ({form.currency}) <span className="text-red-500">*</span>
+                {t('field_cost')} ({form.currency}) <span className="text-red-500">*</span>
               </label>
-              <input required type="number" min="0" step="0.01" value={form.price} onChange={set('price')} placeholder="0.00" className={inputCls} />
-              {mode === 'edit' && form.currency !== code && (
-                <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                  Stored in {form.currency} — conversion shown in inventory table
-                </p>
-              )}
+              <input required type="number" min="0" step="0.01" value={form.cost} onChange={set('cost')} placeholder="0.00" className={inputCls} />
+            </div>
+
+            <div>
+              <label className={labelCls}>
+                {t('field_selling_price')} ({form.currency}) <span className="text-red-500">*</span>
+              </label>
+              <input required type="number" min="0" step="0.01" value={form.selling_price} onChange={set('selling_price')} placeholder="0.00" className={inputCls} />
             </div>
 
             <div>
