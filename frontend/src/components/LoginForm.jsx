@@ -70,13 +70,13 @@ export default function LoginForm({ onToggle }) {
         
         if (!MOCK_USERS[email.toLowerCase()]) {
           setErrorField('email');
-          toast(<div className="font-medium">Account does not exist. Please check your email or register.</div>);
+          toast(<div className="font-medium">Account does not exist. Please check your email or register.</div>, 'error');
           return;
         }
         
         if (password !== MOCK_USERS[email.toLowerCase()] && password !== '123456') {
           setErrorField('password');
-          toast(<div className="font-medium">Invalid password. Please try again.</div>);
+          toast(<div className="font-medium">Invalid password. Please try again.</div>, 'error');
           setFailedAttempts(prev => prev + 1);
           return;
         }
@@ -122,7 +122,8 @@ export default function LoginForm({ onToggle }) {
               Too many failed attempts. Forgot your password?
             </button>
           )}
-        </div>
+        </div>,
+        'error'
       );
       
       setFailedAttempts(newAttempts);
@@ -246,11 +247,11 @@ export default function LoginForm({ onToggle }) {
             {loading ? (
               <>
                 <Loader2 size={18} className="animate-spin mr-2" />
-                Signing in...
+                Logging in...
               </>
             ) : (
               <span className="flex items-center gap-2 relative z-10">
-                Sign in
+                Login
                 <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
               </span>
             )}
@@ -258,14 +259,14 @@ export default function LoginForm({ onToggle }) {
         </div>
       </form>
 
-      <div className="mt-8">
+      <div className="mt-8 text-center">
         <span className="text-slate-500 dark:text-slate-400">Don't have an account? </span>
         <button
           type="button"
           onClick={() => onToggle('register')}
           className="text-indigo-600 hover:text-indigo-500 transition-colors font-semibold bg-transparent border-none p-0 cursor-pointer"
         >
-          Create an account
+          Register
         </button>
       </div>
     </div>

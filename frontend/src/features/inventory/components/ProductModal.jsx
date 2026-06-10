@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X, Upload, Image as ImageIcon } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useUploadProductImage } from '../hooks/useInventory'
 import { useCurrency } from '../../../contexts/CurrencyContext'
 import { useAppSettings } from '../../../contexts/AppSettingsContext'
@@ -89,8 +90,22 @@ export default function ProductModal({ mode = 'add', product = null, categories 
   const labelCls = 'block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5'
 
   return (
-    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-[#0d0f1a] dark:backdrop-blur-xl border border-transparent dark:border-white/10 rounded-2xl w-full max-w-md shadow-2xl dark:shadow-none transition-colors duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+        className="relative bg-white dark:bg-[#0d0f1a] dark:backdrop-blur-xl border border-transparent dark:border-white/10 rounded-2xl w-full max-w-md shadow-2xl dark:shadow-none z-10"
+      >
 
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100 dark:border-white/10">
           <h2 className="text-base font-semibold text-slate-900 dark:text-white tracking-tight">
@@ -223,7 +238,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
             </button>
           </div>
         </form>
-      </div>
+      </motion.div>
     </div>
   )
 }

@@ -115,7 +115,7 @@ export default function AuthPage() {
       setTimeout(() => {
         setIsTransitioning(false);
       }, 50);
-    }, 300);
+    }, 400);
   };
 
   return (
@@ -250,7 +250,7 @@ export default function AuthPage() {
         <div className="absolute inset-0 overflow-y-auto flex z-10">
           <div className="m-auto w-full p-8 lg:p-16 flex justify-center">
             <div
-              className={`w-full flex justify-center py-8 transition-all duration-300 ease-in-out transform ${isTransitioning ? 'opacity-0 scale-95 translate-y-4' : 'opacity-100 scale-100 translate-y-0'
+              className={`w-full flex justify-center py-8 transition-all duration-[400ms] ease-[cubic-bezier(0.23,1,0.32,1)] transform ${isTransitioning ? 'opacity-0 scale-[0.97] -translate-y-4' : 'opacity-100 scale-100 translate-y-0'
                 }`}
             >
               {authMode === 'login' && <LoginForm onToggle={handleToggle} />}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router'
-import { LayoutDashboard, Package, ShoppingCart, FileText, Settings, Users, LogOut, ChevronLeft, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, FileText, Settings, Users, LogOut, ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useAppSettings } from '../../contexts/AppSettingsContext'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -8,32 +8,28 @@ import { createPortal } from 'react-dom'
 
 const ALL_NAV = [
   { key: 'nav_dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin'] },
-  { key: 'nav_inventory',  path: '/inventory', icon: Package,          roles: ['super_admin', 'admin', 'staff'] },
-  { key: 'nav_pos',        path: '/sales',     icon: ShoppingCart,     roles: ['super_admin', 'admin', 'staff'] },
-  { key: 'nav_reports',    path: '/reports',   icon: FileText,         roles: ['super_admin', 'admin'] },
-  { key: 'nav_users',      path: '/users',     icon: Users,            roles: ['super_admin'] },
-  { key: 'nav_settings',   path: '/settings',  icon: Settings,         roles: ['super_admin', 'admin', 'staff'] },
+  { key: 'nav_inventory', path: '/inventory', icon: Package, roles: ['super_admin', 'admin', 'staff'] },
+  { key: 'nav_pos', path: '/sales', icon: ShoppingCart, roles: ['super_admin', 'admin', 'staff'] },
+  { key: 'nav_data_reports', path: '/data-reports', icon: Download, roles: ['super_admin', 'admin'] },
+  { key: 'nav_reports', path: '/reports', icon: FileText, roles: ['super_admin', 'admin'] },
+  { key: 'nav_users', path: '/users', icon: Users, roles: ['super_admin'] },
+  { key: 'nav_settings', path: '/settings', icon: Settings, roles: ['super_admin', 'admin', 'staff'] },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ onLogoutClick }) {
   const navigate = useNavigate()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [hoveredItem, setHoveredItem] = useState(null)
-  const { signOut, userRole } = useAuth()
+  const { userRole } = useAuth()
   const { t } = useAppSettings()
 
   const role = userRole || 'staff'
   const navItems = ALL_NAV.filter(item => item.roles.includes(role))
 
-  const handleLogout = async () => {
-    await signOut()
-    navigate('/')
-  }
-
   return (
-    <motion.aside 
+    <motion.aside
       animate={{ width: isCollapsed ? 80 : 210, minWidth: isCollapsed ? 80 : 210 }}
-      transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+      transition={{ type: 'spring', stiffness: 350, damping: 25 }}
       className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl border-r border-slate-200 dark:border-white/10 flex flex-col h-screen overflow-hidden z-20"
     >
       <div className="flex items-center gap-3 px-6 py-6 border-b border-slate-100 dark:border-white/10 overflow-hidden">
@@ -42,10 +38,11 @@ export default function Sidebar() {
         </div>
         <AnimatePresence>
           {!isCollapsed && (
-            <motion.span 
-              initial={{ opacity: 0, width: 0 }}
-              animate={{ opacity: 1, width: 'auto' }}
-              exit={{ opacity: 0, width: 0 }}
+            <motion.span
+              initial={{ opacity: 0, width: 0, x: -10 }}
+              animate={{ opacity: 1, width: 'auto', x: 0 }}
+              exit={{ opacity: 0, width: 0, x: -10 }}
+              transition={{ duration: 0.2 }}
               className="text-slate-900 dark:text-white font-bold text-sm tracking-wide whitespace-nowrap overflow-hidden"
             >
               Stock & Roll
@@ -57,10 +54,11 @@ export default function Sidebar() {
       <div className="flex-1 pt-4 overflow-y-auto overflow-x-hidden">
         <AnimatePresence>
           {!isCollapsed && (
-            <motion.p 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
+            <motion.p
+              initial={{ opacity: 0, height: 0, x: -10 }}
+              animate={{ opacity: 1, height: 'auto', x: 0 }}
+              exit={{ opacity: 0, height: 0, x: -10 }}
+              transition={{ duration: 0.2 }}
               className="text-[10px] font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-widest px-6 pb-3 whitespace-nowrap overflow-hidden"
             >
               Main Menu
@@ -82,12 +80,10 @@ export default function Sidebar() {
             }}
             onMouseLeave={() => setHoveredItem(null)}
             className={({ isActive }) =>
-              `relative flex items-center gap-3 py-3 text-sm transition-colors ${
-                isCollapsed ? 'justify-center' : 'px-6'
-              } ${
-                isActive
-                  ? 'text-indigo-600 dark:text-indigo-400 font-medium'
-                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/[0.04] hover:text-slate-900 dark:hover:text-slate-200'
+              `relative flex items-center gap-3 py-3 text-sm transition-colors rounded-xl mx-2 my-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${isCollapsed ? 'justify-center' : 'px-4'
+              } ${isActive
+                ? 'text-indigo-600 dark:text-indigo-400 font-medium'
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/[0.04] hover:text-slate-900 dark:hover:text-slate-200'
               }`
             }
           >
@@ -104,10 +100,11 @@ export default function Sidebar() {
                   <Icon size={16} className="shrink-0" />
                   <AnimatePresence>
                     {!isCollapsed && (
-                      <motion.span 
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: 'auto' }}
-                        exit={{ opacity: 0, width: 0 }}
+                      <motion.span
+                        initial={{ opacity: 0, width: 0, x: -10 }}
+                        animate={{ opacity: 1, width: 'auto', x: 0 }}
+                        exit={{ opacity: 0, width: 0, x: -10 }}
+                        transition={{ duration: 0.2 }}
                         className="whitespace-nowrap overflow-hidden"
                       >
                         {t(key)}
@@ -123,7 +120,7 @@ export default function Sidebar() {
 
       <div className={`border-t border-slate-100 dark:border-white/10 px-6 py-5 flex items-center overflow-hidden ${isCollapsed ? 'justify-center flex-col gap-5' : 'justify-between'}`}>
         <button
-          onClick={handleLogout}
+          onClick={onLogoutClick}
           onMouseEnter={(e) => {
             if (!isCollapsed) return;
             const rect = e.currentTarget.getBoundingClientRect();
@@ -134,15 +131,16 @@ export default function Sidebar() {
             });
           }}
           onMouseLeave={() => setHoveredItem(null)}
-          className={`flex items-center gap-3 text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 text-sm transition-colors font-medium ${isCollapsed ? 'justify-center' : ''}`}
+          className={`flex items-center gap-3 text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 text-sm transition-colors font-medium rounded-xl p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 ${isCollapsed ? 'justify-center' : ''}`}
         >
           <LogOut size={16} className="shrink-0" />
           <AnimatePresence>
             {!isCollapsed && (
-              <motion.span 
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: 'auto' }}
-                exit={{ opacity: 0, width: 0 }}
+              <motion.span
+                initial={{ opacity: 0, width: 0, x: -10 }}
+                animate={{ opacity: 1, width: 'auto', x: 0 }}
+                exit={{ opacity: 0, width: 0, x: -10 }}
+                transition={{ duration: 0.2 }}
                 className="whitespace-nowrap overflow-hidden"
               >
                 {t('nav_logout')}
@@ -150,11 +148,13 @@ export default function Sidebar() {
             )}
           </AnimatePresence>
         </button>
-        <button 
+        <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 shrink-0"
+          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
-          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          <motion.div animate={{ rotate: isCollapsed ? 180 : 0 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
+            <ChevronLeft size={16} />
+          </motion.div>
         </button>
       </div>
 

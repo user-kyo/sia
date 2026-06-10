@@ -68,7 +68,7 @@ export default function ForgotPasswordForm({ onToggle }) {
           <span className="flex flex-col gap-1">
             <span>No account found with this email.</span>
             <button type="button" onClick={() => onToggle('register')} className="text-left font-bold underline hover:text-rose-700 w-fit transition-colors">
-              Create an account
+              Register
             </button>
           </span>,
           'error'
@@ -89,7 +89,7 @@ export default function ForgotPasswordForm({ onToggle }) {
             <span className="flex flex-col gap-1">
               <span>No account found with this email.</span>
               <button type="button" onClick={() => onToggle('register')} className="text-left font-bold underline hover:text-rose-700 w-fit transition-colors">
-                Create an account
+                Register
               </button>
             </span>,
             'error'
@@ -123,7 +123,7 @@ export default function ForgotPasswordForm({ onToggle }) {
           <span className="flex flex-col gap-1">
             <span>No account found with this email.</span>
             <button type="button" onClick={() => onToggle('register')} className="text-left font-bold underline hover:text-rose-700 w-fit transition-colors">
-              Create an account
+              Register
             </button>
           </span>,
           'error'

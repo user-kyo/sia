@@ -52,7 +52,7 @@ export const TableSkeleton = ({ rows = 5, columns = 4 }) => {
   );
 };
 
-export const CardSkeleton = ({ count = 4 }) => {
+export const CardSkeleton = ({ count = 4, className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full" }) => {
   return (
     <motion.div
       key="skeleton-cards"
@@ -60,16 +60,65 @@ export const CardSkeleton = ({ count = 4 }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full"
+      className={className}
     >
       {[...Array(count)].map((_, i) => (
-        <div key={i} className="p-6 rounded-2xl bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 shadow-sm flex items-center justify-between animate-pulse">
-          <div className="space-y-3">
-            <div className="h-4 w-20 bg-slate-200 dark:bg-white/10 rounded" />
-            <div className="h-6 w-28 bg-slate-200 dark:bg-white/10 rounded" />
-            <div className="h-3 w-32 bg-slate-200 dark:bg-white/10 rounded" />
+        <div key={i} className="relative h-full w-full bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col justify-between animate-pulse">
+          <div className="flex justify-between items-start mb-6">
+            <div className="h-11 w-11 rounded-xl bg-slate-200 dark:bg-white/10" />
+            <div className="h-6 w-16 bg-slate-200 dark:bg-white/10 rounded-md" />
           </div>
-          <div className="h-12 w-12 rounded-xl bg-slate-200 dark:bg-white/10 shrink-0" />
+          <div>
+            <div className="h-8 w-24 bg-slate-200 dark:bg-white/10 rounded mb-3" />
+            <div className="h-4 w-32 bg-slate-200 dark:bg-white/10 rounded" />
+          </div>
+        </div>
+      ))}
+    </motion.div>
+  );
+};
+
+export const ChartCardSkeleton = ({ className = "" }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className={`relative h-full w-full bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col animate-pulse ${className}`}
+    >
+      <div className="flex justify-between items-center mb-6">
+        <div className="h-5 w-48 bg-slate-200 dark:bg-white/10 rounded" />
+        <div className="h-8 w-8 bg-slate-200 dark:bg-white/10 rounded-lg" />
+      </div>
+      <div className="flex-1 w-full h-full min-h-[220px] bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5" />
+    </motion.div>
+  );
+};
+
+export const ReportCardSkeleton = ({ count = 3, className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full" }) => {
+  return (
+    <motion.div
+      key="skeleton-reports"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className={className}
+    >
+      {[...Array(count)].map((_, i) => (
+        <div key={i} className="bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col justify-between shadow-sm animate-pulse">
+          <div>
+            <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-white/10 mb-5" />
+            <div className="h-6 w-32 bg-slate-200 dark:bg-white/10 rounded mb-3" />
+            <div className="space-y-2 mb-2">
+              <div className="h-4 w-full bg-slate-200 dark:bg-white/10 rounded" />
+              <div className="h-4 w-4/5 bg-slate-200 dark:bg-white/10 rounded" />
+            </div>
+          </div>
+          <div className="mt-6 pt-6 border-t border-slate-100 dark:border-white/10">
+            <div className="h-10 w-full bg-slate-200 dark:bg-white/10 rounded-xl" />
+          </div>
         </div>
       ))}
     </motion.div>
