@@ -6,10 +6,12 @@ import { useAppSettings } from '../../../contexts/AppSettingsContext'
 import { TableSkeleton } from '../../../components/ui/Skeletons'
 
 const COLS = [
-  { key: 'name',     tKey: 'col_product'  },
-  { key: 'category', tKey: 'col_category' },
-  { key: 'price',    tKey: 'col_price'    },
-  { key: 'quantity', tKey: 'col_stock'    },
+  { key: 'name',         tKey: 'col_product'      },
+  { key: 'brand',        tKey: 'col_brand'         },
+  { key: 'category',     tKey: 'col_category'      },
+  { key: 'cost',         tKey: 'col_cost'          },
+  { key: 'selling_price', tKey: 'col_selling_price' },
+  { key: 'quantity',     tKey: 'col_stock'         },
 ]
 
 const DENSITY_CLS = {
@@ -155,6 +157,11 @@ export default function ProductTable({
                   <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5 transition-colors">{item.sku}</p>
                 </td>
                 <td className={`px-4 ${rowPad}`}>
+                  <p className="font-medium text-slate-700 dark:text-slate-200 transition-colors">
+                    {item.brand || <span className="text-slate-400 dark:text-slate-600">—</span>}
+                  </p>
+                </td>
+                <td className={`px-4 ${rowPad}`}>
                   <span className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold border ${catColor} transition-colors`}>
                     {item.category}
                   </span>
@@ -163,19 +170,29 @@ export default function ProductTable({
                   {(() => {
                     const stored = item.currency || code
                     const showBoth = stored !== code
+                    const val = item.cost ?? 0
                     return showBoth ? (
                       <>
-                        <p className="font-medium text-slate-900 dark:text-slate-200">
-                          {formatAs(item.price, stored)}
-                        </p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                          ≈ {formatPrice(item.price, stored)}
-                        </p>
+                        <p className="font-medium text-slate-700 dark:text-slate-200">{formatAs(val, stored)}</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">≈ {formatPrice(val, stored)}</p>
                       </>
                     ) : (
-                      <p className="font-medium text-slate-900 dark:text-slate-200">
-                        {formatPrice(item.price, stored)}
-                      </p>
+                      <p className="font-medium text-slate-700 dark:text-slate-200">{formatPrice(val)}</p>
+                    )
+                  })()}
+                </td>
+                <td className={`px-4 ${rowPad} transition-colors`}>
+                  {(() => {
+                    const stored = item.currency || code
+                    const showBoth = stored !== code
+                    const val = item.selling_price || item.price || 0
+                    return showBoth ? (
+                      <>
+                        <p className="font-semibold text-slate-900 dark:text-slate-200">{formatAs(val, stored)}</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">≈ {formatPrice(val, stored)}</p>
+                      </>
+                    ) : (
+                      <p className="font-semibold text-slate-900 dark:text-slate-200">{formatPrice(val)}</p>
                     )
                   })()}
                 </td>
@@ -215,7 +232,7 @@ export default function ProductTable({
 
           {items.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-4 py-16 text-center text-slate-500 dark:text-slate-400 text-sm">
+              <td colSpan={8} className="px-4 py-16 text-center text-slate-500 dark:text-slate-400 text-sm">
                 {t('inv_no_results')}
               </td>
             </tr>
