@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Search, Plus, Minus, CreditCard, X, Image as ImageIcon, ShoppingCart, Trash2, SlidersHorizontal } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useInventory, useInventorySubscription, useAdjustStock, useCategories } from '../features/inventory/hooks/useInventory'
+import { useInventory, useInventorySubscription, useAdjustStock, useCategories, useUnits } from '../features/inventory/hooks/useInventory'
 import { useAppSettings } from '../contexts/AppSettingsContext'
 import { useCurrency } from '../contexts/CurrencyContext'
 import FiltersPanel from '../features/inventory/components/FiltersPanel'
@@ -14,7 +14,7 @@ const POSPage = () => {
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [filters, setFilters] = useState({ category: '', stockStatus: '', minPrice: '', maxPrice: '' })
+  const [filters, setFilters] = useState({ categories: [], units: [], stockStatuses: [], minPrice: '', maxPrice: '', hasImage: false, sortBy: 'created_at-desc' })
 
   const { t } = useAppSettings()
   const { code, formatPrice, formatAs, convertAmount } = useCurrency()
@@ -28,14 +28,19 @@ const POSPage = () => {
 
   const queryFilters = {
     search: debouncedSearch || undefined,
-    category: filters.category || undefined,
-    stockStatus: filters.stockStatus || undefined,
+    category: filters.categories?.length > 0 ? filters.categories.join(',') : undefined,
+    stockStatus: filters.stockStatuses?.length > 0 ? filters.stockStatuses.join(',') : undefined,
+    unit: filters.units?.length > 0 ? filters.units.join(',') : undefined,
+    hasImage: filters.hasImage ? true : undefined,
     minPrice: filters.minPrice || undefined,
     maxPrice: filters.maxPrice || undefined,
+    sortBy: filters.sortBy ? filters.sortBy.split('-')[0] : 'created_at',
+    sortOrder: filters.sortBy ? filters.sortBy.split('-')[1] : 'desc',
   }
 
   const { data, isLoading: loading } = useInventory(queryFilters, { refetchInterval: 3000 })
   const { data: categories = [] } = useCategories()
+  const { data: units = [] } = useUnits()
   const products = data?.pages.flatMap(page => page.data) || []
 
   const adjustStockMutation = useAdjustStock()
@@ -335,9 +340,24 @@ const POSPage = () => {
       </div>
 
       {/* Checkout Confirmation Modal */}
+      <AnimatePresence>
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#0d0f1a] dark:border dark:border-white/10 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm"
+            onClick={() => setIsModalOpen(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+            className="relative bg-white dark:bg-[#0d0f1a] dark:border dark:border-white/10 rounded-2xl shadow-xl w-full max-w-md overflow-hidden z-10"
+          >
             <div className="p-6 border-b border-slate-100 dark:border-white/10">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('pos_checkout_title')}</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('pos_checkout_hint')}</p>
@@ -388,15 +408,16 @@ const POSPage = () => {
                 {isCheckoutLoading ? t('pos_processing') : t('pos_confirm')}
               </button>
             </div>
-          </div>
+            </motion.div>
         </div>
       )}
+      </AnimatePresence>
 
-      {/* Filters Panel */}
       <FiltersPanel
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         categories={categories}
+        units={units}
         filters={filters}
         onApply={setFilters}
       />

@@ -20,6 +20,8 @@ def _generate_sku() -> str:
 def list_inventory(
     search: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
+    unit: Optional[str] = Query(None),
+    has_image: Optional[bool] = Query(None),
     stock_status: Optional[str] = Query(None),
     min_price: Optional[float] = Query(None, ge=0),
     max_price: Optional[float] = Query(None, ge=0),
@@ -31,15 +33,26 @@ def list_inventory(
     if not supabase_client:
         raise HTTPException(status_code=500, detail="Supabase client not initialized")
 
+    category_list = category.split(",") if category else []
+    stock_status_list = stock_status.split(",") if stock_status else []
+    unit_list = unit.split(",") if unit else []
+
     ascending = sort_order == "asc"
-    needs_python_filter = stock_status in ("low_stock", "in_stock")
+    needs_python_filter = "low_stock" in stock_status_list or "in_stock" in stock_status_list
 
     def _build_base(with_count: bool):
         q = supabase_client.table("inventory").select("*", count="exact" if with_count else None)
         if search:
             q = q.or_(f"name.ilike.%{search}%,sku.ilike.%{search}%,category.ilike.%{search}%")
-        if category:
-            q = q.eq("category", category)
+        if category_list:
+            q = q.in_("category", category_list)
+        if unit_list:
+            q = q.in_("unit", unit_list)
+        if has_image is not None:
+            if has_image:
+                q = q.not_.is_("image_url", "null")
+            else:
+                q = q.is_("image_url", "null")
         if min_price is not None:
             q = q.gte("price", min_price)
         if max_price is not None:
@@ -48,7 +61,7 @@ def list_inventory(
 
     if not needs_python_filter:
         q = _build_base(with_count=True)
-        if stock_status == "out_of_stock":
+        if "out_of_stock" in stock_status_list:
             q = q.eq("quantity", 0)
         q = q.order(sort_by, desc=not ascending).range(offset, offset + limit - 1)
         result = q.execute()
@@ -64,13 +77,22 @@ def list_inventory(
         raise HTTPException(status_code=400, detail=str(result.error))
 
     items = result.data
-    if stock_status == "low_stock":
-        items = [i for i in items if 0 < i["quantity"] <= i["reorder_point"]]
-    elif stock_status == "in_stock":
-        items = [i for i in items if i["quantity"] > i["reorder_point"]]
+    filtered_items = []
+    
+    for i in items:
+        is_match = False
+        if "out_of_stock" in stock_status_list and i["quantity"] == 0:
+            is_match = True
+        elif "low_stock" in stock_status_list and 0 < i["quantity"] <= i["reorder_point"]:
+            is_match = True
+        elif "in_stock" in stock_status_list and i["quantity"] > i["reorder_point"]:
+            is_match = True
+            
+        if is_match:
+            filtered_items.append(i)
 
-    total = len(items)
-    return {"data": items[offset: offset + limit], "total": total, "has_more": offset + limit < total}
+    total = len(filtered_items)
+    return {"data": filtered_items[offset: offset + limit], "total": total, "has_more": offset + limit < total}
 
 
 @router.get("/{item_id}", response_model=InventoryItemResponse)

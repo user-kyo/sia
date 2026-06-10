@@ -11,6 +11,7 @@ import AnalyticsDashboard from './pages/AnalyticsDashboard';
 import InventoryPage from './pages/InventoryPage';
 import POSPage from './pages/POSPage';
 import AuditLogsPage from './pages/AuditLogsPage';
+import ReportsPage from './pages/ReportsPage';
 import UserManagementPage from './pages/UserManagementPage';
 import SettingsPage from './pages/SettingsPage';
 import AuthPage from './pages/AuthPage';
@@ -39,6 +40,7 @@ function App() {
 
                   <Route element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin']} />}>
                     <Route path="/dashboard" element={<AnalyticsDashboard />} />
+                    <Route path="/data-reports" element={<ReportsPage />} />
                     <Route path="/reports" element={<AuditLogsPage />} />
                   </Route>
 

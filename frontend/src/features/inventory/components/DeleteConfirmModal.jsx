@@ -1,4 +1,5 @@
 import { Trash2 } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useAppSettings } from '../../../contexts/AppSettingsContext'
 
 export default function DeleteConfirmModal({ products = [], onClose, onConfirm, isPending }) {
@@ -6,8 +7,22 @@ export default function DeleteConfirmModal({ products = [], onClose, onConfirm, 
   const { t } = useAppSettings()
 
   return (
-    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-[#0d0f1a] dark:backdrop-blur-xl border border-transparent dark:border-white/10 rounded-2xl w-full max-w-sm shadow-2xl dark:shadow-none transition-colors duration-300 p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+        className="relative bg-white dark:bg-[#0d0f1a] dark:backdrop-blur-xl border border-transparent dark:border-white/10 rounded-2xl w-full max-w-sm shadow-2xl dark:shadow-none p-6 z-10"
+      >
 
         <div className="w-11 h-11 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-xl flex items-center justify-center mb-4">
           <Trash2 size={20} className="text-red-500 dark:text-red-400" />
@@ -38,7 +53,7 @@ export default function DeleteConfirmModal({ products = [], onClose, onConfirm, 
             {isPending ? t('del_deleting') : t('del_confirm')}
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }

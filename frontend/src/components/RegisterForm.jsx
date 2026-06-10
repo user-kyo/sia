@@ -125,7 +125,7 @@ export default function RegisterForm({ onToggle }) {
         <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-xl shadow-[0_0_20px_rgba(99,102,241,0.3)] mb-6 lg:hidden">
           SR
         </div>
-        <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Create an account</h2>
+        <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Register</h2>
         <p className="text-base font-medium text-slate-500 dark:text-slate-400 mt-3">Register to get started with Stock & Roll</p>
       </div>
 
@@ -284,7 +284,7 @@ export default function RegisterForm({ onToggle }) {
               </>
             ) : (
               <span className="flex items-center gap-2 relative z-10">
-                Create account
+                Register
                 <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
               </span>
             )}

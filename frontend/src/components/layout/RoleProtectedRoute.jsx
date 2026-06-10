@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { AlertCircle, Clock, LogOut } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function RoleProtectedRoute({ allowedRoles }) {
   const { user, userRole, userStatus, loading, signOut } = useAuth();
@@ -23,8 +24,21 @@ export default function RoleProtectedRoute({ allowedRoles }) {
 
   if (userStatus && userStatus !== 'approved') {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center animate-in zoom-in-95 duration-300">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 10 }}
+          transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+          className="relative w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center z-10"
+        >
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 mb-6">
             {userStatus === 'pending' ? (
               <Clock className="h-8 w-8 text-amber-500" />
@@ -45,9 +59,9 @@ export default function RoleProtectedRoute({ allowedRoles }) {
             className="w-full inline-flex justify-center items-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition-colors"
           >
             <LogOut size={16} className="mr-2" />
-            Sign Out
+            Logout
           </button>
-        </div>
+        </motion.div>
       </div>
     );
   }

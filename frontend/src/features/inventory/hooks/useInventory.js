@@ -3,7 +3,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { supabase } from '../../../lib/supabase'
 import {
   fetchInventory, createProduct, updateProduct,
-  deleteProduct, adjustStock, fetchCategories, uploadProductImage
+  deleteProduct, adjustStock, fetchCategories, uploadProductImage, fetchUnits
 } from '../api/inventoryApi'
 
 const LIMIT = 20
@@ -47,6 +47,13 @@ export const useCategories = () =>
   useQuery({
     queryKey: ['categories'],
     queryFn: fetchCategories,
+    staleTime: 1000 * 60 * 5,
+  })
+
+export const useUnits = () =>
+  useQuery({
+    queryKey: ['units'],
+    queryFn: fetchUnits,
     staleTime: 1000 * 60 * 5,
   })
 

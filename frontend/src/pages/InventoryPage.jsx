@@ -6,7 +6,7 @@ import { useToast } from '../components/ui/Toast'
 import { useCurrency } from '../contexts/CurrencyContext'
 import { useAppSettings } from '../contexts/AppSettingsContext'
 import {
-  useInventory, useCategories,
+  useInventory, useCategories, useUnits,
   useCreateProduct, useUpdateProduct, useDeleteProduct, useAdjustStock,
 } from '../features/inventory/hooks/useInventory'
 import ProductTable from '../features/inventory/components/ProductTable'
@@ -36,9 +36,10 @@ function exportToCSV(items, filename, formatPrice) {
 export default function InventoryPage() {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [filters, setFilters] = useState({ category: '', stockStatus: '', minPrice: '', maxPrice: '' })
+  const [filters, setFilters] = useState({ categories: [], units: [], stockStatuses: [], minPrice: '', maxPrice: '', hasImage: false })
   const [sort, setSort] = useState({ by: 'created_at', order: 'desc' })
   const [selectedIds, setSelectedIds] = useState(new Set())
+  const [hiddenIds, setHiddenIds] = useState(new Set()) // For optimistic UI undo
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [modal, setModal] = useState(null)
 
@@ -51,8 +52,10 @@ export default function InventoryPage() {
 
   const queryFilters = {
     search: debouncedSearch || undefined,
-    category: filters.category || undefined,
-    stockStatus: filters.stockStatus || undefined,
+    category: filters.categories?.length > 0 ? filters.categories.join(',') : undefined,
+    stockStatus: filters.stockStatuses?.length > 0 ? filters.stockStatuses.join(',') : undefined,
+    unit: filters.units?.length > 0 ? filters.units.join(',') : undefined,
+    hasImage: filters.hasImage ? true : undefined,
     minPrice: filters.minPrice || undefined,
     maxPrice: filters.maxPrice || undefined,
     sortBy: sort.by,
@@ -61,9 +64,11 @@ export default function InventoryPage() {
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInventory(queryFilters)
   const { data: categories = [] } = useCategories()
+  const { data: units = [] } = useUnits()
 
-  const allItems = data?.pages.flatMap(p => p.data) ?? []
-  const total = data?.pages[0]?.total ?? 0
+  const allItemsRaw = data?.pages.flatMap(p => p.data) ?? []
+  const allItems = allItemsRaw.filter(i => !hiddenIds.has(i.id))
+  const total = (data?.pages[0]?.total ?? 0) - hiddenIds.size
 
   const toast = useToast()
   const { formatPrice } = useCurrency()
@@ -90,13 +95,41 @@ export default function InventoryPage() {
     })
   }
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = () => {
     const ids = modal.products.map(p => p.id)
-    await Promise.all(ids.map(id => deleteMutation.mutateAsync(id)))
+    const count = ids.length
+    
+    // Optimistically hide
+    setHiddenIds(prev => new Set([...prev, ...ids]))
     setSelectedIds(new Set())
     closeModal()
-    const count = ids.length
-    toast(count === 1 ? `"${modal.products[0].name}" deleted.` : `${count} products deleted.`)
+
+    // Setup delayed delete
+    const timerId = setTimeout(() => {
+      Promise.all(ids.map(id => deleteMutation.mutateAsync(id))).catch(console.error)
+      setHiddenIds(prev => {
+        const next = new Set(prev)
+        ids.forEach(id => next.delete(id))
+        return next
+      })
+    }, 5000)
+
+    toast(
+      count === 1 ? `"${modal.products[0].name}" deleted.` : `${count} products deleted.`,
+      'success',
+      {
+        label: 'Undo',
+        onClick: () => {
+          clearTimeout(timerId)
+          setHiddenIds(prev => {
+            const next = new Set(prev)
+            ids.forEach(id => next.delete(id))
+            return next
+          })
+          toast('Action undone. Product restored.', 'success')
+        }
+      }
+    )
   }
 
   return (
@@ -179,8 +212,15 @@ export default function InventoryPage() {
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         categories={categories}
-        filters={filters}
-        onApply={setFilters}
+        units={units}
+        filters={{ ...filters, sortBy: `${sort.by}-${sort.order}` }}
+        onApply={(f) => {
+          setFilters(f)
+          if (f.sortBy) {
+            const [by, order] = f.sortBy.split('-')
+            setSort({ by, order })
+          }
+        }}
       />
 
       {/* Modals */}

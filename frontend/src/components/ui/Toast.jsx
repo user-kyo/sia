@@ -12,12 +12,13 @@ export function ToastProvider({ children }) {
 
   // toast(message)              → success
   // toast(message, 'error')     → red
-  // toast(message, 'warning')   → amber  ← new
-  const addToast = useCallback((message, type = 'success') => {
+  // toast(message, 'warning')   → amber
+  // toast(message, 'success', { label: 'Undo', onClick: () => {} }) → with action button
+  const addToast = useCallback((message, type = 'success', action = null) => {
     const id = Date.now() + Math.random()
-    setToasts(prev => [...prev, { id, message, type }])
-    // Warnings stay a bit longer so the user has time to read them
-    setTimeout(() => dismiss(id), type === 'warning' ? 6000 : 3500)
+    setToasts(prev => [...prev, { id, message, type, action }])
+    // Warnings and actionable toasts stay longer
+    setTimeout(() => dismiss(id), type === 'warning' ? 6000 : action ? 6000 : 3500)
     return id
   }, [dismiss])
 
@@ -56,7 +57,17 @@ function ToastItem({ toast, onDismiss }) {
   return (
     <div className={`pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium min-w-[280px] max-w-sm ${v.bg} ${v.border}`}>
       <span className="mt-0.5">{v.icon}</span>
-      <span className="flex-1 text-slate-800 dark:text-slate-100 leading-relaxed">{toast.message}</span>
+      <div className="flex-1 flex flex-col">
+        <span className="text-slate-800 dark:text-slate-100 leading-relaxed">{toast.message}</span>
+        {toast.action && (
+          <button
+            onClick={() => { toast.action.onClick(); onDismiss(toast.id); }}
+            className="mt-2 w-fit text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
+            {toast.action.label}
+          </button>
+        )}
+      </div>
       <button
         onClick={() => onDismiss(toast.id)}
         className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors shrink-0 mt-0.5"
