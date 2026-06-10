@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
   const [userStatus, setUserStatus] = useState(null);
+  const [companyId, setCompanyId] = useState(null);
 
   useEffect(() => {
     // Check active session on mount
@@ -17,6 +18,7 @@ export const AuthProvider = ({ children }) => {
       setUser(session?.user ?? null);
       setUserRole(session?.user?.user_metadata?.role || 'staff'); // Default to staff if not set
       setUserStatus(session?.user?.user_metadata?.status || 'approved'); // Default to approved for older accounts
+      setCompanyId(session?.user?.user_metadata?.company_id || null);
       setLoading(false);
     });
 
@@ -26,6 +28,7 @@ export const AuthProvider = ({ children }) => {
       setUser(session?.user ?? null);
       setUserRole(session?.user?.user_metadata?.role || 'staff');
       setUserStatus(session?.user?.user_metadata?.status || 'approved');
+      setCompanyId(session?.user?.user_metadata?.company_id || null);
       setLoading(false);
     });
 
@@ -37,7 +40,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, userRole, userStatus, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, userRole, userStatus, companyId, signOut }}>
       {!loading && children}
     </AuthContext.Provider>
   );
