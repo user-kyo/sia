@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { CurrencyProvider } from './contexts/CurrencyContext';
 import { AppSettingsProvider } from './contexts/AppSettingsContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import { ToastProvider } from './components/ui/Toast';
 import RoleProtectedRoute from './components/layout/RoleProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
@@ -23,6 +24,7 @@ function App() {
       <AuthProvider>
         <CurrencyProvider>
           <AppSettingsProvider>
+          <NotificationProvider>
           <ToastProvider>
             <BrowserRouter>
               <Routes>
@@ -51,6 +53,7 @@ function App() {
               </Routes>
             </BrowserRouter>
           </ToastProvider>
+          </NotificationProvider>
           </AppSettingsProvider>
         </CurrencyProvider>
       </AuthProvider>

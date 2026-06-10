@@ -232,6 +232,22 @@ const translations = {
     // Settings
     set_title: 'Settings',
     set_subtitle: 'Manage your system preferences and appearance',
+
+    // Notifications
+    notif_title: 'Notifications',
+    notif_mark_all: 'Mark all read',
+    notif_clear_all: 'Clear all',
+    notif_empty: 'No new notifications.',
+    notif_low_title: 'Low Stock Alert',
+    notif_out_title: 'Out of Stock',
+    notif_low_desc: '"{name}" is running low — {qty} left (reorder point: {reorder}).',
+    notif_out_desc: '"{name}" is out of stock. Restock soon to avoid missed sales.',
+    notif_view_inventory: 'View in Inventory',
+    notif_dismiss: 'Dismiss',
+    notif_just_now: 'just now',
+    notif_min_ago: '{n}m ago',
+    notif_hr_ago: '{n}h ago',
+    notif_day_ago: '{n}d ago',
   },
 
   fil: {
@@ -467,6 +483,22 @@ const translations = {
     // Settings
     set_title: 'Mga Setting',
     set_subtitle: 'Pamahalaan ang iyong mga kagustuhan at hitsura ng sistema',
+
+    // Notifications
+    notif_title: 'Mga Abiso',
+    notif_mark_all: 'Markahan lahat na nabasa',
+    notif_clear_all: 'Burahin lahat',
+    notif_empty: 'Walang bagong abiso.',
+    notif_low_title: 'Alerto sa Mababang Stock',
+    notif_out_title: 'Ubos na ang Stock',
+    notif_low_desc: 'Ang "{name}" ay paubos na — {qty} na lang (reorder point: {reorder}).',
+    notif_out_desc: 'Ubos na ang stock ng "{name}". Mag-restock agad upang maiwasan ang nawalang benta.',
+    notif_view_inventory: 'Tingnan sa Imbentaryo',
+    notif_dismiss: 'Alisin',
+    notif_just_now: 'ngayon lang',
+    notif_min_ago: '{n}m ang nakalipas',
+    notif_hr_ago: '{n}h ang nakalipas',
+    notif_day_ago: '{n}d ang nakalipas',
   },
 }
 
