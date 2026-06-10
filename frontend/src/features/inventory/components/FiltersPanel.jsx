@@ -92,10 +92,10 @@ function RadioItem({ label, active, onClick }) {
   )
 }
 
-export default function FiltersPanel({ isOpen, onClose, categories = [], units = [], filters, onApply }) {
+export default function FiltersPanel({ isOpen, onClose, categories = [], brands = [], filters, onApply }) {
   const [local, setLocal] = useState({ 
     categories: filters.categories || [], 
-    units: filters.units || [],
+    brands: filters.brands || [],
     stockStatuses: filters.stockStatuses || [], 
     minPrice: filters.minPrice || '', 
     maxPrice: filters.maxPrice || '',
@@ -107,7 +107,7 @@ export default function FiltersPanel({ isOpen, onClose, categories = [], units =
 
   const handleReset = () => {
     const reset = { 
-      categories: [], units: [], stockStatuses: [], 
+      categories: [], brands: [], stockStatuses: [], 
       minPrice: '', maxPrice: '', hasImage: false, sortBy: 'created_at-desc' 
     }
     setLocal(reset)
@@ -221,21 +221,19 @@ export default function FiltersPanel({ isOpen, onClose, categories = [], units =
             })}
           </FilterSection>
 
-          <FilterSection title="Unit Type">
-            {units.map(unit => {
-              const active = local.units.includes(unit)
-              // Auto-capitalize the unit string
-              const displayUnit = unit.charAt(0).toUpperCase() + unit.slice(1)
+          <FilterSection title="Brand">
+            {brands.map(brand => {
+              const active = local.brands.includes(brand)
               return (
                 <CheckboxItem
-                  key={unit}
-                  label={displayUnit}
+                  key={brand}
+                  label={brand}
                   active={active}
                   onClick={() => setLocal(l => ({
                     ...l,
-                    units: active 
-                      ? l.units.filter(u => u !== unit) 
-                      : [...l.units, unit]
+                    brands: active 
+                      ? l.brands.filter(b => b !== brand) 
+                      : [...l.brands, brand]
                   }))}
                 />
               )

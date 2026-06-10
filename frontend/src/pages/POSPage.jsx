@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Search, Plus, Minus, CreditCard, X, Image as ImageIcon, ShoppingCart, Trash2, SlidersHorizontal } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useInventory, useInventorySubscription, useAdjustStock, useCategories, useUnits } from '../features/inventory/hooks/useInventory'
+import { useInventory, useInventorySubscription, useAdjustStock, useCategories, useBrands } from '../features/inventory/hooks/useInventory'
 import { useAppSettings } from '../contexts/AppSettingsContext'
 import { useCurrency } from '../contexts/CurrencyContext'
 import FiltersPanel from '../features/inventory/components/FiltersPanel'
@@ -14,7 +14,7 @@ const POSPage = () => {
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [filters, setFilters] = useState({ categories: [], units: [], stockStatuses: [], minPrice: '', maxPrice: '', hasImage: false, sortBy: 'created_at-desc' })
+  const [filters, setFilters] = useState({ categories: [], brands: [], stockStatuses: [], minPrice: '', maxPrice: '', hasImage: false, sortBy: 'created_at-desc' })
 
   const { t } = useAppSettings()
   const { code, formatPrice, formatAs, convertAmount } = useCurrency()
@@ -29,8 +29,8 @@ const POSPage = () => {
   const queryFilters = {
     search: debouncedSearch || undefined,
     category: filters.categories?.length > 0 ? filters.categories.join(',') : undefined,
+    brand: filters.brands?.length > 0 ? filters.brands.join(',') : undefined,
     stockStatus: filters.stockStatuses?.length > 0 ? filters.stockStatuses.join(',') : undefined,
-    unit: filters.units?.length > 0 ? filters.units.join(',') : undefined,
     hasImage: filters.hasImage ? true : undefined,
     minPrice: filters.minPrice || undefined,
     maxPrice: filters.maxPrice || undefined,
@@ -40,7 +40,7 @@ const POSPage = () => {
 
   const { data, isLoading: loading } = useInventory(queryFilters, { refetchInterval: 3000 })
   const { data: categories = [] } = useCategories()
-  const { data: units = [] } = useUnits()
+  const { data: brands = [] } = useBrands()
   const products = data?.pages.flatMap(page => page.data) || []
 
   const adjustStockMutation = useAdjustStock()
@@ -417,7 +417,7 @@ const POSPage = () => {
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         categories={categories}
-        units={units}
+        brands={brands}
         filters={filters}
         onApply={setFilters}
       />

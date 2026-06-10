@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { queryClient } from '../lib/react-query';
 
 const AuthContext = createContext({});
 
@@ -36,6 +37,14 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const signOut = async () => {
+    // Clear the entire React Query cache to prevent data leakage between accounts
+    queryClient.clear();
+    
+    // Wipe sensitive company/user-specific settings from local storage
+    localStorage.removeItem('sia_app_settings');
+    localStorage.removeItem('sia_currency');
+    localStorage.removeItem('sia_dismissed_notifications');
+
     await supabase.auth.signOut();
   };
 

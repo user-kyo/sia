@@ -21,7 +21,7 @@ def _generate_sku() -> str:
 def list_inventory(
     search: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
-    unit: Optional[str] = Query(None),
+    brand: Optional[str] = Query(None),
     has_image: Optional[bool] = Query(None),
     stock_status: Optional[str] = Query(None),
     min_price: Optional[float] = Query(None, ge=0),
@@ -36,8 +36,8 @@ def list_inventory(
         raise HTTPException(status_code=500, detail="Supabase client not initialized")
 
     category_list = category.split(",") if category else []
+    brand_list = brand.split(",") if brand else []
     stock_status_list = stock_status.split(",") if stock_status else []
-    unit_list = unit.split(",") if unit else []
 
     ascending = sort_order == "asc"
     needs_python_filter = "low_stock" in stock_status_list or "in_stock" in stock_status_list
@@ -48,8 +48,8 @@ def list_inventory(
             q = q.or_(f"name.ilike.%{search}%,sku.ilike.%{search}%,category.ilike.%{search}%")
         if category_list:
             q = q.in_("category", category_list)
-        if unit_list:
-            q = q.in_("unit", unit_list)
+        if brand_list:
+            q = q.in_("brand", brand_list)
         if has_image is not None:
             if has_image:
                 q = q.not_.is_("image_url", "null")
@@ -128,7 +128,7 @@ def create_inventory_item(item: InventoryItemCreate, current_user: dict = Depend
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     if not result.data:
-        raise HTTPException(status_code=500, detail="Failed to create item — the inventory table may be missing required columns (category, reorder_point, description, unit). Please add them in Supabase.")
+        raise HTTPException(status_code=500, detail="Failed to create item — the inventory table may be missing required columns (category, reorder_point, description, brand). Please add them in Supabase.")
     return result.data[0]
 
 
