@@ -5,11 +5,9 @@ import { useUploadProductImage } from '../hooks/useInventory'
 import { useCurrency } from '../../../contexts/CurrencyContext'
 import { useAppSettings } from '../../../contexts/AppSettingsContext'
 
-const UNITS = ['pcs', 'kg', 'box', 'liter', 'set', 'pair']
-
 const EMPTY = {
   name: '', sku: '', brand: '', category: '', cost: '', selling_price: '',
-  quantity: '', reorder_point: '10', unit: 'pcs', description: '', image_url: '',
+  quantity: '', reorder_point: '10', description: '', image_url: '',
   currency: 'PHP', // overwritten by useEffect based on display currency
 }
 
@@ -35,7 +33,6 @@ export default function ProductModal({ mode = 'add', product = null, categories 
         selling_price: String(product.selling_price || product.price || 0),
         quantity: String(product.quantity),
         reorder_point: String(product.reorder_point),
-        unit: product.unit || 'pcs',
         description: product.description || '',
         image_url: product.image_url || '',
         currency: product.currency || 'PHP',
@@ -81,7 +78,6 @@ export default function ProductModal({ mode = 'add', product = null, categories 
         currency: form.currency,
         quantity: parseInt(form.quantity, 10),
         reorder_point: parseInt(form.reorder_point, 10),
-        unit: form.unit,
         description: form.description.trim() || undefined,
         image_url: finalImageUrl,
       })
@@ -146,17 +142,17 @@ export default function ProductModal({ mode = 'add', product = null, categories 
 
             <div>
               <label className={labelCls}>{t('field_category')} <span className="text-red-500">*</span></label>
-              <input
+              <select
                 required
-                list="inv-categories"
                 value={form.category}
                 onChange={set('category')}
-                placeholder="e.g. Electronics"
                 className={inputCls}
-              />
-              <datalist id="inv-categories">
-                {categories.map(c => <option key={c} value={c} />)}
-              </datalist>
+              >
+                <option value="" disabled className="bg-white dark:bg-[#0d0f1a]">Select a category</option>
+                {categories.map(c => (
+                  <option key={c} value={c} className="bg-white dark:bg-[#0d0f1a]">{c}</option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -173,12 +169,6 @@ export default function ProductModal({ mode = 'add', product = null, categories 
               <input required type="number" min="0" step="0.01" value={form.selling_price} onChange={set('selling_price')} placeholder="0.00" className={inputCls} />
             </div>
 
-            <div>
-              <label className={labelCls}>{t('field_unit')}</label>
-              <select value={form.unit} onChange={set('unit')} className={inputCls}>
-                {UNITS.map(u => <option key={u} value={u} className="bg-white dark:bg-[#0d0f1a]">{u}</option>)}
-              </select>
-            </div>
 
             <div>
               <label className={labelCls}>

@@ -12,8 +12,8 @@ class InventoryItemCreate(BaseModel):
     currency: str = Field(default="PHP", description="ISO 4217 currency code the price is denominated in")
     reorder_point: int = Field(default=10, ge=0, description="Low-stock threshold")
     description: Optional[str] = None
-    unit: str = Field(default="pcs")
     image_url: Optional[str] = None
+    brand: Optional[str] = None
 
 
 class InventoryItemUpdate(BaseModel):
@@ -25,8 +25,8 @@ class InventoryItemUpdate(BaseModel):
     currency: Optional[str] = None
     reorder_point: Optional[int] = Field(None, ge=0)
     description: Optional[str] = None
-    unit: Optional[str] = None
     image_url: Optional[str] = None
+    brand: Optional[str] = None
 
 
 class StockAdjustment(BaseModel):
@@ -45,8 +45,8 @@ class InventoryItemResponse(BaseModel):
     currency: str = "PHP"
     reorder_point: int
     description: Optional[str] = None
-    unit: str
     image_url: Optional[str] = None
+    brand: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 

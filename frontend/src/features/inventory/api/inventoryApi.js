@@ -9,11 +9,11 @@ const buildQS = (params) => {
 }
 
 export const fetchInventory = async ({
-  search, category, stockStatus, minPrice, maxPrice,
-  sortBy, sortOrder, unit, hasImage, offset = 0, limit = 20,
+  search, category, brand, stockStatus, minPrice, maxPrice,
+  sortBy, sortOrder, hasImage, offset = 0, limit = 20,
 }) => {
   const qs = buildQS({
-    search, category, unit,
+    search, category, brand,
     has_image: hasImage,
     stock_status: stockStatus,
     min_price: minPrice,
@@ -60,7 +60,12 @@ export const fetchCategories = async () => {
   return data
 }
 
-export const fetchUnits = async () => {
-  const { data } = await api.get('/units')
+export const createCategory = async (categoryData) => {
+  const { data } = await api.post('/categories', categoryData)
+  return data
+}
+
+export const fetchBrands = async () => {
+  const { data } = await api.get('/brands')
   return data
 }
