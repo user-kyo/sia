@@ -6,12 +6,12 @@ import { useAppSettings } from '../../../contexts/AppSettingsContext'
 import { TableSkeleton } from '../../../components/ui/Skeletons'
 
 const COLS = [
-  { key: 'name',         tKey: 'col_product'      },
-  { key: 'brand',        tKey: 'col_brand'         },
-  { key: 'category',     tKey: 'col_category'      },
-  { key: 'cost',         tKey: 'col_cost'          },
-  { key: 'selling_price', tKey: 'col_selling_price' },
-  { key: 'quantity',     tKey: 'col_stock'         },
+  { key: 'name',         tKey: 'col_product',       width: 'w-[22%]' },
+  { key: 'brand',        tKey: 'col_brand',         width: 'w-[12%]' },
+  { key: 'category',     tKey: 'col_category',      width: 'w-[12%]' },
+  { key: 'cost',         tKey: 'col_cost',          width: 'w-[12%]' },
+  { key: 'selling_price', tKey: 'col_selling_price', width: 'w-[12%]' },
+  { key: 'quantity',     tKey: 'col_stock',         width: 'w-[14%]' },
 ]
 
 const DENSITY_CLS = {
@@ -98,12 +98,12 @@ export default function ProductTable({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm dark:shadow-none transition-colors duration-300"
+          className="overflow-x-auto relative min-h-[500px]"
         >
-      <table className="w-full text-sm text-left">
-        <thead className="bg-slate-50 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/10 transition-colors">
+      <table className="w-full min-w-[800px] text-left text-sm table-fixed">
+        <thead className="bg-slate-50 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 transition-colors">
           <tr>
-            <th className="w-10 px-4 py-3">
+            <th className="w-14 px-6 py-4">
               <input
                 type="checkbox"
                 checked={allSelected}
@@ -116,7 +116,7 @@ export default function ProductTable({
               <th
                 key={col.key}
                 onClick={() => handleSort(col.key)}
-                className="px-4 py-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-900 dark:hover:text-white select-none whitespace-nowrap transition-colors"
+                className={`px-6 py-4 font-semibold cursor-pointer hover:text-slate-900 dark:hover:text-white select-none whitespace-nowrap transition-colors ${col.width || ''}`}
               >
                 <span className="flex items-center gap-1">
                   {t(col.tKey)}
@@ -124,7 +124,7 @@ export default function ProductTable({
                 </span>
               </th>
             ))}
-            <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider transition-colors">
+            <th className="px-6 py-4 font-semibold text-center transition-colors w-[16%] min-w-[180px]">
               {t('col_actions')}
             </th>
           </tr>
@@ -142,9 +142,9 @@ export default function ProductTable({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ delay: index * 0.05, type: 'spring', stiffness: 380, damping: 30 }}
-                  className={`transition-colors ${isSelected ? 'bg-indigo-50 dark:bg-indigo-500/10' : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'}`}
+                  className={`transition-colors group relative ${isSelected ? 'bg-indigo-50 dark:bg-indigo-500/10' : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'}`}
                 >
-                <td className={`px-4 ${rowPad}`}>
+                <td className={`px-6 ${rowPad}`}>
                   <input
                     type="checkbox"
                     checked={isSelected}
@@ -152,21 +152,21 @@ export default function ProductTable({
                     className="w-4 h-4 rounded bg-white dark:bg-white/5 border-slate-300 dark:border-white/20 cursor-pointer accent-indigo-600 dark:accent-indigo-500 shadow-sm dark:shadow-none"
                   />
                 </td>
-                <td className={`px-4 ${rowPad}`}>
+                <td className={`px-6 ${rowPad}`}>
                   <p className="font-semibold text-slate-900 dark:text-slate-200 transition-colors">{item.name}</p>
                   <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5 transition-colors">{item.sku}</p>
                 </td>
-                <td className={`px-4 ${rowPad}`}>
+                <td className={`px-6 ${rowPad}`}>
                   <p className="font-medium text-slate-700 dark:text-slate-200 transition-colors">
                     {item.brand || <span className="text-slate-400 dark:text-slate-600">—</span>}
                   </p>
                 </td>
-                <td className={`px-4 ${rowPad}`}>
+                <td className={`px-6 ${rowPad}`}>
                   <span className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold border ${catColor} transition-colors`}>
                     {item.category}
                   </span>
                 </td>
-                <td className={`px-4 ${rowPad} transition-colors`}>
+                <td className={`px-6 ${rowPad} transition-colors`}>
                   {(() => {
                     const stored = item.currency || code
                     const showBoth = stored !== code
@@ -181,7 +181,7 @@ export default function ProductTable({
                     )
                   })()}
                 </td>
-                <td className={`px-4 ${rowPad} transition-colors`}>
+                <td className={`px-6 ${rowPad} transition-colors`}>
                   {(() => {
                     const stored = item.currency || code
                     const showBoth = stored !== code
@@ -196,13 +196,13 @@ export default function ProductTable({
                     )
                   })()}
                 </td>
-                <td className={`px-4 ${rowPad}`}>
+                <td className={`px-6 ${rowPad}`}>
                   <div className="flex items-center gap-2">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
                     <span className={`text-sm font-semibold ${text} transition-colors`}>{label}</span>
                   </div>
                 </td>
-                <td className={`px-4 ${rowPad}`}>
+                <td className={`px-6 ${rowPad} text-center`}>
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => onEdit(item)}

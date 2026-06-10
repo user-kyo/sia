@@ -96,6 +96,53 @@ export const ChartCardSkeleton = ({ className = "" }) => {
   );
 };
 
+export const TrendsChartSkeleton = ({ className = "" }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className={`relative h-full w-full bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col animate-pulse ${className}`}
+    >
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-3">
+          <div className="h-5 w-32 bg-slate-200 dark:bg-white/10 rounded" />
+          <div className="h-5 w-16 bg-slate-200 dark:bg-white/10 rounded" />
+        </div>
+        <div className="h-4 w-12 bg-slate-200 dark:bg-white/10 rounded" />
+      </div>
+      <div className="flex-1 w-full h-full min-h-[220px] bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5" />
+    </motion.div>
+  );
+};
+
+export const CategoryChartSkeleton = ({ className = "" }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className={`relative h-full w-full bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col animate-pulse ${className}`}
+    >
+      <div className="flex justify-between items-center mb-6">
+        <div className="h-5 w-32 bg-slate-200 dark:bg-white/10 rounded" />
+        <div className="h-4 w-12 bg-slate-200 dark:bg-white/10 rounded" />
+      </div>
+      <div className="flex-1 w-full h-full min-h-[220px] bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5" />
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-slate-200 dark:bg-white/10 shrink-0" />
+            <div className="h-3 w-16 bg-slate-200 dark:bg-white/10 rounded" />
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+};
+
 export const ReportCardSkeleton = ({ count = 3, className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full" }) => {
   return (
     <motion.div
