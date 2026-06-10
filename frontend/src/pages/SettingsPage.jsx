@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { SectionSkeleton } from '../components/ui/Skeletons'
 import { supabase } from '../lib/supabase'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator'
+import { useAuth } from '../contexts/AuthContext'
 
 const DATE_FORMATS = ['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD']
 
@@ -33,6 +34,7 @@ const inputCls = 'w-full px-3 py-2.5 bg-white dark:bg-white/[0.04] border border
 const labelCls = 'block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5'
 
 export default function SettingsPage() {
+  const { user } = useAuth()
   const { theme, setTheme } = useTheme()
   const { code, setCurrency } = useCurrency()
   const { settings, updateSettings, t } = useAppSettings()
@@ -40,6 +42,7 @@ export default function SettingsPage() {
 
   const [activeTab, setActiveTab] = useState('business')
   const [confirmCurrency, setConfirmCurrency] = useState(null)
+  const [confirmSetting, setConfirmSetting] = useState(null)
 
   const [isLoading, setIsLoading] = useState(true)
   React.useEffect(() => {
@@ -63,13 +66,33 @@ export default function SettingsPage() {
   const [oldPassword, setOldPassword] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
+  const [showOldPassword, setShowOldPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   
   const handleUpdatePassword = async () => {
-    if (!password || !oldPassword) return
+    setFormError('')
+    setFieldErrors({})
+    
+    const newFieldErrors = {}
+    if (!oldPassword) newFieldErrors.oldPassword = "Current Password is required."
+    if (!password) newFieldErrors.password = "New Password is required."
+    if (!confirmPassword) newFieldErrors.confirmPassword = "Confirm New Password is required."
+    
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors)
+      return
+    }
+
     if (password !== confirmPassword) {
-      toast("Passwords do not match.", 'error')
+      return
+    }
+    
+    if (password === oldPassword) {
+      setFieldErrors({ password: "New password cannot be the same as the current password." })
       return
     }
     
@@ -85,9 +108,21 @@ export default function SettingsPage() {
       return
     }
 
+    // Verify current password first by re-authenticating
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: oldPassword,
+    })
+    
+    if (signInError) {
+      setFieldErrors({ oldPassword: "The current password is incorrect." })
+      setIsUpdatingPassword(false)
+      return
+    }
+
     const { error } = await supabase.auth.updateUser({ password })
     if (error) {
-      toast(error.message, 'error')
+      setFormError(error.message)
     } else {
       setOldPassword('')
       setPassword('')
@@ -280,7 +315,12 @@ export default function SettingsPage() {
               {DATE_FORMATS.map(fmt => (
                 <button
                   key={fmt}
-                  onClick={() => updateSettings({ dateFormat: fmt })}
+                  onClick={() => setConfirmSetting({
+                    type: 'dateFormat',
+                    value: fmt,
+                    title: 'Change Date Format?',
+                    description: `Are you sure you want to change the date format to ${fmt}?`
+                  })}
                   className={`px-4 py-2 rounded-xl border-2 text-sm font-semibold transition-all ${
                     settings.dateFormat === fmt
                       ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300'
@@ -299,7 +339,12 @@ export default function SettingsPage() {
               {[{ val: '12h', key: 'set_dt_12h' }, { val: '24h', key: 'set_dt_24h' }].map(opt => (
                 <button
                   key={opt.val}
-                  onClick={() => updateSettings({ timeFormat: opt.val })}
+                  onClick={() => setConfirmSetting({
+                    type: 'timeFormat',
+                    value: opt.val,
+                    title: 'Change Time Format?',
+                    description: `Are you sure you want to change the time format to ${t(opt.key)}?`
+                  })}
                   className={`px-4 py-2 rounded-xl border-2 text-sm font-semibold transition-all ${
                     settings.timeFormat === opt.val
                       ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300'
@@ -315,11 +360,23 @@ export default function SettingsPage() {
           <div className="pt-1 border-t border-slate-100 dark:border-white/10">
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-3">
               {t('set_dt_preview')} <span className="font-semibold text-slate-600 dark:text-slate-300">
-                {new Intl.DateTimeFormat('en', {
-                  month: '2-digit', day: '2-digit', year: 'numeric',
-                  hour: '2-digit', minute: '2-digit',
-                  hour12: settings.timeFormat === '12h',
-                }).format(new Date())}
+                {(() => {
+                  const now = new Date();
+                  const d = now.getDate().toString().padStart(2, '0');
+                  const m = (now.getMonth() + 1).toString().padStart(2, '0');
+                  const y = now.getFullYear();
+                  
+                  let dateStr = `${m}/${d}/${y}`;
+                  if (settings.dateFormat === 'DD/MM/YYYY') dateStr = `${d}/${m}/${y}`;
+                  if (settings.dateFormat === 'YYYY-MM-DD') dateStr = `${y}-${m}-${d}`;
+                  
+                  const timeStr = new Intl.DateTimeFormat('en', {
+                    hour: '2-digit', minute: '2-digit',
+                    hour12: settings.timeFormat === '12h'
+                  }).format(now);
+                  
+                  return `${dateStr} ${timeStr}`;
+                })()}
               </span>
             </p>
           </div>
@@ -335,7 +392,12 @@ export default function SettingsPage() {
           ].map(({ val, label, flag, note }) => (
             <button
               key={val}
-              onClick={() => updateSettings({ language: val })}
+              onClick={() => setConfirmSetting({
+                type: 'language',
+                value: val,
+                title: 'Change Language?',
+                description: `Are you sure you want to change the language to ${label}?`
+              })}
               className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
                 settings.language === val
                   ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10'
@@ -469,39 +531,45 @@ export default function SettingsPage() {
                       <label className={labelCls}>Current Password</label>
                       <div className="relative">
                         <input
-                          type={showPassword ? "text" : "password"}
+                          type={showOldPassword ? "text" : "password"}
                           value={oldPassword}
-                          onChange={e => setOldPassword(e.target.value)}
+                          onChange={e => { setOldPassword(e.target.value); setFieldErrors(prev => ({...prev, oldPassword: ''})); }}
                           placeholder="Enter current password"
-                          className={inputCls}
+                          className={`${inputCls} ${fieldErrors.oldPassword ? '!border-red-500 focus:!ring-red-500/30' : ''}`}
                         />
                         <button
                           type="button"
-                          onClick={() => setShowPassword(!showPassword)}
+                          onClick={() => setShowOldPassword(!showOldPassword)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                         >
-                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          {showOldPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
+                      {fieldErrors.oldPassword && (
+                        <p className="text-xs text-red-500 mt-1.5 font-medium">{fieldErrors.oldPassword}</p>
+                      )}
                     </div>
                     <div>
                       <label className={labelCls}>New Password</label>
                       <div className="relative">
                         <input
-                          type={showPassword ? "text" : "password"}
+                          type={showNewPassword ? "text" : "password"}
                           value={password}
-                          onChange={e => setPassword(e.target.value)}
+                          onChange={e => { setPassword(e.target.value); setFieldErrors(prev => ({...prev, password: ''})); }}
                           placeholder="Enter new password"
-                          className={inputCls}
+                          className={`${inputCls} ${fieldErrors.password ? '!border-red-500 focus:!ring-red-500/30' : ''}`}
                         />
                         <button
                           type="button"
-                          onClick={() => setShowPassword(!showPassword)}
+                          onClick={() => setShowNewPassword(!showNewPassword)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                         >
-                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
+                      {fieldErrors.password && (
+                        <p className="text-xs text-red-500 mt-1.5 font-medium">{fieldErrors.password}</p>
+                      )}
                       <div className="mt-2">
                         <PasswordStrengthIndicator password={password} />
                       </div>
@@ -510,24 +578,38 @@ export default function SettingsPage() {
                       <label className={labelCls}>Confirm New Password</label>
                       <div className="relative">
                         <input
-                          type={showPassword ? "text" : "password"}
+                          type={showConfirmPassword ? "text" : "password"}
                           value={confirmPassword}
-                          onChange={e => setConfirmPassword(e.target.value)}
+                          onChange={e => { setConfirmPassword(e.target.value); setFieldErrors(prev => ({...prev, confirmPassword: ''})); }}
                           placeholder="Confirm new password"
-                          className={inputCls}
+                          className={`${inputCls} ${
+                            (confirmPassword && password !== confirmPassword) || fieldErrors.confirmPassword
+                              ? '!border-red-500 focus:!ring-red-500/30' 
+                              : ''
+                          }`}
                         />
                         <button
                           type="button"
-                          onClick={() => setShowPassword(!showPassword)}
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                         >
-                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
+                      {confirmPassword && password !== confirmPassword ? (
+                        <p className="text-xs text-red-500 mt-1.5 font-medium">Passwords do not match.</p>
+                      ) : fieldErrors.confirmPassword ? (
+                        <p className="text-xs text-red-500 mt-1.5 font-medium">{fieldErrors.confirmPassword}</p>
+                      ) : null}
                     </div>
+                    {formError && (
+                      <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl">
+                        <p className="text-xs text-red-600 dark:text-red-400 font-medium">{formError}</p>
+                      </div>
+                    )}
                     <button
                       onClick={handleUpdatePassword}
-                      disabled={isUpdatingPassword || !oldPassword || !password}
+                      disabled={isUpdatingPassword}
                       className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:hover:bg-indigo-600 rounded-xl text-sm font-semibold text-white transition-colors shadow-[0_4px_14px_0_rgba(99,102,241,0.2)]"
                     >
                       {isUpdatingPassword ? 'Updating...' : 'Update Password'}
@@ -551,6 +633,55 @@ export default function SettingsPage() {
               </>
             )}
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {confirmSetting && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm"
+              onClick={() => setConfirmSetting(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+              className="relative bg-white dark:bg-[#0d0f1a] dark:backdrop-blur-xl border border-transparent dark:border-white/10 rounded-2xl w-full max-w-sm shadow-2xl dark:shadow-none p-6 z-10"
+            >
+              <div className="w-11 h-11 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl flex items-center justify-center mb-4">
+                <AlertTriangle size={20} className="text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white tracking-tight mb-1.5">
+                {confirmSetting.title}
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+                {confirmSetting.description}
+              </p>
+              <div className="flex gap-2.5">
+                <button
+                  onClick={() => setConfirmSetting(null)}
+                  className="flex-1 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors"
+                >
+                  {t('modal_cancel') || 'Cancel'}
+                </button>
+                <button
+                  onClick={() => {
+                    updateSettings({ [confirmSetting.type]: confirmSetting.value })
+                    setConfirmSetting(null)
+                  }}
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold text-white transition-colors shadow-[0_4px_14px_0_rgba(99,102,241,0.2)]"
+                >
+                  Confirm
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
