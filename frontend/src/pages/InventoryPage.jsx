@@ -141,13 +141,7 @@ export default function InventoryPage() {
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">{t('inv_subtitle')}</p>
         </div>
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => exportToCSV(allItems, 'inventory.csv', formatPrice)}
-            className="flex items-center gap-2 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all backdrop-blur-md shadow-sm dark:shadow-none"
-          >
-            <Download size={15} />
-            {t('inv_export')}
-          </button>
+
           <button
             onClick={() => setIsFilterOpen(true)}
             className="flex items-center gap-2 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all backdrop-blur-md shadow-sm dark:shadow-none"
@@ -165,21 +159,27 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {/* Search + count */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative w-80">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder={t('inv_search')}
-            className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all backdrop-blur-md shadow-sm dark:shadow-none"
-          />
+      {/* Main Table Card Wrapper */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-white dark:bg-[#0A0A0B] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden transition-colors duration-300"
+      >
+        <div className="p-5 border-b border-slate-200 dark:border-white/10 flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50/50 dark:bg-white/[0.01] transition-colors">
+          <div className="relative w-full sm:max-w-xs">
+            <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={t('inv_search')}
+              className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all shadow-sm dark:shadow-none"
+            />
+          </div>
+          <span className="text-sm font-medium text-slate-500 dark:text-slate-400 w-full sm:w-auto text-left sm:text-right">
+            {total.toLocaleString()} {t('inv_total')}
+          </span>
         </div>
-        <span className="ml-auto text-sm font-medium text-slate-500 dark:text-slate-400">
-          {total.toLocaleString()} {t('inv_total')}
-        </span>
-      </div>
 
       {/* Bulk action bar */}
       {selectedIds.size > 0 && (
@@ -191,21 +191,24 @@ export default function InventoryPage() {
       )}
 
       {/* Table */}
-      <ProductTable
-        items={allItems}
-        isLoading={isLoading}
-        hasNextPage={hasNextPage}
-        isFetchingNextPage={isFetchingNextPage}
-        fetchNextPage={fetchNextPage}
-        sort={sort}
-        onSortChange={setSort}
-        selectedIds={selectedIds}
-        onSelectAll={handleSelectAll}
-        onSelectOne={handleSelectOne}
-        onEdit={product => setModal({ type: 'edit', product })}
-        onAdjustStock={product => setModal({ type: 'adjust', product })}
-        onDelete={product => setModal({ type: 'delete', products: [product] })}
-      />
+      <div className="relative">
+        <ProductTable
+          items={allItems}
+          isLoading={isLoading}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          fetchNextPage={fetchNextPage}
+          sort={sort}
+          onSortChange={setSort}
+          selectedIds={selectedIds}
+          onSelectAll={handleSelectAll}
+          onSelectOne={handleSelectOne}
+          onEdit={product => setModal({ type: 'edit', product })}
+          onAdjustStock={product => setModal({ type: 'adjust', product })}
+          onDelete={product => setModal({ type: 'delete', products: [product] })}
+        />
+      </div>
+      </motion.div>
 
       {/* Filters panel */}
       <FiltersPanel
