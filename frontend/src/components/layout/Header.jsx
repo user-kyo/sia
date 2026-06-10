@@ -6,7 +6,7 @@ import { useNotifications } from '../../contexts/NotificationContext';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { api } from '../../lib/axios';
+import api from '../../lib/axios';
 
 const Header = ({ onLogoutClick }) => {
   const { user, userRole, companyId } = useAuth();
