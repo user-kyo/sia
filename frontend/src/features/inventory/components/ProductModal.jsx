@@ -150,7 +150,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
               >
                 <option value="" disabled className="bg-white dark:bg-[#0d0f1a]">Select a category</option>
                 {categories.map(c => (
-                  <option key={c} value={c} className="bg-white dark:bg-[#0d0f1a]">{c}</option>
+                  <option key={c.id || c.name} value={c.name} className="bg-white dark:bg-[#0d0f1a]">{c.name}</option>
                 ))}
               </select>
             </div>

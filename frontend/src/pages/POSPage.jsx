@@ -1,11 +1,17 @@
-import { useState, useEffect } from 'react'
-import { Search, Plus, Minus, CreditCard, X, Image as ImageIcon, ShoppingCart, Trash2, SlidersHorizontal } from 'lucide-react'
+import { Search, Plus, Minus, CreditCard, X, Image as ImageIcon, ShoppingCart, Trash2, SlidersHorizontal, Package, Monitor, Shirt, Coffee, Smartphone, Box, Scissors, Wrench, Book, Music, Camera, Car, ShoppingBag, Gift, Heart, Home } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useInventory, useInventorySubscription, useAdjustStock, useCategories, useBrands } from '../features/inventory/hooks/useInventory'
 import { useAppSettings } from '../contexts/AppSettingsContext'
 import { useCurrency } from '../contexts/CurrencyContext'
 import FiltersPanel from '../features/inventory/components/FiltersPanel'
 import { ProductGridSkeleton } from '../components/ui/Skeletons'
+import { useState, useEffect } from 'react'
+
+const CATEGORY_ICONS = {
+  Package, Monitor, Shirt, Coffee, Smartphone, Box, 
+  Scissors, Wrench, Book, Music, Camera, Car, 
+  ShoppingBag, Gift, Heart, Home
+}
 
 const POSPage = () => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -192,7 +198,11 @@ const POSPage = () => {
                       {product.image_url ? (
                         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                       ) : (
-                        <ImageIcon className="w-8 h-8 text-slate-300 dark:text-white/10" />
+                        (() => {
+                          const catObj = categories.find(c => c.name === product.category)
+                          const IconComp = catObj && CATEGORY_ICONS[catObj.icon] ? CATEGORY_ICONS[catObj.icon] : ImageIcon
+                          return <IconComp className="w-8 h-8 text-slate-300 dark:text-white/10" />
+                        })()
                       )}
                     </div>
 
@@ -220,9 +230,6 @@ const POSPage = () => {
                         )}
                         <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mt-1 transition-colors">{Number(product.quantity) || 0} {t('pos_in_stock_sm')}</p>
                       </div>
-                      <button className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 dark:text-slate-500 p-2.5 rounded-xl transition-all duration-300 group-hover:bg-indigo-600 dark:group-hover:bg-indigo-500 group-hover:border-indigo-600 dark:group-hover:border-indigo-500 group-hover:text-white dark:group-hover:text-white group-hover:shadow-md dark:group-hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] group-hover:scale-105 active:scale-95">
-                        <ShoppingCart className="w-4 h-4" />
-                      </button>
                     </div>
                   </motion.div>
                 )
@@ -416,7 +423,7 @@ const POSPage = () => {
       <FiltersPanel
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
-        categories={categories}
+        categories={categories.map(c => c.name)}
         brands={brands}
         filters={filters}
         onApply={setFilters}

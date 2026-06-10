@@ -1,9 +1,16 @@
 import { useState } from 'react'
-import { X, FolderPlus } from 'lucide-react'
+import { X, FolderPlus, Package, Monitor, Shirt, Coffee, Smartphone, Box, Scissors, Wrench, Book, Music, Camera, Car, ShoppingBag, Gift, Heart, Home } from 'lucide-react'
 import { motion } from 'framer-motion'
+
+const ICONS = {
+  Package, Monitor, Shirt, Coffee, Smartphone, Box, 
+  Scissors, Wrench, Book, Music, Camera, Car, 
+  ShoppingBag, Gift, Heart, Home
+}
 
 export default function CategoryModal({ onClose, onSubmit, isPending, existingCategories = [] }) {
   const [name, setName] = useState('')
+  const [selectedIcon, setSelectedIcon] = useState('Package')
   const [localError, setLocalError] = useState(null)
 
   const isDuplicate = name.trim() !== '' && existingCategories.some(
@@ -28,7 +35,7 @@ export default function CategoryModal({ onClose, onSubmit, isPending, existingCa
     }
 
     try {
-      await onSubmit({ name: trimmedName })
+      await onSubmit({ name: trimmedName, icon: selectedIcon })
       onClose()
     } catch (err) {
       const msg = err?.response?.data?.detail || err?.message || 'Something went wrong. Please try again.'
@@ -88,6 +95,30 @@ export default function CategoryModal({ onClose, onSubmit, isPending, existingCa
                   This category already exists.
                 </p>
               )}
+            </div>
+
+            <div>
+              <label className={labelCls}>Category Icon</label>
+              <div className="grid grid-cols-8 gap-2">
+                {Object.entries(ICONS).map(([iconName, Icon]) => {
+                  const isActive = selectedIcon === iconName
+                  return (
+                    <button
+                      key={iconName}
+                      type="button"
+                      onClick={() => setSelectedIcon(iconName)}
+                      className={`p-2 rounded-xl flex items-center justify-center transition-all ${
+                        isActive 
+                          ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 ring-2 ring-indigo-500 ring-offset-1 dark:ring-offset-[#0d0f1a]' 
+                          : 'bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:bg-white/5 dark:text-slate-500 dark:hover:bg-white/10 dark:hover:text-slate-300 border border-slate-200 dark:border-white/10'
+                      }`}
+                      title={iconName}
+                    >
+                      <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, SlidersHorizontal, Download, FolderPlus } from 'lucide-react'
+import { Plus, SlidersHorizontal, Download, FolderPlus, Pencil } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search } from 'lucide-react'
 import { useToast } from '../components/ui/Toast'
@@ -7,13 +7,14 @@ import { useCurrency } from '../contexts/CurrencyContext'
 import { useAppSettings } from '../contexts/AppSettingsContext'
 import {
   useInventory, useCategories, useBrands,
-  useCreateProduct, useUpdateProduct, useDeleteProduct, useAdjustStock, useCreateCategory,
+  useCreateProduct, useUpdateProduct, useDeleteProduct, useAdjustStock, useCreateCategory, useUpdateCategory
 } from '../features/inventory/hooks/useInventory'
 import ProductTable from '../features/inventory/components/ProductTable'
 import FiltersPanel from '../features/inventory/components/FiltersPanel'
 import BulkActionBar from '../features/inventory/components/BulkActionBar'
 import ProductModal from '../features/inventory/components/ProductModal'
 import CategoryModal from '../features/inventory/components/CategoryModal'
+import EditCategoryModal from '../features/inventory/components/EditCategoryModal'
 import StockAdjustModal from '../features/inventory/components/StockAdjustModal'
 import DeleteConfirmModal from '../features/inventory/components/DeleteConfirmModal'
 
@@ -43,6 +44,7 @@ export default function InventoryPage() {
   const [hiddenIds, setHiddenIds] = useState(new Set()) // For optimistic UI undo
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
+  const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false)
   const [modal, setModal] = useState(null)
 
   useEffect(() => {
@@ -78,6 +80,7 @@ export default function InventoryPage() {
 
   const createMutation = useCreateProduct()
   const createCategoryMutation = useCreateCategory()
+  const updateCategoryMutation = useUpdateCategory()
   const updateMutation = useUpdateProduct()
   const deleteMutation = useDeleteProduct()
   const adjustMutation = useAdjustStock()
@@ -152,6 +155,13 @@ export default function InventoryPage() {
             {t('inv_filters')}
           </button>
           <button
+            onClick={() => setIsEditCategoryModalOpen(true)}
+            className="flex items-center gap-2 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all backdrop-blur-md shadow-sm dark:shadow-none"
+          >
+            <Pencil size={15} />
+            Edit Category
+          </button>
+          <button
             onClick={() => setIsCategoryModalOpen(true)}
             className="flex items-center gap-2 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all backdrop-blur-md shadow-sm dark:shadow-none"
           >
@@ -223,7 +233,7 @@ export default function InventoryPage() {
       <FiltersPanel
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
-        categories={categories}
+        categories={categories.map(c => c.name)}
         brands={brands}
         filters={{ ...filters, sortBy: `${sort.by}-${sort.order}` }}
         onApply={(f) => {
@@ -240,11 +250,24 @@ export default function InventoryPage() {
           <CategoryModal
             onClose={() => setIsCategoryModalOpen(false)}
             isPending={createCategoryMutation.isPending}
-            existingCategories={categories}
+            existingCategories={categories.map(c => c.name)}
             onSubmit={async data => {
               await createCategoryMutation.mutateAsync(data)
               setIsCategoryModalOpen(false)
               toast('Category created successfully.')
+            }}
+          />
+        )}
+        
+        {isEditCategoryModalOpen && (
+          <EditCategoryModal
+            onClose={() => setIsEditCategoryModalOpen(false)}
+            isPending={updateCategoryMutation.isPending}
+            existingCategories={categories}
+            onSubmit={async data => {
+              await updateCategoryMutation.mutateAsync(data)
+              setIsEditCategoryModalOpen(false)
+              toast('Category updated successfully.')
             }}
           />
         )}

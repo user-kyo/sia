@@ -65,6 +65,11 @@ export const createCategory = async (categoryData) => {
   return data
 }
 
+export const updateCategory = async ({ id, ...categoryData }) => {
+  const { data } = await api.put(`/categories/${id}`, categoryData)
+  return data
+}
+
 export const fetchBrands = async () => {
   const { data } = await api.get('/brands')
   return data
