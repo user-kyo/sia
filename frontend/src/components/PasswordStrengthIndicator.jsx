@@ -29,12 +29,12 @@ export default function PasswordStrengthIndicator({ password }) {
       <div className="space-y-3">
         <div>
           <div className="flex justify-between items-center mb-1.5">
-            <span className="text-xs font-medium text-slate-500">Password strength</span>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Password strength</span>
             <span className={`text-xs font-bold ${color.replace('bg-', 'text-')}`}>
               {password ? label : ''}
             </span>
           </div>
-          <div className="flex gap-1 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+          <div className="flex gap-1 h-1.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
             {[...Array(5)].map((_, i) => (
               <div
                 key={i}
@@ -46,9 +46,9 @@ export default function PasswordStrengthIndicator({ password }) {
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-y-2 gap-x-2 bg-slate-50 rounded-lg p-3 border border-slate-100">
+        <div className="grid grid-cols-2 gap-y-2 gap-x-2 bg-slate-50 dark:bg-white/[0.02] rounded-lg p-3 border border-slate-100 dark:border-white/5">
           {criteria.map((c, i) => (
-            <div key={i} className={`flex items-center gap-1.5 text-[11px] font-medium transition-colors ${c.met && password ? 'text-emerald-600' : 'text-slate-400'}`}>
+            <div key={i} className={`flex items-center gap-1.5 text-[11px] font-medium transition-colors ${c.met && password ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
               {c.met && password ? <Check size={12} className="shrink-0" strokeWidth={3} /> : <X size={12} className="shrink-0 opacity-50" strokeWidth={2.5} />}
               <span>{c.label}</span>
             </div>
