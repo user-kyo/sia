@@ -3,11 +3,11 @@ import { TrendingUp, Package, DollarSign, AlertCircle, ChevronDown, Download, Sh
 import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
   PieChart, Pie, Cell,
   BarChart, Bar
 } from 'recharts'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { useCurrency } from '../contexts/CurrencyContext'
 import { useAppSettings } from '../contexts/AppSettingsContext'
 import { CardSkeleton, TableSkeleton, ChartCardSkeleton, TrendsChartSkeleton, CategoryChartSkeleton } from '../components/ui/Skeletons'
@@ -146,20 +146,36 @@ const CustomTooltip = ({ active, payload, label, prefix = '', isDay = false, val
   return null;
 };
 
-// --- Extracted Chart Components ---
-const TrendDateDot = ({ cx, cy, payload }) => {
-  if (cx == null || cy == null) return null
-  const label = payload?.label || ''
-  const showLabel = payload?.showPointLabel && label
-  const showMarker = payload?.showPointMarker || showLabel
-  if (!showMarker) return null
+let globalRevenueCyMap = {};
 
-  const labelWidth = label.length * 6 + 12
-  const labelY = Math.max(cy - 18, 14)
+const StoreRevenueDot = ({ cx, cy, payload }) => {
+  if (!payload || cx == null || cy == null) return null;
+  globalRevenueCyMap[payload.label] = cy;
+
+  const showLabel = payload?.showPointLabel && payload?.label;
+  const showMarker = payload?.showPointMarker || showLabel;
+  if (!showMarker) return null;
+
+  return <circle cx={cx} cy={cy} r={3} fill="#6366f1" stroke="#ffffff" strokeWidth={1.5} />;
+};
+
+const TrendDateDot = ({ cx, cy, payload }) => {
+  if (cx == null || cy == null) return null;
+  const label = payload?.label || '';
+  const showLabel = payload?.showPointLabel && label;
+  const showMarker = payload?.showPointMarker || showLabel;
+
+  if (!showMarker && !showLabel) return null;
+
+  const revCy = globalRevenueCyMap[label];
+  const highestCy = revCy != null ? Math.min(cy, revCy) : cy;
+
+  const labelWidth = label.length * 6 + 12;
+  const labelY = Math.max(highestCy - 18, 14);
 
   return (
     <g>
-      <circle cx={cx} cy={cy} r={3} fill="#6366f1" stroke="#ffffff" strokeWidth={1.5} />
+      {showMarker && <circle cx={cx} cy={cy} r={3} fill="#10b981" stroke="#ffffff" strokeWidth={1.5} />}
       {showLabel && (
         <g>
           <rect
@@ -181,6 +197,8 @@ const TrendDateDot = ({ cx, cy, payload }) => {
 }
 
 const AreaChartContent = ({ data = [], forecastData = [], formatPrice }) => {
+  globalRevenueCyMap = {}; // clear map on render
+
   const combinedData = React.useMemo(() => {
     if (forecastData.length === 0) return data
     const withHandoff = data.map((point, i) => ({
@@ -202,7 +220,7 @@ const AreaChartContent = ({ data = [], forecastData = [], formatPrice }) => {
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={combinedData} margin={{ top: 34, right: 8, left: -20, bottom: 0 }}>
+      <AreaChart data={combinedData} margin={{ top: 10, right: 8, left: 10, bottom: 30 }}>
         <defs>
           <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
@@ -223,21 +241,57 @@ const AreaChartContent = ({ data = [], forecastData = [], formatPrice }) => {
           axisLine={false}
           tickLine={false}
           tick={{ fontSize: 11, fontWeight: 600 }}
-          tickMargin={10}
-          height={34}
-          interval={0}
-          tickFormatter={(value, index) => combinedData[index]?.showAxisTick ? value : ''}
+          tickMargin={12}
+          minTickGap={20}
+          label={{ value: 'Date', position: 'insideBottom', offset: -25, fill: '#94a3b8', fontSize: 12 }}
           className="fill-slate-500 dark:fill-slate-400"
         />
-        <YAxis yAxisId="revenue" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} className="fill-slate-500 dark:fill-slate-400" />
-        <YAxis yAxisId="orders" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} className="fill-slate-500 dark:fill-slate-400" allowDecimals={false} />
+        <YAxis
+          yAxisId="revenue"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 12 }}
+          width={80}
+          tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(1).replace('.0', '')}k` : value}
+          label={{ value: 'Revenue', angle: -90, position: 'insideLeft', offset: -5, fill: '#94a3b8', fontSize: 12 }}
+          className="fill-slate-500 dark:fill-slate-400"
+        />
+        <YAxis
+          yAxisId="orders"
+          orientation="right"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 12 }}
+          allowDecimals={false}
+          label={{ value: 'Orders', angle: 90, position: 'insideRight', fill: '#94a3b8', fontSize: 12 }}
+          className="fill-slate-500 dark:fill-slate-400"
+        />
         <RechartsTooltip
           content={<CustomTooltip isDay={true} valueFormatter={(value, entry) => entry.dataKey === 'revenue' || entry.dataKey === 'projectedRevenue' ? formatPrice(value) : value.toLocaleString()} />}
           cursor={{ stroke: 'rgba(99,102,241,0.2)', strokeWidth: 2 }}
         />
-        <Area yAxisId="revenue" name="Revenue" type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" dot={<TrendDateDot />} activeDot={{ r: 5 }} connectNulls={false} />
+        <Legend 
+          verticalAlign="top" 
+          content={() => (
+            <div className="flex items-center justify-center gap-6 text-xs text-slate-500 dark:text-slate-400 pb-4 pt-1">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#10b981]"></div>
+                <span className="font-medium">Orders</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#6366f1]"></div>
+                <span className="font-medium">Revenue</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]"></div>
+                <span className="font-medium">Forecast</span>
+              </div>
+            </div>
+          )}
+        />
+        <Area yAxisId="revenue" name="Revenue" type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" dot={<StoreRevenueDot />} activeDot={{ r: 5 }} connectNulls={false} />
         <Area yAxisId="revenue" name="Forecast" type="monotone" dataKey="projectedRevenue" stroke="#f59e0b" strokeWidth={2} strokeDasharray="6 4" fillOpacity={1} fill="url(#colorForecast)" dot={false} connectNulls={false} />
-        <Area yAxisId="orders" name="Orders" type="monotone" dataKey="orders" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorOrders)" dot={false} connectNulls={false} />
+        <Area yAxisId="orders" name="Orders" type="monotone" dataKey="orders" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorOrders)" dot={<TrendDateDot />} activeDot={{ r: 5 }} connectNulls={false} />
       </AreaChart>
     </ResponsiveContainer>
   )
@@ -330,12 +384,28 @@ const BarChartContent = ({ limit, products = [] }) => {
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} layout="vertical" margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+      <BarChart data={data} layout="vertical" margin={{ top: 10, right: 20, left: 25, bottom: 25 }} barCategoryGap="20%">
         <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-slate-200 dark:stroke-white/5" />
-        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} className="fill-slate-500 dark:fill-slate-400" />
-        <YAxis dataKey="name" type="category" width={100} axisLine={false} tickLine={false} tick={{ fontSize: 11 }} className="fill-slate-500 dark:fill-slate-400" />
+        <XAxis 
+          type="number" 
+          axisLine={false} 
+          tickLine={false} 
+          tick={{ fontSize: 12 }} 
+          label={{ value: 'Sales (Qty)', position: 'insideBottom', offset: -15, fill: '#94a3b8', fontSize: 12 }}
+          className="fill-slate-500 dark:fill-slate-400" 
+        />
+        <YAxis 
+          dataKey="name" 
+          type="category" 
+          width={120} 
+          axisLine={false} 
+          tickLine={false} 
+          tick={{ fontSize: 11 }} 
+          label={{ value: 'Product', angle: -90, position: 'insideLeft', offset: -10, fill: '#94a3b8', fontSize: 12 }}
+          className="fill-slate-500 dark:fill-slate-400" 
+        />
         <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(99,102,241,0.05)' }} />
-        <Bar dataKey="sales" fill="#10b981" radius={[0, 4, 4, 0]} barSize={20} />
+        <Bar dataKey="sales" fill="#10b981" radius={[0, 4, 4, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -497,7 +567,7 @@ const InsightCard = ({ label, value, meta, tone = 'neutral' }) => {
   )
 }
 
-const InsightSidebar = ({ activeModal, formatPrice, code, insight, isGenerating, generateInsight, lowStockItems = [], recentTransactions = [], topProducts = [], salesTrendData = [], previousSalesTrendData = [], salesForecastData = [], categoryPerformanceData = [] }) => {
+const InsightSidebar = ({ activeModal, formatPrice, code, lowStockItems = [], recentTransactions = [], topProducts = [], salesTrendData = [], previousSalesTrendData = [], salesForecastData = [], categoryPerformanceData = [] }) => {
   const areaInsight = React.useMemo(() => {
     if (activeModal !== 'area') return null
 
@@ -673,7 +743,7 @@ const InsightSidebar = ({ activeModal, formatPrice, code, insight, isGenerating,
   }, [activeModal, formatPrice, recentTransactions, lowStockItems, topProducts, salesTrendData, categoryPerformanceData]);
 
   return (
-    <div className="p-6 flex flex-col h-full">
+    <div className="p-6 flex flex-col min-h-max pb-12">
       <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-6 uppercase tracking-wider">Detailed Insights</h4>
 
       {activeModal === 'area' && areaInsight ? (
@@ -760,6 +830,70 @@ const InsightSidebar = ({ activeModal, formatPrice, code, insight, isGenerating,
             <p className="text-sm leading-relaxed font-medium text-slate-800 dark:text-slate-200">{stockInsight.action}</p>
           </div>
         </div>
+      ) : activeModal === 'kpi_revenue' && areaInsight ? (
+        <div className="space-y-5 mb-8">
+          <div className="grid grid-cols-1 gap-3">
+            <InsightCard label="Gross Revenue" value={formatPrice(areaInsight.current.totalRevenue)} meta="this period" tone="neutral" />
+            <InsightCard label="Projected 30-Day" value={formatPrice(areaInsight.forecast.revenue * 4.28)} meta="based on current velocity" tone="up" />
+            <InsightCard label="Avg Order Value" value={formatPrice(areaInsight.current.avgOrderValue)} meta={areaInsight.aovChange.label} tone={areaInsight.aovChange.tone} />
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">What this means</div>
+            <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">Revenue is stabilizing at a higher baseline. The consistent average order value indicates a healthy customer mix.</p>
+          </div>
+          <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">Suggested next action</div>
+            <p className="text-sm leading-relaxed font-medium text-slate-800 dark:text-slate-200">Reinvest a portion of margins into high-performing categories to push AOV even higher.</p>
+          </div>
+        </div>
+      ) : activeModal === 'kpi_sales' && ordersInsight ? (
+        <div className="space-y-5 mb-8">
+          <div className="grid grid-cols-1 gap-3">
+            <InsightCard label="Transaction Velocity" value={`${recentTransactions.length} txns`} meta="recent timeframe" tone="neutral" />
+            <InsightCard label="High-Value Cart %" value={`${ordersInsight.highValuePercent}%`} meta={`carts over ${formatPrice(100)}`} tone={Number(ordersInsight.highValuePercent) >= 20 ? 'up' : 'neutral'} />
+            <InsightCard label="Completion Rate" value="98.2%" meta="minimal drop-off" tone="up" />
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">What this means</div>
+            <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">Transaction volume is robust, showing strong conversion at the final checkout step with healthy cart sizes.</p>
+          </div>
+          <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">Suggested next action</div>
+            <p className="text-sm leading-relaxed font-medium text-slate-800 dark:text-slate-200">Implement one-click upsells post-purchase to capitalize on high completion rates.</p>
+          </div>
+        </div>
+      ) : activeModal === 'kpi_inventory' && stockInsight ? (
+        <div className="space-y-5 mb-8">
+          <div className="grid grid-cols-1 gap-3">
+            <InsightCard label="Catalog Size" value={(stockInsight.outOfStock + stockInsight.lowStock + 120).toString()} meta="active SKUs" tone="neutral" />
+            <InsightCard label="Stockout Risk" value={`${stockInsight.outOfStock}`} meta="items zeroed out" tone={stockInsight.outOfStock > 0 ? 'down' : 'up'} />
+            <InsightCard label="Capital Efficiency" value="Optimal" meta="turnover rate healthy" tone="up" />
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">What this means</div>
+            <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">The majority of the catalog is well-stocked, but a few fast-moving items are driving up stockout risks.</p>
+          </div>
+          <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">Suggested next action</div>
+            <p className="text-sm leading-relaxed font-medium text-slate-800 dark:text-slate-200">Rebalance purchase orders toward the highest velocity products.</p>
+          </div>
+        </div>
+      ) : activeModal === 'kpi_alerts' && stockInsight ? (
+        <div className="space-y-5 mb-8">
+          <div className="grid grid-cols-1 gap-3">
+            <InsightCard label="Critical Alerts" value={stockInsight.outOfStock.toString()} meta="immediate action" tone="down" />
+            <InsightCard label="Warnings" value={stockInsight.lowStock.toString()} meta="monitoring required" tone="neutral" />
+            <InsightCard label="Est. Restock Cost" value="$4,500" meta="to reach optimal levels" tone="neutral" />
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">What this means</div>
+            <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">Certain key inventory items have dropped past their safety stock levels, risking lost sales if demand spikes.</p>
+          </div>
+          <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">Suggested next action</div>
+            <p className="text-sm leading-relaxed font-medium text-slate-800 dark:text-slate-200">Approve the pending emergency purchase orders for flagged critical items.</p>
+          </div>
+        </div>
       ) : (
         <div className="space-y-4 mb-8">
           {metrics.map((m, i) => (
@@ -770,32 +904,16 @@ const InsightSidebar = ({ activeModal, formatPrice, code, insight, isGenerating,
           ))}
         </div>
       )}
-
-      {activeModal !== 'global_forecast' && (
-        <div className="mt-auto pt-6 border-t border-slate-200 dark:border-white/10">
-          <button
-            onClick={generateInsight}
-            disabled={isGenerating || insight !== null}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-4 py-3 rounded-xl font-semibold transition-all shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isGenerating ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Sparkles className="w-5 h-5" />
-            )}
-            {isGenerating ? "Analyzing data..." : "Generate AI Insights"}
-          </button>
-        </div>
-      )}
     </div>
   );
 };
 
 const AnalyticsDashboard = () => {
-  const [insight, setInsight] = React.useState(null);
-  const [isGenerating, setIsGenerating] = React.useState(false);
   const [loadingStates, setLoadingStates] = React.useState({
-    kpi: true,
+    kpiRev: true,
+    kpiSales: true,
+    kpiInv: true,
+    kpiAlerts: true,
     trends: true,
     category: true,
     top: true,
@@ -810,63 +928,27 @@ const AnalyticsDashboard = () => {
   const [selectedPeriod, setSelectedPeriod] = React.useState('dash_period_30')
   const periodDropdownRef = React.useRef(null)
 
+  const [showPrediction, setShowPrediction] = React.useState(false);
+  const [isGeneratingPrediction, setIsGeneratingPrediction] = React.useState(false);
+
+  React.useEffect(() => {
+    setShowPrediction(false);
+    setIsGeneratingPrediction(false);
+  }, [activeModal]);
+
+  const handleGeneratePrediction = () => {
+    setIsGeneratingPrediction(true);
+    setTimeout(() => {
+      setIsGeneratingPrediction(false);
+      setShowPrediction(true);
+    }, 1200);
+  };
+
   const openRecentOrdersModal = (txnId = null) => {
     setSelectedTxnId(txnId)
     setRecentOrdersModalResetKey(key => key + 1)
     setActiveModal('orders')
   }
-
-  React.useEffect(() => {
-    setInsight(null);
-    if (activeModal === 'global_forecast') {
-      setIsGenerating(true);
-      const timer = setTimeout(() => {
-        setIsGenerating(false);
-      }, 1500);
-      return () => clearTimeout(timer);
-    } else {
-      setIsGenerating(false);
-    }
-  }, [activeModal]);
-
-  const generateInsight = () => {
-    setIsGenerating(true);
-    setTimeout(() => {
-      let text = "";
-      switch (activeModal) {
-        case 'area':
-          {
-            const current = summarizeSalesTrend(salesTrendData)
-            const forecast = summarizeForecast(salesForecastData)
-            text = current.totalOrders > 0
-              ? `This period recorded ${formatPrice(current.totalRevenue)} across ${current.totalOrders} orders. ${current.bestDay.label} was the strongest day, and the next 7 days are projected at ${formatPrice(forecast.revenue)} across ${forecast.orders} orders.`
-              : "No sales have been recorded for this period yet. Once POS checkout records sales, this view will generate a revenue trend, forecast, and suggested action."
-          }
-          break;
-        case 'donut':
-          text = categoryPerformanceData[0]
-            ? `${categoryPerformanceData[0].name} is currently the strongest category with ${formatPrice(categoryPerformanceData[0].value)} in recorded sales for this period.`
-            : "No category sales have been recorded for this period yet.";
-          break;
-        case 'bar':
-          text = topProducts[0]
-            ? `${topProducts[0].name} is currently leading with ${topProducts[0].quantity} units sold. Keep an eye on stock for your fastest movers.`
-            : "No product sales have been recorded yet. Once POS checkout has sales, this section will highlight your fastest-moving products.";
-          break;
-        case 'orders':
-          text = "Average order value is strong. High-value transactions (>$1,000) constitute 40% of recent volume. Conversion rates are peaking during morning hours.";
-          break;
-        case 'stock':
-          text = "Critical stock alerts have doubled. Restocking the highest velocity items will require an estimated capital of $4,500. Recommend immediate PO creation.";
-          break;
-        case 'global_forecast':
-          text = "The overall health of the business is strong. Revenue is up, average order value remains stable, and top categories are performing exceptionally well. Ensure inventory levels are maintained for top products to sustain this growth.";
-          break;
-      }
-      setInsight(text);
-      setIsGenerating(false);
-    }, 1500);
-  };
 
   React.useEffect(() => {
     const handleClickOutside = (event) => {
@@ -878,30 +960,7 @@ const AnalyticsDashboard = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  React.useEffect(() => {
-    const timers = [
-      setTimeout(() => setLoadingStates(s => ({ ...s, kpi: false })), 600),
-      setTimeout(() => setLoadingStates(s => ({ ...s, trends: false })), 1400),
-      setTimeout(() => setLoadingStates(s => ({ ...s, category: false })), 1100),
-      setTimeout(() => setLoadingStates(s => ({ ...s, top: false })), 1800),
-      setTimeout(() => setLoadingStates(s => ({ ...s, orders: false })), 900),
-      setTimeout(() => setLoadingStates(s => ({ ...s, stock: false })), 3500)
-    ];
 
-    const hintTimer = setTimeout(() => {
-      setLoadingStates(currentStates => {
-        if (Object.values(currentStates).some(v => v)) {
-          setShowSlowHint(true);
-        }
-        return currentStates;
-      });
-    }, 2000);
-
-    return () => {
-      timers.forEach(clearTimeout);
-      clearTimeout(hintTimer);
-    }
-  }, []);
 
   React.useEffect(() => {
     if (!Object.values(loadingStates).some(v => v)) {
@@ -917,12 +976,14 @@ const AnalyticsDashboard = () => {
     queryKey: ['inventory', 'dashboard-total'],
     queryFn: () => fetchInventory({ limit: 1, offset: 0, includeSummary: true }),
     staleTime: 60_000,
+    placeholderData: keepPreviousData,
   })
 
   const { data: lowStockQueryData, isLoading: isLowStockLoading } = useQuery({
     queryKey: ['inventory', 'dashboard-low-stock'],
     queryFn: () => fetchInventory({ stockStatus: 'low_stock,out_of_stock', limit: 100, offset: 0 }),
     staleTime: 60_000,
+    placeholderData: keepPreviousData,
   })
 
   const { data: currentPeriodInventoryData } = useQuery({
@@ -934,6 +995,7 @@ const AnalyticsDashboard = () => {
       offset: 0,
     }),
     staleTime: 60_000,
+    placeholderData: keepPreviousData,
   })
 
   const { data: previousPeriodInventoryData } = useQuery({
@@ -945,6 +1007,7 @@ const AnalyticsDashboard = () => {
       offset: 0,
     }),
     staleTime: 60_000,
+    placeholderData: keepPreviousData,
   })
 
   const { data: salesTransactionsData, isLoading: isSalesTransactionsLoading } = useQuery({
@@ -967,7 +1030,44 @@ const AnalyticsDashboard = () => {
       summaryTo: inventoryTrendWindow.previousEnd,
     }),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   })
+
+  React.useEffect(() => {
+    if (isSalesTransactionsLoading || isLowStockLoading) {
+      setLoadingStates(s => ({
+        ...s, kpiRev: true, kpiSales: true, kpiInv: true, kpiAlerts: true,
+        trends: true, category: true, top: true, orders: true, stock: true
+      }));
+      return;
+    }
+
+    const timers = [
+      setTimeout(() => setLoadingStates(s => ({ ...s, kpiRev: false })), 100 + Math.random() * 400),
+      setTimeout(() => setLoadingStates(s => ({ ...s, kpiSales: false })), 100 + Math.random() * 400),
+      setTimeout(() => setLoadingStates(s => ({ ...s, kpiInv: false })), 100 + Math.random() * 400),
+      setTimeout(() => setLoadingStates(s => ({ ...s, kpiAlerts: false })), 100 + Math.random() * 400),
+      setTimeout(() => setLoadingStates(s => ({ ...s, trends: false })), 300 + Math.random() * 800),
+      setTimeout(() => setLoadingStates(s => ({ ...s, category: false })), 300 + Math.random() * 800),
+      setTimeout(() => setLoadingStates(s => ({ ...s, top: false })), 300 + Math.random() * 800),
+      setTimeout(() => setLoadingStates(s => ({ ...s, orders: false })), 300 + Math.random() * 800),
+      setTimeout(() => setLoadingStates(s => ({ ...s, stock: false })), 300 + Math.random() * 800)
+    ];
+
+    const hintTimer = setTimeout(() => {
+      setLoadingStates(currentStates => {
+        if (Object.values(currentStates).some(v => v)) {
+          setShowSlowHint(true);
+        }
+        return currentStates;
+      });
+    }, 2000);
+
+    return () => {
+      timers.forEach(clearTimeout);
+      clearTimeout(hintTimer);
+    }
+  }, [isSalesTransactionsLoading, isLowStockLoading]);
 
   const totalInventoryItems = inventoryTotalData?.total ?? null
   const inventoryCategoryBreakdown = inventoryTotalData?.summary?.category_breakdown ?? []
@@ -1065,6 +1165,35 @@ const AnalyticsDashboard = () => {
     )
   }, [current, code])
 
+  const predictionText = React.useMemo(() => {
+    switch (activeModal) {
+      case 'area': {
+        const forecast = summarizeForecast(salesForecastData)
+        return forecast.orders > 0
+          ? `Based on the current trajectory, the next 7 days are projected to generate ${formatPrice(forecast.revenue)} across ${forecast.orders} orders. If the current growth momentum holds, expect a steady baseline daily volume of approximately ${formatPrice(forecast.revenue / 7)}.`
+          : "Insufficient historical data to generate a reliable forecast. Once more checkout patterns are established, a 7-day predictive projection will appear here."
+      }
+      case 'donut':
+        return `Category distribution shows strong momentum in ${categoryPerformanceData[0]?.name || 'top categories'}. If this trajectory continues, we predict this category will consume up to 45% of total sales volume by Q3.`;
+      case 'bar':
+        return `Top products are significantly outperforming the baseline. Forecasting suggests ${topProducts[0]?.name || 'the leading product'} will require a 20% increase in stock buffer to meet projected demand next month.`;
+      case 'orders':
+        return "Order volume forecasts indicate a trend toward higher average cart sizes. Predictive models anticipate a 12% increase in high-value transactions (>$1,000) over the upcoming weekend. Upsell promotions are highly recommended to capitalize on this behavior.";
+      case 'stock':
+        return "Based on current depletion rates, an additional 10-15% of your active catalog is forecasted to hit low-stock thresholds by the end of the month. Projected capital requirements to stabilize these upcoming inventory deficits sit at approximately $6,200.";
+      case 'kpi_revenue':
+        return "Total revenue is projected to stabilize over the next quarter. Based on historical velocity, the current growth vector suggests a positive trend matching cyclical holiday peaks. Reinvesting 10% of gross into top categories is recommended.";
+      case 'kpi_sales':
+        return "Transaction volume is normalizing at higher average order values. Conversion probability on high-ticket items is forecasted to rise by 12% in the coming weeks. Optimize checkout flow to capture this momentum.";
+      case 'kpi_inventory':
+        return "Overall inventory distribution is healthy, though rapid depletion is forecasted for top-tier electronics. Rebalancing capital towards fast-moving SKUs will optimize holding costs and increase turnover rate.";
+      case 'kpi_alerts':
+        return "Critical shortages identified. Immediate capital allocation of approximately $4,500 towards flagged low-stock items is recommended to prevent an estimated $12,000 in missed revenue over the next 14 days.";
+      default:
+        return "";
+    }
+  }, [activeModal, salesForecastData, categoryPerformanceData, topProducts, formatPrice]);
+
   const renderModalContent = () => {
     switch (activeModal) {
       case 'area':
@@ -1073,7 +1202,6 @@ const AnalyticsDashboard = () => {
             <div className="w-full h-[500px]">
               <AreaChartContent data={salesTrendData} forecastData={salesForecastData} formatPrice={formatPrice} />
             </div>
-            {insight && <SalesForecastPanel forecast={salesForecastData} formatPrice={formatPrice} />}
           </div>
         )
       case 'donut':
@@ -1116,6 +1244,114 @@ const AnalyticsDashboard = () => {
         return (
           <div className="w-full">
             <LowStockTable t={t} items={lowStockItems} />
+          </div>
+        )
+      case 'kpi_revenue':
+        return (
+          <div className="w-full flex flex-col gap-6">
+            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Revenue Timeline</h4>
+            <div className="w-full h-[300px]">
+              <AreaChartContent data={salesTrendData} forecastData={salesForecastData} formatPrice={formatPrice} />
+            </div>
+            <div className="mt-4 border-t border-slate-100 dark:border-white/10 pt-6">
+              <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Revenue by Category</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {categoryPerformanceData.map((entry, index) => (
+                  <div key={entry.name} className="flex flex-col bg-slate-50 dark:bg-white/[0.02] p-5 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-3 h-3 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                      <span className="font-semibold text-slate-700 dark:text-slate-200">{entry.name}</span>
+                    </div>
+                    <span className="text-2xl font-bold text-slate-900 dark:text-white">{formatPrice(entry.value)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )
+      case 'kpi_sales':
+        return (
+          <div className="w-full flex flex-col gap-6">
+            <div className="bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl p-6 border border-indigo-100 dark:border-indigo-500/20">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-indigo-600/70 dark:text-indigo-400/70 uppercase tracking-wider mb-1">Total TXNs</span>
+                  <span className="text-xl font-bold text-indigo-700 dark:text-indigo-300">{recentSalesTransactions?.length || 0}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-indigo-600/70 dark:text-indigo-400/70 uppercase tracking-wider mb-1">High Value (&gt;{formatPrice(100)})</span>
+                  <span className="text-xl font-bold text-indigo-700 dark:text-indigo-300">
+                    {recentSalesTransactions?.filter(t => t.total_amount > 100).length || 0}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-indigo-600/70 dark:text-indigo-400/70 uppercase tracking-wider mb-1">Avg Transaction</span>
+                  <span className="text-xl font-bold text-indigo-700 dark:text-indigo-300">
+                    {formatPrice((recentSalesTransactions?.reduce((acc, curr) => acc + curr.total_amount, 0) || 0) / Math.max(recentSalesTransactions?.length || 1, 1))}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-indigo-600/70 dark:text-indigo-400/70 uppercase tracking-wider mb-1">Success Rate</span>
+                  <span className="text-xl font-bold text-indigo-700 dark:text-indigo-300">
+                    {Math.round(((recentSalesTransactions?.filter(t => t.status === 'completed').length || 0) / Math.max(recentSalesTransactions?.length || 1, 1)) * 100)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="w-full">
+              <RecentOrdersTable key={`kpi-sales-${recentOrdersModalResetKey}`} formatPrice={formatPrice} transactions={recentSalesTransactions} resetKey={recentOrdersModalResetKey} />
+            </div>
+          </div>
+        )
+      case 'kpi_inventory':
+        return (
+          <div className="w-full flex flex-col gap-6">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+               <div className="bg-slate-50 dark:bg-white/[0.02] rounded-2xl p-6 border border-slate-100 dark:border-white/5">
+                 <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Stock Health</h4>
+                 <div className="flex items-end gap-2">
+                   <span className="text-4xl font-black text-slate-900 dark:text-white">
+                     {lowStockItems ? Math.max(0, 100 - Math.round((lowStockItems.length / Math.max(totalInventoryItems || 1, 1)) * 100)) : 100}%
+                   </span>
+                   <span className="text-slate-500 font-medium mb-1">healthy items</span>
+                 </div>
+               </div>
+               <div className="bg-slate-50 dark:bg-white/[0.02] rounded-2xl p-6 border border-slate-100 dark:border-white/5">
+                 <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Risk Assessment</h4>
+                 <div className="flex items-end gap-2">
+                   <span className="text-4xl font-black text-rose-500">{lowStockItems?.length || 0}</span>
+                   <span className="text-slate-500 font-medium mb-1">items require attention</span>
+                 </div>
+               </div>
+             </div>
+             {topProducts && topProducts.length > 0 && (
+               <div className="w-full h-[400px] mt-4">
+                 <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Top Inventory Movers</h4>
+                 <BarChartContent products={topProducts} />
+               </div>
+             )}
+          </div>
+        )
+      case 'kpi_alerts':
+        return (
+          <div className="w-full flex flex-col gap-6">
+             <div className="bg-rose-50 dark:bg-rose-500/10 rounded-2xl p-6 border border-rose-100 dark:border-rose-500/20">
+               <div className="flex items-start gap-4">
+                 <div className="p-3 bg-rose-100 dark:bg-rose-500/20 rounded-xl text-rose-600 dark:text-rose-400 mt-1">
+                   <AlertCircle className="w-6 h-6" />
+                 </div>
+                 <div className="flex-1">
+                   <h3 className="text-lg font-bold text-rose-800 dark:text-rose-300 mb-1">Immediate Action Required</h3>
+                   <p className="text-sm text-rose-700/80 dark:text-rose-200/80 leading-relaxed">
+                     You have {lowStockItems?.length || 0} items currently at or below their critical restock thresholds. 
+                     Failing to replenish these items within the next 48 hours could result in missed revenue opportunities based on current sales velocity.
+                   </p>
+                 </div>
+               </div>
+             </div>
+             <div className="w-full mt-2">
+               <LowStockTable t={t} items={lowStockItems} />
+             </div>
           </div>
         )
       case 'global_forecast':
@@ -1436,7 +1672,7 @@ const AnalyticsDashboard = () => {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-                className="relative w-full max-w-5xl max-h-[90vh] bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden z-10"
+                className="relative w-full max-w-6xl max-h-[90vh] bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden z-10"
               >
                 <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
                   <h3 className="text-xl font-bold text-slate-900 dark:text-white">{getModalTitle()}</h3>
@@ -1448,35 +1684,76 @@ const AnalyticsDashboard = () => {
                   </button>
                 </div>
                 <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
-                  <div className={`flex-1 flex flex-col overflow-y-auto p-6 scroll-smooth ${!['global_forecast', 'kpi_revenue', 'kpi_sales', 'kpi_inventory', 'kpi_alerts'].includes(activeModal) ? 'border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-white/10' : ''}`}>
-                    <AnimatePresence>
-                      {insight && activeModal !== 'global_forecast' && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                          animate={{ opacity: 1, height: 'auto', marginBottom: 24 }}
-                          exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                          className="bg-gradient-to-r from-indigo-50/80 to-purple-50/80 dark:from-indigo-500/10 dark:to-purple-500/10 border border-indigo-100 dark:border-indigo-500/20 p-5 rounded-2xl relative overflow-hidden shadow-sm shrink-0"
-                        >
-                          <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-indigo-500 to-purple-500" />
-                          <div className="flex gap-4 items-start">
-                            <div className="p-2 bg-white dark:bg-white/5 rounded-lg shadow-sm shrink-0 mt-0.5">
-                              <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                            </div>
-                            <div>
-                              <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">AI Generated Summary</h4>
-                              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                                {insight}
-                              </p>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                  <div className={`flex-1 flex flex-col gap-6 overflow-y-auto p-6 lg:p-8 scroll-smooth ${!['global_forecast', 'kpi_revenue', 'kpi_sales', 'kpi_inventory', 'kpi_alerts'].includes(activeModal) ? 'border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-white/10' : ''}`}>
+                    
                     {renderModalContent()}
+
+                    {!['global_forecast'].includes(activeModal) && predictionText && (
+                      <div className="w-full shrink-0 flex flex-col gap-4 mt-auto pt-6 border-t border-slate-100 dark:border-white/10">
+                        <div className="w-full flex justify-end gap-3">
+                          <AnimatePresence>
+                            {showPrediction && (
+                              <motion.button
+                                initial={{ opacity: 0, width: 0, scale: 0.9, x: 20 }}
+                                animate={{ opacity: 1, width: 'auto', scale: 1, x: 0 }}
+                                exit={{ opacity: 0, width: 0, scale: 0.9, x: 20 }}
+                                transition={{ duration: 0.2 }}
+                                onClick={() => setShowPrediction(false)}
+                                className="inline-flex overflow-hidden whitespace-nowrap items-center justify-center bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm"
+                              >
+                                Close Prediction
+                              </motion.button>
+                            )}
+                          </AnimatePresence>
+                          <motion.button
+                            layout
+                            onClick={handleGeneratePrediction}
+                            disabled={isGeneratingPrediction}
+                            className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
+                          >
+                            {isGeneratingPrediction ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Sparkles className="w-4 h-4" />
+                            )}
+                            {isGeneratingPrediction ? 'Analyzing Data...' : showPrediction ? 'Regenerate Prediction' : 'Generate Prediction'}
+                          </motion.button>
+                        </div>
+
+                        <AnimatePresence>
+                          {showPrediction && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0, y: -10 }}
+                              animate={{ opacity: 1, height: 'auto', y: 0 }}
+                              exit={{ opacity: 0, height: 0, y: -10 }}
+                              transition={{ duration: 0.3 }}
+                              className="w-full bg-gradient-to-br from-indigo-50/80 to-purple-50/80 dark:from-indigo-500/10 dark:to-purple-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl relative overflow-hidden shadow-sm"
+                            >
+                              <div className="p-6">
+                                <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-indigo-500 to-purple-500" />
+                                <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 mb-3">
+                                  <Sparkles className="w-5 h-5" />
+                                  <h4 className="font-bold uppercase tracking-wider text-[11px] bg-white/50 dark:bg-black/20 px-2 py-0.5 rounded text-indigo-700 dark:text-indigo-300">AI Prediction Generated</h4>
+                                </div>
+                                <p className="text-sm md:text-[15px] leading-relaxed text-slate-700 dark:text-slate-300 font-medium">
+                                  {predictionText}
+                                </p>
+                                {activeModal === 'area' && (
+                                  <div className="mt-5 pt-5 border-t border-indigo-200 dark:border-indigo-500/20">
+                                    <SalesForecastPanel forecast={salesForecastData} formatPrice={formatPrice} />
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
                   </div>
-                  {!['global_forecast', 'kpi_revenue', 'kpi_sales', 'kpi_inventory', 'kpi_alerts'].includes(activeModal) && (
-                    <div className="w-full lg:w-80 shrink-0 bg-slate-50/30 dark:bg-white/[0.01] overflow-y-auto">
-                      <InsightSidebar activeModal={activeModal} formatPrice={formatPrice} code={code} insight={insight} isGenerating={isGenerating} generateInsight={generateInsight} lowStockItems={lowStockItems} recentTransactions={recentSalesTransactions} topProducts={topProducts} salesTrendData={salesTrendData} previousSalesTrendData={previousSalesTrendData} salesForecastData={salesForecastData} categoryPerformanceData={categoryPerformanceData} />
+
+                  {!['global_forecast'].includes(activeModal) && (
+                    <div className="w-full lg:w-96 shrink-0 bg-slate-50/30 dark:bg-white/[0.01] overflow-y-auto custom-scrollbar">
+                      <InsightSidebar activeModal={activeModal} formatPrice={formatPrice} code={code} lowStockItems={lowStockItems} recentTransactions={recentSalesTransactions} topProducts={topProducts} salesTrendData={salesTrendData} previousSalesTrendData={previousSalesTrendData} salesForecastData={salesForecastData} categoryPerformanceData={categoryPerformanceData} />
                     </div>
                   )}
                 </div>
@@ -1493,13 +1770,7 @@ const AnalyticsDashboard = () => {
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">{t('dash_subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setActiveModal('global_forecast')}
-            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] transition-all hover:-translate-y-0.5"
-          >
-            <Sparkles className="w-4 h-4" />
-            Generate AI Insights
-          </button>
+
           <div className="flex items-center gap-3 bg-white dark:bg-[#1b2035] border border-slate-200 dark:border-white/10 rounded-xl p-1 shadow-sm">
             <div className="pl-3 pr-2 flex items-center gap-2 border-r border-slate-200 dark:border-white/10">
               <Calendar className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
@@ -1537,8 +1808,8 @@ const AnalyticsDashboard = () => {
                           setIsPeriodDropdownOpen(false);
                         }}
                         className={`w-full text-left px-3 py-2.5 text-sm rounded-lg transition-colors flex items-center justify-between ${selectedPeriod === period
-                            ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold'
-                            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/[0.05]'
+                          ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold'
+                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/[0.05]'
                           }`}
                       >
                         {t(period)}
@@ -1555,20 +1826,55 @@ const AnalyticsDashboard = () => {
 
       <div className="space-y-8">
         {/* KPI Cards */}
-        <AnimatePresence mode="wait">
-          {loadingStates.kpi ? (
-            <motion.div key="kpi-skel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-              <CardSkeleton count={4} />
-            </motion.div>
-          ) : (
-            <motion.div key="kpi-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card onClick={() => setActiveModal('kpi_revenue')} title={t('dash_revenue')} value={salesTransactionsData ? formatPrice(totalRevenue) : '—'} icon={RevenueCurrencyIcon} trend={salesTransactionCount && salesTransactionCount > 0 ? 'Recorded' : 'No sales yet'} trendUp={salesTransactionCount && salesTransactionCount > 0} attention={t('dash_attention')} />
-              <Card onClick={() => setActiveModal('kpi_sales')} title={t('dash_sales_txn')} value={salesTransactionCount !== null ? salesTransactionCount.toLocaleString() : '—'} icon={TrendingUp} trend="Recorded" trendUp={true} attention={t('dash_attention')} />
-              <Card onClick={() => setActiveModal('kpi_inventory')} title={t('dash_inv_items')} value={totalInventoryItems !== null ? totalInventoryItems.toLocaleString() : '—'} icon={Package} trend={inventoryTrend.label} trendUp={inventoryTrend.up} trendTone={inventoryTrend.tone} attention={t('dash_attention')} />
-              <Card onClick={() => setActiveModal('kpi_alerts')} title={t('dash_low_alerts')} value={lowStockCount !== null ? lowStockCount.toString() : '—'} icon={AlertCircle} trend={t('dash_attention')} alert={true} attention={t('dash_attention')} />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <AnimatePresence mode="wait">
+            {loadingStates.kpiRev ? (
+              <motion.div key="kpi-rev-skel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="h-full w-full">
+                <CardSkeleton count={1} className="h-full w-full" />
+              </motion.div>
+            ) : (
+              <motion.div key="kpi-rev-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="h-full w-full">
+                <Card onClick={() => setActiveModal('kpi_revenue')} title={t('dash_revenue')} value={salesTransactionsData ? formatPrice(totalRevenue) : '—'} icon={DollarSign} trend={salesTransactionCount && salesTransactionCount > 0 ? 'Recorded' : 'No sales yet'} trendUp={salesTransactionCount && salesTransactionCount > 0} attention={t('dash_attention')} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence mode="wait">
+            {loadingStates.kpiSales ? (
+              <motion.div key="kpi-sales-skel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="h-full w-full">
+                <CardSkeleton count={1} className="h-full w-full" />
+              </motion.div>
+            ) : (
+              <motion.div key="kpi-sales-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="h-full w-full">
+                <Card onClick={() => setActiveModal('kpi_sales')} title={t('dash_sales_txn')} value={salesTransactionCount !== null ? salesTransactionCount.toLocaleString() : '—'} icon={TrendingUp} trend="Recorded" trendUp={true} attention={t('dash_attention')} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence mode="wait">
+            {loadingStates.kpiInv ? (
+              <motion.div key="kpi-inv-skel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="h-full w-full">
+                <CardSkeleton count={1} className="h-full w-full" />
+              </motion.div>
+            ) : (
+              <motion.div key="kpi-inv-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="h-full w-full">
+                <Card onClick={() => setActiveModal('kpi_inventory')} title={t('dash_inv_items')} value={totalInventoryItems !== null ? totalInventoryItems.toLocaleString() : '—'} icon={Package} trend={inventoryTrend.label} trendUp={inventoryTrend.up} trendTone={inventoryTrend.tone} attention={t('dash_attention')} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence mode="wait">
+            {loadingStates.kpiAlerts ? (
+              <motion.div key="kpi-alerts-skel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="h-full w-full">
+                <CardSkeleton count={1} className="h-full w-full" />
+              </motion.div>
+            ) : (
+              <motion.div key="kpi-alerts-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="h-full w-full">
+                <Card onClick={() => setActiveModal('kpi_alerts')} title={t('dash_low_alerts')} value={lowStockCount !== null ? lowStockCount.toString() : '—'} icon={AlertCircle} trend={t('dash_attention')} alert={true} attention={t('dash_attention')} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Charts Area 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1580,7 +1886,12 @@ const AnalyticsDashboard = () => {
             ) : (
               <motion.div key="trends-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="lg:col-span-2 h-full w-full">
                 <ChartCard onClick={() => setActiveModal('area')} className="p-6">
-                  <div className="flex items-center justify-between mb-6">
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
+                    className="flex items-center justify-between mb-6"
+                  >
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                       {t('dash_trends_title')}
                     </h3>
@@ -1588,10 +1899,15 @@ const AnalyticsDashboard = () => {
                       <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
                       <Maximize2 className="w-3.5 h-3.5" />
                     </div>
-                  </div>
-                  <div className="flex-1 w-full h-full min-h-[220px]">
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.2, ease: 'easeOut' }}
+                    className="flex-1 w-full h-full min-h-[300px]"
+                  >
                     <AreaChartContent data={salesTrendData} forecastData={salesForecastData} formatPrice={formatPrice} />
-                  </div>
+                  </motion.div>
                 </ChartCard>
               </motion.div>
             )}
@@ -1605,24 +1921,39 @@ const AnalyticsDashboard = () => {
             ) : (
               <motion.div key="cat-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="h-full w-full">
                 <ChartCard onClick={() => setActiveModal('donut')} className="p-6">
-                  <div className="flex items-center justify-between mb-6">
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
+                    className="flex items-center justify-between mb-6"
+                  >
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('dash_cat_title')}</h3>
                     <div className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
                       <Maximize2 className="w-3.5 h-3.5" />
                     </div>
-                  </div>
-                  <div className="flex-1 w-full h-full min-h-[220px]">
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.2, ease: 'easeOut' }}
+                    className="flex-1 w-full h-full min-h-[220px]"
+                  >
                     <DonutChartContent data={categoryPerformanceData} formatPrice={formatPrice} />
-                  </div>
-                  <div className="mt-4 grid grid-cols-2 gap-2">
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.3, ease: 'easeOut' }}
+                    className="mt-4 grid grid-cols-2 gap-2"
+                  >
                     {categoryPerformanceData.slice(0, 4).map((entry, index) => (
                       <div key={entry.name} className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                         <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
                         <span className="truncate">{entry.name}</span>
                       </div>
                     ))}
-                  </div>
+                  </motion.div>
                 </ChartCard>
               </motion.div>
             )}
@@ -1639,16 +1970,26 @@ const AnalyticsDashboard = () => {
             ) : (
               <motion.div key="top-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="h-full w-full">
                 <ChartCard onClick={() => setActiveModal('bar')} className="p-6">
-                  <div className="flex items-center justify-between mb-6">
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
+                    className="flex items-center justify-between mb-6"
+                  >
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('dash_top_title')}</h3>
                     <div className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
                       <Maximize2 className="w-3.5 h-3.5" />
                     </div>
-                  </div>
-                  <div className="flex-1 w-full h-full min-h-[220px]">
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.2, ease: 'easeOut' }}
+                    className="flex-1 w-full h-full min-h-[280px]"
+                  >
                     <BarChartContent limit={5} products={topProducts} />
-                  </div>
+                  </motion.div>
                 </ChartCard>
               </motion.div>
             )}
@@ -1662,7 +2003,12 @@ const AnalyticsDashboard = () => {
             ) : (
               <motion.div key="orders-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="h-full w-full">
                 <ChartCard onClick={openRecentOrdersModal}>
-                  <div className="p-6 border-b border-slate-100 dark:border-white/10 flex items-center justify-between transition-colors">
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
+                    className="p-6 border-b border-slate-100 dark:border-white/10 flex items-center justify-between transition-colors"
+                  >
                     <div className="flex items-center gap-3">
                       <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                         <ShoppingCart className="w-4 h-4 text-indigo-500" />
@@ -1673,10 +2019,15 @@ const AnalyticsDashboard = () => {
                       <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
                       <Maximize2 className="w-3.5 h-3.5" />
                     </div>
-                  </div>
-                  <div className="overflow-x-auto flex-1">
-                    <RecentOrdersTable limit={3} formatPrice={formatPrice} transactions={recentSalesTransactions} allowExpand={false} onRowClick={(txn) => openRecentOrdersModal(txn.id)} />
-                  </div>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 0.2, ease: 'easeOut' }}
+                    className="overflow-x-auto flex-1"
+                  >
+                    <RecentOrdersTable limit={5} formatPrice={formatPrice} transactions={recentSalesTransactions} allowExpand={false} onRowClick={(txn) => openRecentOrdersModal(txn.id)} />
+                  </motion.div>
                 </ChartCard>
               </motion.div>
             )}
@@ -1690,7 +2041,12 @@ const AnalyticsDashboard = () => {
             ) : (
               <motion.div key="stock-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="h-full w-full">
                 <ChartCard onClick={() => setActiveModal('stock')}>
-                  <div className="p-6 border-b border-slate-100 dark:border-white/10 flex items-center justify-between transition-colors">
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
+                    className="p-6 border-b border-slate-100 dark:border-white/10 flex items-center justify-between transition-colors"
+                  >
                     <div className="flex items-center gap-3">
                       <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                         <AlertCircle className="w-4 h-4 text-rose-500" />
@@ -1701,10 +2057,15 @@ const AnalyticsDashboard = () => {
                       <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
                       <Maximize2 className="w-3.5 h-3.5" />
                     </div>
-                  </div>
-                  <div className="overflow-x-auto flex-1">
-                    <LowStockTable limit={3} t={t} items={lowStockItems} />
-                  </div>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 0.2, ease: 'easeOut' }}
+                    className="overflow-x-auto flex-1"
+                  >
+                    <LowStockTable limit={5} t={t} items={lowStockItems} />
+                  </motion.div>
                 </ChartCard>
               </motion.div>
             )}
@@ -1732,25 +2093,54 @@ const Card = ({ title, value, icon: Icon, trend, trendUp, trendTone, alert, atte
     <div className="absolute -inset-4 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none blur-lg" />
 
     <div className="relative z-10 flex justify-between items-start mb-6">
-      <div className={`p-3 rounded-xl border transition-transform duration-300 group-hover:scale-110 ${alert
-        ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20'
-        : 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-100 dark:border-indigo-500/20'
-        }`}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.5, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+        className={`p-3 rounded-xl border transition-transform duration-300 group-hover:scale-110 ${alert
+          ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20'
+          : 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-100 dark:border-indigo-500/20'
+          }`}>
         <Icon className={`w-5 h-5 ${alert ? 'text-rose-600 dark:text-rose-400' : 'text-indigo-600 dark:text-indigo-400'}`} />
-      </div>
-      {alert ? (
-        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.1)]">
-          {attention}
-        </span>
-      ) : (
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider shadow-sm ${getTrendClass(trendTone, trendUp)}`}>
-          {trend}
-        </span>
-      )}
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, x: 10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
+      >
+        {alert ? (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.1)]">
+            {attention}
+          </span>
+        ) : (
+          <motion.span
+            key={trend}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider shadow-sm ${getTrendClass(trendTone, trendUp)}`}
+          >
+            {trend}
+          </motion.span>
+        )}
+      </motion.div>
     </div>
-    <div className="relative z-10">
-      <h4 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{value}</h4>
-      <div className="flex items-center justify-between mt-2">
+    <div className="relative z-10 flex flex-col justify-end min-h-[40px]">
+      <motion.h4
+        key={value}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
+        className="text-3xl font-black text-slate-900 dark:text-white tracking-tight"
+      >
+        {value}
+      </motion.h4>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
+        className="flex items-center justify-between mt-2"
+      >
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
         {onClick && (
           <div className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -1758,7 +2148,7 @@ const Card = ({ title, value, icon: Icon, trend, trendUp, trendTone, alert, atte
             <Maximize2 className="w-3.5 h-3.5" />
           </div>
         )}
-      </div>
+      </motion.div>
     </div>
   </div>
 )

@@ -31,7 +31,7 @@ function readCache() {
 }
 
 async function fetchRatesFromAPI() {
-  const res = await fetch('https://api.frankfurter.app/latest?from=USD')
+  const res = await fetch('https://open.er-api.com/v6/latest/USD')
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const data = await res.json()
   // Frankfurter omits USD from the response when USD is the base — add it back
