@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Eye, FileText, CheckCircle, XCircle, Trash2, Clock, Inbox } from 'lucide-react'
+import { Plus, Eye, FileText, CheckCircle, XCircle, Trash2, Clock, Inbox, Calendar } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchProcurements, createProcurement, updateProcurementStatus } from '../features/procurements/api/procurementsApi'
 import { fetchSuppliers } from '../features/suppliers/api/suppliersApi'
@@ -24,6 +24,14 @@ export default function ProcurementsPage() {
     queryFn: () => fetchProcurements(),
   })
 
+  const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: fetchSuppliers })
+  const supplierMap = Object.fromEntries(suppliers.map(s => [s.id, s.name]))
+
+  const updateStatusMut = useMutation({
+    mutationFn: updateProcurementStatus,
+    onSuccess: () => queryClient.invalidateQueries(['procurements'])
+  })
+
   const location = useLocation()
   const navigate = useNavigate()
   const [initialProduct, setInitialProduct] = useState(null)
@@ -41,52 +49,109 @@ export default function ProcurementsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-end mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Procurements</h2>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Manage purchase orders and automated restocking</p>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">Refill Procurement & Purchase Orders</h2>
+          <p className="text-sm font-medium text-slate-400 dark:text-slate-500 mt-1">Restock inventory depots through supplier contracts</p>
         </div>
-        <button onClick={() => { setInitialProduct(null); setIsCreateOpen(true); }} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+        <button onClick={() => { setInitialProduct(null); setIsCreateOpen(true); }} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-[0_4px_14px_0_rgba(37,99,235,0.2)]">
           <Plus className="w-4 h-4" />
-          Create PO
+          Create Procurement PO
         </button>
       </div>
 
-      <div className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm dark:shadow-none">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold bg-slate-50 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/10">
-              <tr>
-                <th className="px-6 py-4">PO Number</th>
-                <th className="px-6 py-4">Requested By</th>
-                <th className="px-6 py-4">Amount</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Date</th>
-                <th className="px-6 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-              {isLoading ? (
-                <tr><td colSpan="6" className="text-center py-8 text-slate-500">Loading...</td></tr>
-              ) : procurements.length === 0 ? (
-                <tr><td colSpan="6" className="text-center py-8 text-slate-500">No procurements found.</td></tr>
-              ) : procurements.map(po => (
-                <tr key={po.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors">
-                  <td className="px-6 py-4 font-mono font-medium text-slate-900 dark:text-slate-200">{po.po_number}</td>
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{po.requested_by}</td>
-                  <td className="px-6 py-4 font-semibold text-slate-900 dark:text-slate-200">{formatPrice(po.total_amount, po.currency)}</td>
-                  <td className="px-6 py-4">
-                    <StatusBadge status={po.status} />
-                  </td>
-                  <td className="px-6 py-4 text-slate-500">{new Date(po.created_at).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 text-right">
-                    <button onClick={() => { setSelectedPO(po); setIsViewOpen(true) }} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-colors">
-                      <Eye size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {isLoading ? (
+          <div className="col-span-full py-8 text-center text-slate-500">Loading...</div>
+        ) : procurements.length === 0 ? (
+          <div className="col-span-full py-8 text-center text-slate-500">No procurements found.</div>
+        ) : procurements.map(po => {
+          const supplierName = supplierMap[po.supplier_id] || 'Unknown Supplier'
+          const isPending = po.status === 'pending_approval'
+          const isApproved = po.status === 'approved'
+          const isReceived = po.status === 'received'
+          
+          return (
+            <div key={po.id} className="bg-white dark:bg-[#12141c] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm overflow-hidden flex flex-col">
+              <div className="p-6 flex-1">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <div className="text-xs font-mono font-bold tracking-wider text-slate-300 dark:text-slate-500 mb-2 uppercase">{po.po_number}</div>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">{supplierName}</h3>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mt-1.5">
+                      <Calendar size={14} />
+                      Initiated: {new Date(po.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <StatusBadge status={po.status} />
+                </div>
+                
+                <div className="mt-6 space-y-3">
+                  {po.items?.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-start text-sm">
+                      <div className="text-slate-700 dark:text-slate-300 font-medium flex items-start gap-2">
+                        <span className="text-slate-800 dark:text-slate-500">•</span>
+                        {item.product_name}
+                      </div>
+                      <div className="text-slate-500 font-mono text-xs whitespace-nowrap ml-4 mt-0.5">
+                        {item.quantity} units x {formatPrice(item.unit_price, po.currency)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="bg-slate-50/80 dark:bg-white/[0.02] p-5 border-t border-slate-50 dark:border-white/5 flex justify-between items-center">
+                <div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Supply Cost</div>
+                  <div className="text-lg font-bold text-slate-800 dark:text-white">{formatPrice(po.total_amount, po.currency)}</div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {isReceived && (
+                    <div className="flex items-center gap-1.5 text-emerald-500 font-semibold text-sm">
+                      <CheckCircle size={16} />
+                      Stocks Credited
+                    </div>
+                  )}
+                  {isApproved && isAdmin && (
+                    <>
+                      <button 
+                        onClick={() => updateStatusMut.mutate({ id: po.id, status: 'received' })}
+                        disabled={updateStatusMut.isPending}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 shadow-[0_4px_14px_0_rgba(16,185,129,0.2)]"
+                      >
+                        Receive Stock
+                      </button>
+                      <button 
+                        onClick={() => updateStatusMut.mutate({ id: po.id, status: 'cancelled' })}
+                        disabled={updateStatusMut.isPending}
+                        className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                  {isPending && isAdmin && (
+                    <>
+                      <button 
+                        onClick={() => updateStatusMut.mutate({ id: po.id, status: 'approved' })}
+                        disabled={updateStatusMut.isPending}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 shadow-[0_4px_14px_0_rgba(37,99,235,0.2)]"
+                      >
+                        Approve PO
+                      </button>
+                      <button 
+                        onClick={() => updateStatusMut.mutate({ id: po.id, status: 'cancelled' })}
+                        disabled={updateStatusMut.isPending}
+                        className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       <AnimatePresence>
@@ -99,17 +164,16 @@ export default function ProcurementsPage() {
 
 function StatusBadge({ status }) {
   const config = {
-    draft: { color: 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300', icon: FileText },
-    pending_approval: { color: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20', icon: Clock },
-    approved: { color: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20', icon: CheckCircle },
-    received: { color: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20', icon: Inbox },
-    cancelled: { color: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20', icon: XCircle }
+    draft: { color: 'text-slate-500 border-slate-200 dark:text-slate-400 dark:border-slate-700' },
+    pending_approval: { label: 'PENDING', color: 'text-amber-500 border-amber-200 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/10' },
+    approved: { label: 'APPROVED', color: 'text-indigo-500 border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/50 dark:bg-indigo-500/10' },
+    received: { label: 'COMPLETED', color: 'text-emerald-500 border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/10' },
+    cancelled: { label: 'CANCELLED', color: 'text-rose-500 border-rose-200 dark:border-rose-500/30 bg-rose-50/50 dark:bg-rose-500/10' }
   }
   const c = config[status] || config.draft
-  const Icon = c.icon
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${c.color}`}>
-      <Icon size={12} /> {status.replace('_', ' ')}
+    <span className={`inline-flex items-center px-3 py-1 rounded-md text-[10px] font-bold tracking-wider border ${c.color}`}>
+      {c.label || status.replace('_', ' ').toUpperCase()}
     </span>
   )
 }

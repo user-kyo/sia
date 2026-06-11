@@ -9,7 +9,9 @@ export default function SuppliersDirectoryPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingSupplier, setEditingSupplier] = useState(null)
+  const [supplierToDelete, setSupplierToDelete] = useState(null)
   const [errorMsg, setErrorMsg] = useState(null)
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
   
   // Form State
   const [formData, setFormData] = useState({
@@ -53,6 +55,7 @@ export default function SuppliersDirectoryPage() {
     mutationFn: deleteSupplier,
     onSuccess: () => {
       queryClient.invalidateQueries(['suppliers'])
+      setSupplierToDelete(null)
     }
   })
 
@@ -60,6 +63,7 @@ export default function SuppliersDirectoryPage() {
     setFormData({ name: '', contact_name: '', email: '', phone: '', address: '' })
     setEditingSupplier(null)
     setErrorMsg(null)
+    setHasAttemptedSubmit(false)
   }
 
   const openEdit = (s) => {
@@ -76,6 +80,12 @@ export default function SuppliersDirectoryPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    setHasAttemptedSubmit(true)
+    
+    if (!formData.name || !formData.contact_name || !formData.email) {
+      return
+    }
+
     if (editingSupplier) {
       updateMut.mutate({ id: editingSupplier.id, ...formData })
     } else {
@@ -155,7 +165,7 @@ export default function SuppliersDirectoryPage() {
                       <button onClick={() => openEdit(supplier)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-colors">
                         <Edit2 size={16} />
                       </button>
-                      <button onClick={() => deleteMut.mutate(supplier.id)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors">
+                      <button onClick={() => setSupplierToDelete(supplier)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -184,7 +194,7 @@ export default function SuppliersDirectoryPage() {
                   <X size={20} />
                 </button>
               </div>
-              <form onSubmit={handleSubmit} className="flex flex-col">
+              <form onSubmit={handleSubmit} noValidate className="flex flex-col">
                 <div className="p-6 space-y-4">
                   {errorMsg && (
                     <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 p-3 text-sm text-rose-600 dark:text-rose-400 rounded-xl">
@@ -193,16 +203,25 @@ export default function SuppliersDirectoryPage() {
                   )}
                   <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Supplier Name *</label>
-                    <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                    <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className={`w-full bg-slate-50 dark:bg-white/5 border ${hasAttemptedSubmit && !formData.name ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50`} />
+                    {hasAttemptedSubmit && !formData.name && (
+                      <p className="text-[11px] text-rose-500 mt-1.5 flex items-center gap-1">This field is required.</p>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Representative Name</label>
-                    <input type="text" value={formData.contact_name} onChange={e => setFormData({...formData, contact_name: e.target.value})} className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Representative Name *</label>
+                    <input required type="text" value={formData.contact_name} onChange={e => setFormData({...formData, contact_name: e.target.value})} className={`w-full bg-slate-50 dark:bg-white/5 border ${hasAttemptedSubmit && !formData.contact_name ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50`} />
+                    {hasAttemptedSubmit && !formData.contact_name && (
+                      <p className="text-[11px] text-rose-500 mt-1.5 flex items-center gap-1">This field is required.</p>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email</label>
-                      <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email *</label>
+                      <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={`w-full bg-slate-50 dark:bg-white/5 border ${hasAttemptedSubmit && !formData.email ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50`} />
+                      {hasAttemptedSubmit && !formData.email && (
+                        <p className="text-[11px] text-rose-500 mt-1.5 flex items-center gap-1">This field is required.</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Phone</label>
@@ -221,6 +240,49 @@ export default function SuppliersDirectoryPage() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {supplierToDelete && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm"
+              onClick={() => setSupplierToDelete(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative bg-white dark:bg-[#12141c] border border-transparent dark:border-white/10 rounded-2xl w-full max-w-sm shadow-xl p-6 z-10"
+            >
+              <div className="w-11 h-11 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-xl flex items-center justify-center mb-4">
+                <Trash2 size={20} className="text-rose-500 dark:text-rose-400" />
+              </div>
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-2">Delete Supplier</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                Are you sure you want to delete <span className="font-semibold text-slate-700 dark:text-slate-300">{supplierToDelete.name}</span>? This action cannot be undone and may affect active purchase orders.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setSupplierToDelete(null)}
+                  className="flex-1 px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => deleteMut.mutate(supplierToDelete.id)}
+                  disabled={deleteMut.isPending}
+                  className="flex-1 px-4 py-2 text-sm font-semibold bg-rose-500 hover:bg-rose-600 text-white rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {deleteMut.isPending ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

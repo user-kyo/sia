@@ -4,8 +4,8 @@ from datetime import datetime
 
 class SupplierBase(BaseModel):
     name: str
-    contact_name: Optional[str] = None
-    email: Optional[str] = None
+    contact_name: str
+    email: str
     phone: Optional[str] = None
     address: Optional[str] = None
     status: Optional[str] = "active"
