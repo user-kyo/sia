@@ -4,7 +4,6 @@ import {
   CheckCircle, XCircle, ChevronDown, ArrowUpDown, ChevronLeft, ChevronRight, Filter, Key, User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CardSkeleton } from '../components/ui/Skeletons';
 import api from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
@@ -115,8 +114,23 @@ export default function UserManagementPage() {
 
   const { userRole, user: currentUser, signOut } = useAuth();
 
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.get('/users');
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast('Failed to load users. Did you run the SQL migration?', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Close dropdowns on outside click
@@ -152,19 +166,6 @@ export default function UserManagementPage() {
       toast(error.response?.data?.detail || 'Failed to send invite', 'error');
     } finally {
       setIsInviting(false);
-    }
-  };
-
-  const fetchUsers = async () => {
-    setIsLoading(true);
-    try {
-      const response = await api.get('/users');
-      setUsers(response.data);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast('Failed to load users. Did you run the SQL migration?', 'error');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -247,6 +248,7 @@ export default function UserManagementPage() {
 
   // Reset to page 1 when filters change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPage(1);
   }, [searchQuery, roleFilter, statusFilter]);
 
@@ -312,7 +314,7 @@ export default function UserManagementPage() {
     return null;
   };
 
-  const SortableHeader = ({ label, sortKey, className = "text-center" }) => (
+  const renderSortableHeader = (label, sortKey, className = "text-center") => (
     <th
       className={`px-6 py-4 font-semibold cursor-pointer select-none group transition-colors hover:bg-slate-100 dark:hover:bg-white/5 ${className}`}
       onClick={() => handleSort(sortKey)}
@@ -475,11 +477,11 @@ export default function UserManagementPage() {
           <table className="w-full min-w-[800px] text-left text-sm table-fixed">
             <thead className="bg-slate-50 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 transition-colors">
               <tr>
-                <SortableHeader label="User" sortKey="name" className="text-left w-[20%]" />
-                <SortableHeader label="Email Address" sortKey="email" className="text-left w-[25%]" />
-                <SortableHeader label="Role" sortKey="role" className="text-left w-[15%]" />
-                <SortableHeader label="Status" sortKey="status" className="text-left w-[15%]" />
-                <SortableHeader label="Last Active" sortKey="last_active" className="text-left w-[15%]" />
+                {renderSortableHeader("User", "name", "text-left w-[20%]")}
+                {renderSortableHeader("Email Address", "email", "text-left w-[25%]")}
+                {renderSortableHeader("Role", "role", "text-left w-[15%]")}
+                {renderSortableHeader("Status", "status", "text-left w-[15%]")}
+                {renderSortableHeader("Last Active", "last_active", "text-left w-[15%]")}
                 <th className="px-6 py-4 font-semibold text-center select-none w-[10%]">Actions</th>
               </tr>
             </thead>
