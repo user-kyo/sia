@@ -135,12 +135,12 @@ def transfer_ownership(user_id: str, current_user: dict = Depends(get_current_us
         print(f"Warning: Failed to update auth metadata for new super admin: {e}")
 
     # 2. Demote current user to admin
-    supabase_client.table("profiles").update({"role": "admin"}).eq("id", current_user["sub"]).execute()
+    supabase_client.table("profiles").update({"role": "admin"}).eq("id", current_user["id"]).execute()
     try:
-        current_user_data = supabase_client.auth.admin.get_user_by_id(current_user["sub"])
+        current_user_data = supabase_client.auth.admin.get_user_by_id(current_user["id"])
         my_meta = current_user_data.user.user_metadata if current_user_data and current_user_data.user else {}
         my_meta["role"] = "admin"
-        supabase_client.auth.admin.update_user_by_id(current_user["sub"], {"user_metadata": my_meta})
+        supabase_client.auth.admin.update_user_by_id(current_user["id"], {"user_metadata": my_meta})
     except Exception as e:
         print(f"Warning: Failed to update auth metadata for demoted super admin: {e}")
 
