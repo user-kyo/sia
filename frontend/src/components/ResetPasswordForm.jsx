@@ -44,15 +44,6 @@ export default function ResetPasswordForm() {
       setLoading(false);
     } else {
       console.log('Password reset successfully');
-      
-      // Trigger the custom "Password Changed" email via our backend
-      try {
-        const api = (await import('../lib/axios')).default;
-        await api.post('/auth/notify-security', { event_type: 'password_changed' });
-      } catch (err) {
-        console.error("Failed to trigger security email:", err);
-      }
-      
       setLoading(false);
       navigate('/');
     }

@@ -127,15 +127,6 @@ export default function SettingsPage() {
       setOldPassword('')
       setPassword('')
       setConfirmPassword('')
-      
-      // Trigger the custom "Password Changed" email via our backend
-      try {
-        const api = (await import('../lib/axios')).default;
-        await api.post('/auth/notify-security', { event_type: 'password_changed' });
-      } catch (err) {
-        console.error("Failed to trigger security email:", err);
-      }
-      
       toast("Password updated successfully.", 'success')
     }
     setIsUpdatingPassword(false)
