@@ -54,7 +54,19 @@ class InventoryItemResponse(BaseModel):
         from_attributes = True
 
 
+class InventoryCategorySummary(BaseModel):
+    category: str
+    product_count: int
+    stock_quantity: int
+    value_by_currency: dict[str, float] = Field(default_factory=dict)
+
+
+class InventorySummary(BaseModel):
+    category_breakdown: list[InventoryCategorySummary] = Field(default_factory=list)
+
+
 class InventoryListResponse(BaseModel):
     data: list[InventoryItemResponse]
     total: int
     has_more: bool
+    summary: Optional[InventorySummary] = None

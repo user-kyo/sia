@@ -5,6 +5,8 @@ import { useAppSettings } from '../contexts/AppSettingsContext'
 import { useCurrency } from '../contexts/CurrencyContext'
 import FiltersPanel from '../features/inventory/components/FiltersPanel'
 import { ProductGridSkeleton } from '../components/ui/Skeletons'
+import { createSalesTransaction, SALES_TRANSACTIONS_QUERY_KEY } from '../features/sales/api/salesApi'
+import { useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 
 const CATEGORY_ICONS = {
@@ -18,6 +20,7 @@ const POSPage = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [cart, setCart] = useState([])
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
+  const [checkoutError, setCheckoutError] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [stockAlert, setStockAlert] = useState(null)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -25,6 +28,7 @@ const POSPage = () => {
 
   const { t } = useAppSettings()
   const { code, formatPrice, formatAs, convertAmount } = useCurrency()
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300)
@@ -98,6 +102,7 @@ const POSPage = () => {
   const processCheckout = async () => {
     if (cart.length === 0) return
     setIsCheckoutLoading(true)
+    setCheckoutError(null)
     try {
       await Promise.all(cart.map(item =>
         adjustStockMutation.mutateAsync({
@@ -106,10 +111,31 @@ const POSPage = () => {
           quantity: item.cartQuantity,
         })
       ))
+
+      await createSalesTransaction({
+        total_amount: total,
+        currency: code,
+        items: cart.map(item => {
+          const unitPrice = Number(item.price) || 0
+          return {
+            product_id: item.id,
+            sku: item.sku,
+            name: item.name,
+            category: item.category || 'Uncategorized',
+            quantity: item.cartQuantity,
+            unit_price: unitPrice,
+            line_total: unitPrice * item.cartQuantity,
+            currency: item.currency || code,
+          }
+        }),
+      })
+      queryClient.invalidateQueries({ queryKey: SALES_TRANSACTIONS_QUERY_KEY })
+
       setCart([])
       setIsModalOpen(false)
     } catch (error) {
       console.error('Checkout failed:', error)
+      setCheckoutError(error?.response?.data?.detail || error?.message || 'Checkout failed. Please try again.')
     } finally {
       setIsCheckoutLoading(false)
     }
@@ -405,6 +431,11 @@ const POSPage = () => {
                 <span>{t('pos_amount')}</span>
                 <span className="text-indigo-600 dark:text-indigo-400">{formatPrice(total)}</span>
               </div>
+              {checkoutError && (
+                <div className="mt-4 rounded-xl border border-rose-200 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/10 px-3 py-2 text-xs font-medium text-rose-700 dark:text-rose-300">
+                  {checkoutError}
+                </div>
+              )}
             </div>
 
             <div className="p-6 flex gap-3 bg-white dark:bg-[#0d0f1a]">
