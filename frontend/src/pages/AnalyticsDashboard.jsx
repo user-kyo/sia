@@ -55,6 +55,77 @@ const formatSignedPercent = (value) => {
   return `${value >= 0 ? '+' : '-'}${formatted}%`
 }
 
+const formatShortDate = (date) => (
+  new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(date)
+)
+
+const buildSalesForecast = (trendData, days = 7) => {
+  const activeDays = trendData.filter(point => point.orders > 0 || point.revenue > 0)
+  if (activeDays.length === 0) return []
+
+  const baselineDays = activeDays.slice(-Math.min(activeDays.length, 14))
+  const avgOrders = baselineDays.reduce((sum, day) => sum + day.orders, 0) / baselineDays.length
+  const avgRevenue = baselineDays.reduce((sum, day) => sum + day.revenue, 0) / baselineDays.length
+  const recentWindow = baselineDays.slice(-3)
+  const previousWindow = baselineDays.slice(-6, -3)
+  const recentRevenue = recentWindow.reduce((sum, day) => sum + day.revenue, 0) / Math.max(1, recentWindow.length)
+  const previousRevenue = previousWindow.reduce((sum, day) => sum + day.revenue, 0) / Math.max(1, previousWindow.length)
+  const trendRate = previousRevenue > 0
+    ? Math.max(-0.25, Math.min(0.25, (recentRevenue - previousRevenue) / previousRevenue))
+    : 0
+  const lastTrendDate = trendData.at(-1)?.date
+  const startDate = lastTrendDate ? new Date(`${lastTrendDate}T00:00:00`) : new Date()
+
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(startDate)
+    date.setDate(date.getDate() + index + 1)
+    const multiplier = 1 + (trendRate * ((index + 1) / days))
+
+    return {
+      date: date.toISOString().slice(0, 10),
+      label: formatShortDate(date),
+      projectedOrders: Math.max(0, Math.round(avgOrders * multiplier)),
+      projectedRevenue: Math.max(0, avgRevenue * multiplier),
+    }
+  })
+}
+
+const summarizeSalesTrend = (trendData = []) => {
+  const totalRevenue = trendData.reduce((sum, day) => sum + (Number(day.revenue) || 0), 0)
+  const totalOrders = trendData.reduce((sum, day) => sum + (Number(day.orders) || 0), 0)
+  const activeDays = trendData.filter(day => (Number(day.orders) || 0) > 0 || (Number(day.revenue) || 0) > 0).length
+  const bestDay = trendData.reduce(
+    (best, day) => ((Number(day.revenue) || 0) > (Number(best.revenue) || 0) ? day : best),
+    trendData[0] || { label: 'No sales', revenue: 0, orders: 0 }
+  )
+
+  return {
+    totalRevenue,
+    totalOrders,
+    activeDays,
+    bestDay,
+    avgDailyRevenue: trendData.length > 0 ? totalRevenue / trendData.length : 0,
+    avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+  }
+}
+
+const summarizeForecast = (forecast = []) => ({
+  revenue: forecast.reduce((sum, day) => sum + (Number(day.projectedRevenue) || 0), 0),
+  orders: forecast.reduce((sum, day) => sum + (Number(day.projectedOrders) || 0), 0),
+})
+
+const getChangeMeta = (currentValue, previousValue) => {
+  if (previousValue > 0) {
+    const change = ((currentValue - previousValue) / previousValue) * 100
+    return {
+      label: `${formatSignedPercent(change)} vs previous`,
+      tone: change > 0 ? 'up' : change < 0 ? 'down' : 'neutral',
+    }
+  }
+  if (currentValue > 0) return { label: 'New activity', tone: 'up' }
+  return { label: 'No previous movement', tone: 'neutral' }
+}
+
 // --- Custom Tooltips ---
 const CustomTooltip = ({ active, payload, label, prefix = '', isDay = false, valueFormatter }) => {
   if (active && payload && payload.length) {
@@ -145,6 +216,42 @@ const AreaChartContent = ({ data = [], formatPrice }) => (
     </AreaChart>
   </ResponsiveContainer>
 );
+
+const SalesForecastPanel = ({ forecast = [], formatPrice }) => (
+  <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.02] p-5">
+    <div className="flex items-center justify-between gap-3 mb-4">
+      <h4 className="text-sm font-bold text-slate-900 dark:text-white">Upcoming Sales Forecast</h4>
+      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 px-2 py-0.5 rounded-md">
+        Next 7 Days
+      </span>
+    </div>
+    {forecast.length > 0 ? (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {forecast.map(day => (
+          <div key={day.date} className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{day.label}</div>
+            <div className="mt-4 space-y-4">
+              <div>
+                <div className="text-2xl font-black text-slate-900 dark:text-white">{day.projectedOrders}</div>
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400">orders</div>
+              </div>
+              <div className="border-t border-slate-200 dark:border-white/10 pt-3">
+                <div className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Revenue</div>
+                <div className="mt-1 text-lg font-black text-emerald-600 dark:text-emerald-400 whitespace-nowrap leading-tight">
+                  {formatPrice(day.projectedRevenue)}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+        Forecast will appear after recorded sales are available.
+      </div>
+    )}
+  </div>
+)
 
 const DonutChartContent = ({ data = [], formatPrice }) => {
   if (data.length === 0) {
@@ -348,19 +455,69 @@ const LowStockTable = ({ limit, t, items = [] }) => {
   );
 };
 
-const InsightSidebar = ({ activeModal, formatPrice, code, insight, isGenerating, generateInsight, lowStockItems = [], recentTransactions = [], topProducts = [], salesTrendData = [], categoryPerformanceData = [] }) => {
+const InsightCard = ({ label, value, meta, tone = 'neutral' }) => {
+  const toneClass = tone === 'up'
+    ? 'text-emerald-600 dark:text-emerald-400'
+    : tone === 'down'
+      ? 'text-rose-600 dark:text-rose-400'
+      : 'text-slate-500 dark:text-slate-400'
+
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] p-4">
+      <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">{label}</div>
+      <div className="text-lg font-black text-slate-900 dark:text-white leading-tight">{value}</div>
+      {meta && <div className={`mt-2 text-[11px] font-bold uppercase tracking-wider ${toneClass}`}>{meta}</div>}
+    </div>
+  )
+}
+
+const InsightSidebar = ({ activeModal, formatPrice, code, insight, isGenerating, generateInsight, lowStockItems = [], recentTransactions = [], topProducts = [], salesTrendData = [], previousSalesTrendData = [], salesForecastData = [], categoryPerformanceData = [] }) => {
+  const areaInsight = React.useMemo(() => {
+    if (activeModal !== 'area') return null
+
+    const current = summarizeSalesTrend(salesTrendData)
+    const previous = summarizeSalesTrend(previousSalesTrendData)
+    const forecast = summarizeForecast(salesForecastData)
+    const revenueChange = getChangeMeta(current.totalRevenue, previous.totalRevenue)
+    const orderChange = getChangeMeta(current.totalOrders, previous.totalOrders)
+    const aovChange = getChangeMeta(current.avgOrderValue, previous.avgOrderValue)
+    const concentration = current.totalRevenue > 0 ? (current.bestDay.revenue / current.totalRevenue) * 100 : 0
+    const forecastConfidence = current.activeDays >= 7 ? 'High' : current.activeDays >= 3 ? 'Medium' : current.activeDays > 0 ? 'Low' : 'Waiting'
+    const attentionTone = concentration >= 60 || current.activeDays <= 2 ? 'down' : 'neutral'
+    const attentionLabel = current.totalOrders === 0
+      ? 'No sales recorded yet'
+      : concentration >= 60
+        ? `${current.bestDay.label} drove ${concentration.toFixed(0)}% of revenue`
+        : current.activeDays <= 2
+          ? `Only ${current.activeDays} active sale day${current.activeDays === 1 ? '' : 's'}`
+          : `${current.activeDays} active sale days`
+    const meaning = current.totalOrders === 0
+      ? 'There are no recorded sales in this period yet, so the trend line and forecast are waiting for checkout activity.'
+      : concentration >= 60
+        ? `Revenue is concentrated around ${current.bestDay.label}. The period is performing, but one strong day is carrying much of the result.`
+        : current.activeDays <= 2
+          ? 'Sales are still sparse in this period. A few more checkout days will make the trend and forecast more reliable.'
+          : 'Sales activity is spread across multiple days, giving the trend and forecast a healthier base.'
+    const action = current.totalOrders === 0
+      ? 'Run a checkout transaction to start building the trend.'
+      : concentration >= 60
+        ? `Review what drove ${current.bestDay.label} and repeat that product mix or selling window.`
+        : forecastConfidence === 'Low'
+          ? 'Treat the forecast as directional for now and focus on creating more consistent daily checkout volume.'
+          : 'Compare the next few days against the forecast and adjust stock or promos when actuals drift.'
+
+    return { current, forecast, revenueChange, orderChange, aovChange, forecastConfidence, attentionTone, attentionLabel, meaning, action }
+  }, [activeModal, salesTrendData, previousSalesTrendData, salesForecastData])
+
   const metrics = React.useMemo(() => {
     switch (activeModal) {
       case 'area': {
-        const totalRev = salesTrendData.reduce((acc, curr) => acc + curr.revenue, 0);
-        const totalOrders = salesTrendData.reduce((acc, curr) => acc + curr.orders, 0);
-        const avgRev = salesTrendData.length > 0 ? totalRev / salesTrendData.length : 0;
-        const maxDay = salesTrendData.reduce((prev, current) => (prev.revenue > current.revenue) ? prev : current, salesTrendData[0] || { label: 'No sales', revenue: 0 });
+        const current = summarizeSalesTrend(salesTrendData);
         return [
-          { label: "Total Revenue", value: formatPrice(totalRev) },
-          { label: "Avg Daily Revenue", value: formatPrice(avgRev) },
-          { label: "Orders", value: totalOrders.toString() },
-          { label: "Best Day", value: `${maxDay.label} (${formatPrice(maxDay.revenue)})` }
+          { label: "Total Revenue", value: formatPrice(current.totalRevenue) },
+          { label: "Avg Daily Revenue", value: formatPrice(current.avgDailyRevenue) },
+          { label: "Orders", value: current.totalOrders.toString() },
+          { label: "Best Day", value: `${current.bestDay.label} (${formatPrice(current.bestDay.revenue)})` }
         ];
       }
       case 'donut': {
@@ -420,14 +577,36 @@ const InsightSidebar = ({ activeModal, formatPrice, code, insight, isGenerating,
     <div className="p-6 flex flex-col h-full">
       <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-6 uppercase tracking-wider">Detailed Insights</h4>
 
-      <div className="space-y-4 mb-8">
-        {metrics.map((m, i) => (
-          <div key={i} className="flex flex-col">
-            <span className="text-xs text-slate-500 dark:text-slate-400 mb-1">{m.label}</span>
-            <span className="text-base font-semibold text-slate-900 dark:text-slate-100">{m.value}</span>
+      {activeModal === 'area' && areaInsight ? (
+        <div className="space-y-5 mb-8">
+          <div className="grid grid-cols-1 gap-3">
+            <InsightCard label="Revenue" value={formatPrice(areaInsight.current.totalRevenue)} meta={areaInsight.revenueChange.label} tone={areaInsight.revenueChange.tone} />
+            <InsightCard label="Orders" value={areaInsight.current.totalOrders.toString()} meta={areaInsight.orderChange.label} tone={areaInsight.orderChange.tone} />
+            <InsightCard label="Avg Order Value" value={formatPrice(areaInsight.current.avgOrderValue)} meta={areaInsight.aovChange.label} tone={areaInsight.aovChange.tone} />
+            <InsightCard label="7-Day Forecast" value={formatPrice(areaInsight.forecast.revenue)} meta={`${areaInsight.forecast.orders} projected orders`} tone="up" />
+            <InsightCard label="Attention" value={areaInsight.attentionLabel} meta={`${areaInsight.forecastConfidence} forecast confidence`} tone={areaInsight.attentionTone} />
           </div>
-        ))}
-      </div>
+
+          <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">What this means</div>
+            <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{areaInsight.meaning}</p>
+          </div>
+
+          <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">Suggested next action</div>
+            <p className="text-sm leading-relaxed font-medium text-slate-800 dark:text-slate-200">{areaInsight.action}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4 mb-8">
+          {metrics.map((m, i) => (
+            <div key={i} className="flex flex-col">
+              <span className="text-xs text-slate-500 dark:text-slate-400 mb-1">{m.label}</span>
+              <span className="text-base font-semibold text-slate-900 dark:text-slate-100">{m.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {activeModal !== 'global_forecast' && (
         <div className="mt-auto pt-6 border-t border-slate-200 dark:border-white/10">
@@ -491,7 +670,13 @@ const AnalyticsDashboard = () => {
       let text = "";
       switch (activeModal) {
         case 'area':
-          text = "Revenue is trending upwards by 18% compared to the previous period. Based on the current trajectory, expect a 12-15% increase in gross revenue next week. Highest volume typically occurs between day 18-22.";
+          {
+            const current = summarizeSalesTrend(salesTrendData)
+            const forecast = summarizeForecast(salesForecastData)
+            text = current.totalOrders > 0
+              ? `This period recorded ${formatPrice(current.totalRevenue)} across ${current.totalOrders} orders. ${current.bestDay.label} was the strongest day, and the next 7 days are projected at ${formatPrice(forecast.revenue)} across ${forecast.orders} orders.`
+              : "No sales have been recorded for this period yet. Once POS checkout records sales, this view will generate a revenue trend, forecast, and suggested action."
+          }
           break;
         case 'donut':
           text = categoryPerformanceData[0]
@@ -608,6 +793,17 @@ const AnalyticsDashboard = () => {
     staleTime: 30_000,
   })
 
+  const { data: previousSalesTransactionsData } = useQuery({
+    queryKey: [...SALES_TRANSACTIONS_QUERY_KEY, 'previous-period', inventoryTrendWindow.previousStart, inventoryTrendWindow.previousEnd],
+    queryFn: () => fetchSalesTransactions({
+      limit: 1,
+      offset: 0,
+      summaryFrom: inventoryTrendWindow.previousStart,
+      summaryTo: inventoryTrendWindow.previousEnd,
+    }),
+    staleTime: 30_000,
+  })
+
   const totalInventoryItems = inventoryTotalData?.total ?? null
   const inventoryCategoryBreakdown = inventoryTotalData?.summary?.category_breakdown ?? []
   const lowStockItems = lowStockQueryData?.data ?? []
@@ -663,6 +859,16 @@ const AnalyticsDashboard = () => {
       }
     })
   }, [salesTransactionsData, convertAmount, code])
+  const previousSalesTrendData = React.useMemo(() => (
+    (previousSalesTransactionsData?.summary?.daily_trends ?? []).map(point => ({
+      date: point.date,
+      label: point.label,
+      orders: Number(point.orders) || 0,
+      revenue: Object.entries(point.revenue_by_currency || {}).reduce((sum, [currency, amount]) => (
+        sum + convertAmount(Number(amount) || 0, currency, code)
+      ), 0),
+    }))
+  ), [previousSalesTransactionsData, convertAmount, code])
   const categoryPerformanceData = React.useMemo(() => (
     (salesTransactionsData?.summary?.category_performance ?? []).map(category => ({
       name: category.category,
@@ -673,6 +879,9 @@ const AnalyticsDashboard = () => {
     })).filter(category => category.quantity > 0 || category.value > 0)
       .sort((a, b) => b.value - a.value)
   ), [salesTransactionsData, convertAmount, code])
+  const salesForecastData = React.useMemo(() => (
+    buildSalesForecast(salesTrendData, 7)
+  ), [salesTrendData])
   const totalRevenue = React.useMemo(() => (
     Object.entries(revenueByCurrency).reduce((sum, [currency, amount]) => (
       sum + convertAmount(Number(amount) || 0, currency, code)
@@ -695,8 +904,11 @@ const AnalyticsDashboard = () => {
     switch (activeModal) {
       case 'area':
         return (
-          <div className="w-full h-[500px]">
-            <AreaChartContent data={salesTrendData} formatPrice={formatPrice} />
+          <div className="w-full flex flex-col gap-6">
+            <div className="w-full h-[500px]">
+              <AreaChartContent data={salesTrendData} formatPrice={formatPrice} />
+            </div>
+            <SalesForecastPanel forecast={salesForecastData} formatPrice={formatPrice} />
           </div>
         )
       case 'donut':
@@ -1099,7 +1311,7 @@ const AnalyticsDashboard = () => {
                   </div>
                   {!['global_forecast', 'kpi_revenue', 'kpi_sales', 'kpi_inventory', 'kpi_alerts'].includes(activeModal) && (
                     <div className="w-full lg:w-80 shrink-0 bg-slate-50/30 dark:bg-white/[0.01] overflow-y-auto">
-                      <InsightSidebar activeModal={activeModal} formatPrice={formatPrice} code={code} insight={insight} isGenerating={isGenerating} generateInsight={generateInsight} lowStockItems={lowStockItems} recentTransactions={recentSalesTransactions} topProducts={topProducts} salesTrendData={salesTrendData} categoryPerformanceData={categoryPerformanceData} />
+                      <InsightSidebar activeModal={activeModal} formatPrice={formatPrice} code={code} insight={insight} isGenerating={isGenerating} generateInsight={generateInsight} lowStockItems={lowStockItems} recentTransactions={recentSalesTransactions} topProducts={topProducts} salesTrendData={salesTrendData} previousSalesTrendData={previousSalesTrendData} salesForecastData={salesForecastData} categoryPerformanceData={categoryPerformanceData} />
                     </div>
                   )}
                 </div>
