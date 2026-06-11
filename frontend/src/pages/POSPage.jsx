@@ -19,6 +19,7 @@ const POSPage = () => {
   const [cart, setCart] = useState([])
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [stockAlert, setStockAlert] = useState(null)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [filters, setFilters] = useState({ categories: [], brands: [], stockStatuses: [], minPrice: '', maxPrice: '', hasImage: false, sortBy: 'created_at-desc' })
 
@@ -52,13 +53,21 @@ const POSPage = () => {
   const adjustStockMutation = useAdjustStock()
 
   const addToCart = (product) => {
+    const existing = cart.find(item => item.id === product.id)
+    if (product.quantity <= 0) {
+      setStockAlert({ product, type: 'out_of_stock' })
+      return
+    }
+    if (existing && existing.cartQuantity >= product.quantity) {
+      setStockAlert({ product, type: 'max_stock' })
+      return
+    }
+
     setCart(prev => {
-      const existing = prev.find(item => item.id === product.id)
-      if (existing) {
-        if (existing.cartQuantity >= product.quantity) return prev
+      const existingInPrev = prev.find(item => item.id === product.id)
+      if (existingInPrev) {
         return prev.map(item => item.id === product.id ? { ...item, cartQuantity: item.cartQuantity + 1 } : item)
       }
-      if (product.quantity <= 0) return prev
       return [...prev, { ...product, cartQuantity: 1 }]
     })
   }
@@ -120,20 +129,20 @@ const POSPage = () => {
         <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.01] transition-colors">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
-              <Search className="w-5 h-5 text-slate-400 dark:text-slate-500 absolute left-4 top-2.5" />
+              <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
               <input
                 type="text"
                 placeholder={t('pos_search_ph')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl pl-12 pr-10 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all backdrop-blur-md shadow-sm dark:shadow-none"
+                className="w-full bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl pl-11 pr-10 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all backdrop-blur-md shadow-sm dark:shadow-none"
               />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm('')}
-                  className="absolute right-4 top-2.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-white transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-white transition-colors"
                 >
-                  <X className="w-5 h-5" />
+                  <X size={18} />
                 </button>
               )}
             </div>
@@ -310,13 +319,13 @@ const POSPage = () => {
                       <Minus className="w-4 h-4" />
                     </button>
                     <span className="w-8 text-center text-xs font-bold text-slate-900 dark:text-white">{item.cartQuantity}</span>
-                    <button onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, 1) }} disabled={item.cartQuantity >= item.quantity} className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-r-lg transition-colors disabled:opacity-50">
+                    <button onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, 1) }} disabled={item.cartQuantity >= item.quantity} className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-r-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-500 dark:disabled:hover:bg-transparent dark:disabled:hover:text-slate-400">
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); removeFromCart(item.id) }} className="ml-4 mt-1 opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-all">
-                  <X className="w-4 h-4" />
+                <button onClick={(e) => { e.stopPropagation(); removeFromCart(item.id) }} className="ml-4 mt-1 p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-all">
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
               )
@@ -416,6 +425,49 @@ const POSPage = () => {
               </button>
             </div>
             </motion.div>
+        </div>
+      )}
+      </AnimatePresence>
+
+      {/* Out of Stock Modal */}
+      <AnimatePresence>
+      {stockAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm"
+            onClick={() => setStockAlert(null)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+            className="relative bg-white dark:bg-[#0d0f1a] dark:border dark:border-white/10 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden z-10 text-center p-6"
+          >
+            <div className="w-12 h-12 bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Package className="w-6 h-6" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+              {stockAlert.type === 'out_of_stock' ? 'Out of Stock' : 'Maximum Stock Reached'}
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 mb-6">
+              {stockAlert.type === 'out_of_stock' ? (
+                <>Sorry, <span className="font-semibold text-slate-700 dark:text-slate-300">"{stockAlert.product.name}"</span> is currently out of stock.</>
+              ) : (
+                <>The maximum available quantity of <span className="font-semibold text-slate-700 dark:text-slate-300">"{stockAlert.product.name}"</span> is already in your cart.</>
+              )}
+            </p>
+            <button
+              onClick={() => setStockAlert(null)}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-colors"
+            >
+              Close
+            </button>
+          </motion.div>
         </div>
       )}
       </AnimatePresence>
