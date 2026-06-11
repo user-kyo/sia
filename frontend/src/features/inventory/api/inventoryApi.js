@@ -10,7 +10,7 @@ const buildQS = (params) => {
 
 export const fetchInventory = async ({
   search, category, brand, stockStatus, minPrice, maxPrice,
-  sortBy, sortOrder, hasImage, createdFrom, createdTo, includeSummary, offset = 0, limit = 20,
+  sortBy, sortOrder, hasImage, createdFrom, createdTo, includeSummary, supplierId, offset = 0, limit = 20,
 }) => {
   const qs = buildQS({
     search, category, brand,
@@ -21,6 +21,7 @@ export const fetchInventory = async ({
     created_from: createdFrom,
     created_to: createdTo,
     include_summary: includeSummary,
+    supplier_id: supplierId,
     sort_by: sortBy,
     sort_order: sortOrder,
     offset,

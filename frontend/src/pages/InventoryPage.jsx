@@ -17,6 +17,11 @@ import CategoryModal from '../features/inventory/components/CategoryModal'
 import EditCategoryModal from '../features/inventory/components/EditCategoryModal'
 import StockAdjustModal from '../features/inventory/components/StockAdjustModal'
 import DeleteConfirmModal from '../features/inventory/components/DeleteConfirmModal'
+import { useQuery } from '@tanstack/react-query'
+import { fetchSuppliers } from '../features/suppliers/api/suppliersApi'
+import { useNavigate } from 'react-router'
+import { useAuth } from '../contexts/AuthContext'
+import { AlertCircle } from 'lucide-react'
 
 function exportToCSV(items, filename, formatPrice) {
   const headers = ['Name', 'SKU', 'Category', 'Price', 'Quantity', 'Reorder Point', 'Unit', 'Description']
@@ -36,6 +41,8 @@ function exportToCSV(items, filename, formatPrice) {
 }
 
 export default function InventoryPage() {
+  const navigate = useNavigate()
+  const { userRole } = useAuth()
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [filters, setFilters] = useState({ categories: [], brands: [], stockStatuses: [], minPrice: '', maxPrice: '', hasImage: false })
@@ -46,6 +53,12 @@ export default function InventoryPage() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false)
   const [modal, setModal] = useState(null)
+  const [showZeroSupplierModal, setShowZeroSupplierModal] = useState(false)
+
+  const { data: suppliers = [], isLoading: suppliersLoading } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: () => fetchSuppliers(),
+  })
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300)
@@ -53,6 +66,14 @@ export default function InventoryPage() {
   }, [search])
 
   useEffect(() => { setSelectedIds(new Set()) }, [debouncedSearch, filters, sort])
+
+  const handleAddProductClick = () => {
+    if (!suppliersLoading && suppliers.length === 0) {
+      setShowZeroSupplierModal(true)
+    } else {
+      setModal({ type: 'add' })
+    }
+  }
 
   const queryFilters = {
     search: debouncedSearch || undefined,
@@ -169,7 +190,7 @@ export default function InventoryPage() {
             Add Category
           </button>
           <button
-            onClick={() => setModal({ type: 'add' })}
+            onClick={handleAddProductClick}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]"
           >
             <Plus size={15} />
@@ -271,6 +292,32 @@ export default function InventoryPage() {
             }}
           />
         )}
+
+        {showZeroSupplierModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden border border-slate-200 dark:border-white/10 p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-500 mx-auto mb-4">
+                <AlertCircle size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No Suppliers Found</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                {userRole === 'admin' || userRole === 'super_admin' 
+                  ? "You must set up at least one Supplier before adding inventory items."
+                  : "Please contact an Administrator to add a Supplier to the system before creating products."}
+              </p>
+              <div className="flex flex-col gap-3">
+                {(userRole === 'admin' || userRole === 'super_admin') && (
+                  <button onClick={() => navigate('/suppliers')} className="w-full py-2.5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-colors shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+                    Go to Suppliers Directory
+                  </button>
+                )}
+                <button onClick={() => setShowZeroSupplierModal(false)} className="w-full py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl transition-colors">
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
 
       {/* Modals */}
@@ -278,6 +325,7 @@ export default function InventoryPage() {
         <ProductModal
           mode="add"
           categories={categories}
+          suppliers={suppliers}
           onClose={closeModal}
           onSubmit={async data => {
             const result = await createMutation.mutateAsync(data)
@@ -292,6 +340,7 @@ export default function InventoryPage() {
           mode="edit"
           product={modal.product}
           categories={categories}
+          suppliers={suppliers}
           onClose={closeModal}
           onSubmit={async data => {
             const result = await updateMutation.mutateAsync(data)

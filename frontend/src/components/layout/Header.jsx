@@ -17,6 +17,7 @@ const Header = ({ onLogoutClick }) => {
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
   const [companyName, setCompanyName] = useState('');
   const profileRef = useRef(null);
   const notifRef = useRef(null);
@@ -66,8 +67,8 @@ const Header = ({ onLogoutClick }) => {
     ? {
         title: t('notif_out_title'),
         desc: t('notif_out_desc', { name: n.product.name }),
-        icon: <PackageX size={15} className="text-rose-500" />,
-        iconBg: 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20',
+        icon: <PackageX size={15} className="text-rose-500 animate-pulse" />,
+        iconBg: 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse',
       }
     : {
         title: t('notif_low_title'),
@@ -200,11 +201,11 @@ const Header = ({ onLogoutClick }) => {
                                           e.stopPropagation();
                                           setIsNotifOpen(false);
                                           setExpandedId(null);
-                                          navigate('/inventory');
+                                          navigate('/procurements', { state: { autoCreatePO: n.product } });
                                         }}
                                         className="flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 focus:outline-none focus-visible:underline"
                                       >
-                                        {t('notif_view_inventory')}
+                                        {t('notif_create_po') || 'Create PO'}
                                         <ArrowRight size={11} />
                                       </button>
                                     </div>

@@ -14,6 +14,9 @@ class InventoryItemCreate(BaseModel):
     description: Optional[str] = None
     image_url: Optional[str] = None
     brand: Optional[str] = None
+    supplier_id: Optional[str] = None
+    cost: float = Field(default=0.0, ge=0.0)
+    selling_price: float = Field(default=0.0, ge=0.0)
 
 
 class InventoryItemUpdate(BaseModel):
@@ -27,6 +30,9 @@ class InventoryItemUpdate(BaseModel):
     description: Optional[str] = None
     image_url: Optional[str] = None
     brand: Optional[str] = None
+    supplier_id: Optional[str] = None
+    cost: Optional[float] = Field(None, ge=0.0)
+    selling_price: Optional[float] = Field(None, ge=0.0)
 
 
 class StockAdjustment(BaseModel):
@@ -47,6 +53,9 @@ class InventoryItemResponse(BaseModel):
     description: Optional[str] = None
     image_url: Optional[str] = None
     brand: Optional[str] = None
+    supplier_id: Optional[str] = None
+    cost: Optional[float] = 0.0
+    selling_price: Optional[float] = 0.0
     created_at: datetime
     updated_at: Optional[datetime] = None
 

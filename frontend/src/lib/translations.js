@@ -8,6 +8,8 @@ const translations = {
     nav_data_reports: 'Data Reports',
     nav_users: 'User Management',
     nav_settings: 'Settings',
+    nav_suppliers: 'Suppliers Directory',
+    nav_procurements: 'Procurements (PO)',
     nav_logout: 'Logout',
 
     // Inventory page
@@ -247,6 +249,7 @@ const translations = {
     notif_low_desc: '"{name}" is running low — {qty} left (reorder point: {reorder}).',
     notif_out_desc: '"{name}" is out of stock. Restock soon to avoid missed sales.',
     notif_view_inventory: 'View in Inventory',
+    notif_create_po: 'Create PO',
     notif_dismiss: 'Dismiss',
     notif_just_now: 'just now',
     notif_min_ago: '{n}m ago',
@@ -263,6 +266,8 @@ const translations = {
     nav_data_reports: 'Mga Ulat ng Data',
     nav_users: 'Pamamahala ng Gumagamit',
     nav_settings: 'Mga Setting',
+    nav_suppliers: 'Direktoryo ng Suppliers',
+    nav_procurements: 'Pagbili (PO)',
     nav_logout: 'Mag-logout',
 
     // Inventory page
@@ -500,9 +505,10 @@ const translations = {
     notif_low_title: 'Alerto sa Mababang Stock',
     notif_out_title: 'Ubos na ang Stock',
     notif_low_desc: 'Ang "{name}" ay paubos na — {qty} na lang (reorder point: {reorder}).',
-    notif_out_desc: 'Ubos na ang stock ng "{name}". Mag-restock agad upang maiwasan ang nawalang benta.',
+    notif_out_desc: 'Ang "{name}" ay ubos na. Mag-restock kaagad upang maiwasan ang kawalan ng benta.',
     notif_view_inventory: 'Tingnan sa Imbentaryo',
-    notif_dismiss: 'Alisin',
+    notif_create_po: 'Gumawa ng PO',
+    notif_dismiss: 'I-dismiss',
     notif_just_now: 'ngayon lang',
     notif_min_ago: '{n}m ang nakalipas',
     notif_hr_ago: '{n}h ang nakalipas',

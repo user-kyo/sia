@@ -18,6 +18,8 @@ import UserProfilePage from './pages/UserProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import AuthPage from './pages/AuthPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import SuppliersDirectoryPage from './pages/SuppliersDirectoryPage';
+import ProcurementsPage from './pages/ProcurementsPage';
 
 function App() {
   return (
@@ -38,6 +40,7 @@ function App() {
                   <Route element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin', 'staff']} />}>
                     <Route path="/inventory" element={<InventoryPage />} />
                     <Route path="/sales" element={<POSPage />} />
+                    <Route path="/procurements" element={<ProcurementsPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                   </Route>
 
@@ -45,6 +48,7 @@ function App() {
                     <Route path="/dashboard" element={<AnalyticsDashboard />} />
                     <Route path="/data-reports" element={<ReportsPage />} />
                     <Route path="/reports" element={<AuditLogsPage />} />
+                    <Route path="/suppliers" element={<SuppliersDirectoryPage />} />
                   </Route>
 
                   <Route element={<RoleProtectedRoute allowedRoles={['super_admin']} />}>
