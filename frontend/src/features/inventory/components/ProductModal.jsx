@@ -166,7 +166,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
                 onChange={set('supplier_id')}
                 className={inputCls}
               >
-                <option value="" className="bg-white dark:bg-[#0d0f1a]">No preferred supplier</option>
+                <option value="" className="bg-white dark:bg-[#0d0f1a]">Self-Made (Internal Production)</option>
                 {suppliers.map(s => (
                   <option key={s.id} value={s.id} className="bg-white dark:bg-[#0d0f1a]">{s.name}</option>
                 ))}

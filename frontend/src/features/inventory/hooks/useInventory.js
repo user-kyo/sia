@@ -99,7 +99,10 @@ export const useUpdateProduct = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: updateProduct,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['inventory'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['inventory'] })
+      qc.invalidateQueries({ queryKey: ['notification-inventory'] })
+    },
   })
 }
 
@@ -115,6 +118,9 @@ export const useAdjustStock = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: adjustStock,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['inventory'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['inventory'] })
+      qc.invalidateQueries({ queryKey: ['notification-inventory'] })
+    },
   })
 }

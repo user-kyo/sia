@@ -211,12 +211,14 @@ export default function ProductTable({
                     >
                       {t('act_edit')}
                     </button>
-                    <button
-                      onClick={() => onAdjustStock(item)}
-                      className="px-2.5 py-1 text-xs font-medium border border-slate-200 dark:border-white/10 rounded-md text-slate-600 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-200 dark:hover:border-emerald-500/20 hover:text-emerald-700 dark:hover:text-emerald-400 transition-colors"
-                    >
-                      {t('act_adjust')}
-                    </button>
+                    {(!item.supplier_id) && (
+                      <button
+                        onClick={() => onAdjustStock(item)}
+                        className="px-2.5 py-1 text-xs font-medium border border-slate-200 dark:border-white/10 rounded-md text-slate-600 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-200 dark:hover:border-emerald-500/20 hover:text-emerald-700 dark:hover:text-emerald-400 transition-colors"
+                      >
+                        {t('act_adjust')}
+                      </button>
+                    )}
                     <button
                       onClick={() => onDelete(item)}
                       className="px-2.5 py-1 text-xs font-medium border border-slate-200 dark:border-white/10 rounded-md text-slate-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:border-rose-200 dark:hover:border-rose-500/20 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
