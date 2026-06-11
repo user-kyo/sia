@@ -180,42 +180,68 @@ const TrendDateDot = ({ cx, cy, payload }) => {
   )
 }
 
-const AreaChartContent = ({ data = [], formatPrice }) => (
-  <ResponsiveContainer width="100%" height="100%">
-    <AreaChart data={data} margin={{ top: 34, right: 8, left: -20, bottom: 0 }}>
-      <defs>
-        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-          <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-        </linearGradient>
-        <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
-          <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" className="stroke-slate-200 dark:stroke-white/5" />
-      <XAxis
-        dataKey="label"
-        axisLine={false}
-        tickLine={false}
-        tick={{ fontSize: 11, fontWeight: 600 }}
-        tickMargin={10}
-        height={34}
-        interval={0}
-        tickFormatter={(value, index) => data[index]?.showAxisTick ? value : ''}
-        className="fill-slate-500 dark:fill-slate-400"
-      />
-      <YAxis yAxisId="revenue" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} className="fill-slate-500 dark:fill-slate-400" />
-      <YAxis yAxisId="orders" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} className="fill-slate-500 dark:fill-slate-400" allowDecimals={false} />
-      <RechartsTooltip
-        content={<CustomTooltip isDay={true} valueFormatter={(value, entry) => entry.dataKey === 'revenue' ? formatPrice(value) : value.toLocaleString()} />}
-        cursor={{ stroke: 'rgba(99,102,241,0.2)', strokeWidth: 2 }}
-      />
-      <Area yAxisId="revenue" name="Revenue" type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" dot={<TrendDateDot />} activeDot={{ r: 5 }} />
-      <Area yAxisId="orders" name="Orders" type="monotone" dataKey="orders" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorOrders)" dot={false} />
-    </AreaChart>
-  </ResponsiveContainer>
-);
+const AreaChartContent = ({ data = [], forecastData = [], formatPrice }) => {
+  const combinedData = React.useMemo(() => {
+    if (forecastData.length === 0) return data
+    const withHandoff = data.map((point, i) => ({
+      ...point,
+      projectedRevenue: i === data.length - 1 ? point.revenue : null,
+    }))
+    const forecastPoints = forecastData.map((f, fi) => ({
+      date: f.date,
+      label: f.label,
+      revenue: null,
+      orders: null,
+      projectedRevenue: f.projectedRevenue,
+      showAxisTick: fi === 0 || fi === forecastData.length - 1,
+      showPointMarker: false,
+      showPointLabel: false,
+    }))
+    return [...withHandoff, ...forecastPoints]
+  }, [data, forecastData])
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart data={combinedData} margin={{ top: 34, right: 8, left: -20, bottom: 0 }}>
+        <defs>
+          <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+          </linearGradient>
+          <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+          </linearGradient>
+          <linearGradient id="colorForecast" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.15} />
+            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" className="stroke-slate-200 dark:stroke-white/5" />
+        <XAxis
+          dataKey="label"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fontWeight: 600 }}
+          tickMargin={10}
+          height={34}
+          interval={0}
+          tickFormatter={(value, index) => combinedData[index]?.showAxisTick ? value : ''}
+          className="fill-slate-500 dark:fill-slate-400"
+        />
+        <YAxis yAxisId="revenue" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} className="fill-slate-500 dark:fill-slate-400" />
+        <YAxis yAxisId="orders" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} className="fill-slate-500 dark:fill-slate-400" allowDecimals={false} />
+        <RechartsTooltip
+          content={<CustomTooltip isDay={true} valueFormatter={(value, entry) => entry.dataKey === 'revenue' || entry.dataKey === 'projectedRevenue' ? formatPrice(value) : value.toLocaleString()} />}
+          cursor={{ stroke: 'rgba(99,102,241,0.2)', strokeWidth: 2 }}
+        />
+        <Area yAxisId="revenue" name="Revenue" type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" dot={<TrendDateDot />} activeDot={{ r: 5 }} connectNulls={false} />
+        <Area yAxisId="revenue" name="Forecast" type="monotone" dataKey="projectedRevenue" stroke="#f59e0b" strokeWidth={2} strokeDasharray="6 4" fillOpacity={1} fill="url(#colorForecast)" dot={false} connectNulls={false} />
+        <Area yAxisId="orders" name="Orders" type="monotone" dataKey="orders" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorOrders)" dot={false} connectNulls={false} />
+      </AreaChart>
+    </ResponsiveContainer>
+  )
+}
 
 const SalesForecastPanel = ({ forecast = [], formatPrice }) => (
   <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.02] p-5">
@@ -315,13 +341,13 @@ const BarChartContent = ({ limit, products = [] }) => {
   );
 };
 
-const RecentOrdersTable = ({ limit, formatPrice, transactions = [], allowExpand = true, resetKey }) => {
-  const [openId, setOpenId] = React.useState(null)
+const RecentOrdersTable = ({ limit, formatPrice, transactions = [], allowExpand = true, resetKey, initialOpenId = null, onRowClick }) => {
+  const [openId, setOpenId] = React.useState(initialOpenId)
   const data = limit ? transactions.slice(0, limit) : transactions;
 
   React.useEffect(() => {
-    setOpenId(null)
-  }, [resetKey])
+    setOpenId(initialOpenId ?? null)
+  }, [resetKey, initialOpenId])
 
   if (data.length === 0) {
     return (
@@ -351,8 +377,8 @@ const RecentOrdersTable = ({ limit, formatPrice, transactions = [], allowExpand 
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className={`hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors ${allowExpand ? 'cursor-pointer' : ''}`}
-                  onClick={allowExpand ? () => setOpenId(isOpen ? null : txn.id) : undefined}
+                  className={`hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors ${allowExpand || onRowClick ? 'cursor-pointer' : ''}`}
+                  onClick={allowExpand ? () => setOpenId(isOpen ? null : txn.id) : onRowClick ? (e) => { e.stopPropagation(); onRowClick(txn) } : undefined}
                 >
                   <td className="px-6 py-3">
                     <div className="flex items-center gap-2">
@@ -509,6 +535,79 @@ const InsightSidebar = ({ activeModal, formatPrice, code, insight, isGenerating,
     return { current, forecast, revenueChange, orderChange, aovChange, forecastConfidence, attentionTone, attentionLabel, meaning, action }
   }, [activeModal, salesTrendData, previousSalesTrendData, salesForecastData])
 
+  const donutInsight = React.useMemo(() => {
+    if (activeModal !== 'donut') return null
+    if (categoryPerformanceData.length === 0) {
+      return { totalRev: 0, topCat: null, weakCat: null, topPercent: '0', concentration: 0, catCount: 0, meaning: 'No category sales have been recorded yet. Once POS checkout has sales, this chart will show how revenue is distributed across your product categories.', action: 'Run checkout transactions to start building category sales data.' }
+    }
+    const totalRev = categoryPerformanceData.reduce((acc, c) => acc + c.value, 0)
+    const topCat = categoryPerformanceData[0]
+    const weakCat = categoryPerformanceData[categoryPerformanceData.length - 1]
+    const topPercent = totalRev > 0 ? ((topCat.value / totalRev) * 100).toFixed(0) : '0'
+    const concentration = Number(topPercent)
+    const catCount = categoryPerformanceData.length
+    const meaning = concentration >= 60
+      ? `${topCat.name} is carrying ${topPercent}% of total revenue. Your business is heavily concentrated in one category, which is a risk if that category slows.`
+      : `Revenue is distributed across ${catCount} categories. ${topCat.name} leads with ${topPercent}% of total.`
+    const action = concentration >= 60
+      ? `Consider promoting ${weakCat.name} to diversify revenue and reduce dependency on ${topCat.name}.`
+      : `Monitor ${weakCat.name} and consider bundling it with your top performer to improve its contribution.`
+    return { totalRev, topCat, weakCat, topPercent, concentration, catCount, meaning, action }
+  }, [activeModal, categoryPerformanceData])
+
+  const barInsight = React.useMemo(() => {
+    if (activeModal !== 'bar') return null
+    const totalSales = topProducts.reduce((acc, p) => acc + (Number(p.quantity) || 0), 0)
+    const avgSales = topProducts.length > 0 ? Math.floor(totalSales / topProducts.length) : 0
+    const topProduct = topProducts[0] || null
+    const topShare = topProduct && totalSales > 0 ? ((Number(topProduct.quantity) / totalSales) * 100).toFixed(0) : '0'
+    const topShareNum = Number(topShare)
+    const meaning = topProducts.length === 0
+      ? 'No product sales recorded yet. Products will appear here once checkout transactions are recorded.'
+      : topShareNum >= 50
+        ? `${topProduct.name} accounts for ${topShare}% of all units sold. A single product is dominating movement.`
+        : `Sales are spread across ${topProducts.length} products. ${topProduct.name} leads at ${topShare}% of units sold.`
+    const action = topProducts.length === 0
+      ? 'Record a checkout to start tracking product velocity.'
+      : topShareNum >= 50
+        ? `Ensure ${topProduct.name} stays well-stocked. Also identify the next top performers and promote them to diversify.`
+        : `Your top movers have healthy distribution. Keep ${topProduct.name} stocked and watch for any fast risers in the lower ranks.`
+    return { totalSales, avgSales, topProduct, topShare, meaning, action }
+  }, [activeModal, topProducts])
+
+  const ordersInsight = React.useMemo(() => {
+    if (activeModal !== 'orders') return null
+    const totalVolume = recentTransactions.reduce((acc, t) => acc + (Number(t.total_amount) || 0), 0)
+    const avgOrder = recentTransactions.length > 0 ? totalVolume / recentTransactions.length : 0
+    const highValueCount = recentTransactions.filter(t => Number(t.total_amount) > avgOrder).length
+    const highValuePercent = recentTransactions.length > 0 ? ((highValueCount / recentTransactions.length) * 100).toFixed(0) : '0'
+    const meaning = recentTransactions.length === 0
+      ? 'No transactions recorded yet. Once POS checkout is used, recent orders will appear here.'
+      : `The last ${recentTransactions.length} transaction${recentTransactions.length === 1 ? '' : 's'} show an average order value. ${highValuePercent}% of orders were above the average.`
+    const action = recentTransactions.length === 0
+      ? 'Complete a checkout transaction to start building order history.'
+      : 'Use upselling or bundling during checkout to push more orders above the average order value.'
+    return { totalVolume, avgOrder, highValuePercent, meaning, action }
+  }, [activeModal, recentTransactions])
+
+  const stockInsight = React.useMemo(() => {
+    if (activeModal !== 'stock') return null
+    const outOfStock = lowStockItems.filter(i => i.quantity === 0).length
+    const lowStock = lowStockItems.filter(i => i.quantity > 0).length
+    const tone = outOfStock > 0 ? 'down' : lowStock > 3 ? 'down' : 'neutral'
+    const meaning = lowStockItems.length === 0
+      ? 'All inventory items are above their reorder points. Stock levels look healthy.'
+      : outOfStock > 0
+        ? `${outOfStock} item${outOfStock === 1 ? '' : 's'} are completely out of stock and unavailable for sale. Immediate restocking is required to prevent lost revenue.`
+        : `${lowStock} item${lowStock === 1 ? '' : 's'} are running low and approaching their reorder points.`
+    const action = lowStockItems.length === 0
+      ? 'Continue monitoring — set reorder points for all items to get early warnings.'
+      : outOfStock > 0
+        ? 'Prioritize restocking out-of-stock items immediately. Customers cannot purchase these products.'
+        : 'Place restock orders for low-stock items before they run out. Align with your supplier lead times.'
+    return { outOfStock, lowStock, totalAlerts: lowStockItems.length, tone, meaning, action }
+  }, [activeModal, lowStockItems])
+
   const metrics = React.useMemo(() => {
     switch (activeModal) {
       case 'area': {
@@ -586,15 +685,79 @@ const InsightSidebar = ({ activeModal, formatPrice, code, insight, isGenerating,
             <InsightCard label="7-Day Forecast" value={formatPrice(areaInsight.forecast.revenue)} meta={`${areaInsight.forecast.orders} projected orders`} tone="up" />
             <InsightCard label="Attention" value={areaInsight.attentionLabel} meta={`${areaInsight.forecastConfidence} forecast confidence`} tone={areaInsight.attentionTone} />
           </div>
-
           <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-4">
             <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">What this means</div>
             <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{areaInsight.meaning}</p>
           </div>
-
           <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-4">
             <div className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">Suggested next action</div>
             <p className="text-sm leading-relaxed font-medium text-slate-800 dark:text-slate-200">{areaInsight.action}</p>
+          </div>
+        </div>
+      ) : activeModal === 'donut' && donutInsight ? (
+        <div className="space-y-5 mb-8">
+          <div className="grid grid-cols-1 gap-3">
+            <InsightCard label="Top Category" value={donutInsight.topCat?.name ?? 'No sales'} meta={donutInsight.topCat ? `${donutInsight.topPercent}% of revenue` : undefined} tone={donutInsight.concentration >= 60 ? 'down' : 'up'} />
+            <InsightCard label="Top Revenue" value={formatPrice(donutInsight.topCat?.value ?? 0)} />
+            <InsightCard label="Weakest Category" value={donutInsight.weakCat?.name ?? 'No sales'} meta={donutInsight.weakCat ? formatPrice(donutInsight.weakCat.value) : undefined} tone="neutral" />
+            <InsightCard label="Total Categories" value={donutInsight.catCount.toString()} meta={`${formatPrice(donutInsight.totalRev)} combined`} />
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">What this means</div>
+            <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{donutInsight.meaning}</p>
+          </div>
+          <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">Suggested next action</div>
+            <p className="text-sm leading-relaxed font-medium text-slate-800 dark:text-slate-200">{donutInsight.action}</p>
+          </div>
+        </div>
+      ) : activeModal === 'bar' && barInsight ? (
+        <div className="space-y-5 mb-8">
+          <div className="grid grid-cols-1 gap-3">
+            <InsightCard label="Top Mover" value={barInsight.topProduct?.name ?? 'No sales'} meta={barInsight.topProduct ? `${barInsight.topShare}% of units sold` : undefined} tone={Number(barInsight.topShare) >= 50 ? 'down' : 'up'} />
+            <InsightCard label="Total Units Sold" value={barInsight.totalSales.toString()} />
+            <InsightCard label="Avg per Product" value={barInsight.avgSales.toString()} meta="units" tone="neutral" />
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">What this means</div>
+            <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{barInsight.meaning}</p>
+          </div>
+          <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">Suggested next action</div>
+            <p className="text-sm leading-relaxed font-medium text-slate-800 dark:text-slate-200">{barInsight.action}</p>
+          </div>
+        </div>
+      ) : activeModal === 'orders' && ordersInsight ? (
+        <div className="space-y-5 mb-8">
+          <div className="grid grid-cols-1 gap-3">
+            <InsightCard label="Total Volume" value={formatPrice(ordersInsight.totalVolume)} />
+            <InsightCard label="Avg Order Value" value={formatPrice(ordersInsight.avgOrder)} />
+            <InsightCard label="High-Value Orders" value={`${ordersInsight.highValuePercent}%`} meta="above average" tone={Number(ordersInsight.highValuePercent) >= 50 ? 'up' : 'neutral'} />
+            <InsightCard label="Transactions" value={recentTransactions.length.toString()} />
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">What this means</div>
+            <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{ordersInsight.meaning}</p>
+          </div>
+          <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">Suggested next action</div>
+            <p className="text-sm leading-relaxed font-medium text-slate-800 dark:text-slate-200">{ordersInsight.action}</p>
+          </div>
+        </div>
+      ) : activeModal === 'stock' && stockInsight ? (
+        <div className="space-y-5 mb-8">
+          <div className="grid grid-cols-1 gap-3">
+            <InsightCard label="Out of Stock" value={stockInsight.outOfStock.toString()} meta={stockInsight.outOfStock > 0 ? 'Needs immediate attention' : 'All good'} tone={stockInsight.outOfStock > 0 ? 'down' : 'up'} />
+            <InsightCard label="Low Stock" value={stockInsight.lowStock.toString()} meta={stockInsight.lowStock > 0 ? 'Approaching reorder point' : 'All good'} tone={stockInsight.lowStock > 0 ? 'down' : 'neutral'} />
+            <InsightCard label="Total Alerts" value={stockInsight.totalAlerts.toString()} tone={stockInsight.tone} />
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">What this means</div>
+            <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{stockInsight.meaning}</p>
+          </div>
+          <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">Suggested next action</div>
+            <p className="text-sm leading-relaxed font-medium text-slate-800 dark:text-slate-200">{stockInsight.action}</p>
           </div>
         </div>
       ) : (
@@ -642,11 +805,13 @@ const AnalyticsDashboard = () => {
   const [showSlowHint, setShowSlowHint] = React.useState(false)
   const [activeModal, setActiveModal] = React.useState(null)
   const [recentOrdersModalResetKey, setRecentOrdersModalResetKey] = React.useState(0)
+  const [selectedTxnId, setSelectedTxnId] = React.useState(null)
   const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = React.useState(false)
   const [selectedPeriod, setSelectedPeriod] = React.useState('dash_period_30')
   const periodDropdownRef = React.useRef(null)
 
-  const openRecentOrdersModal = () => {
+  const openRecentOrdersModal = (txnId = null) => {
+    setSelectedTxnId(txnId)
     setRecentOrdersModalResetKey(key => key + 1)
     setActiveModal('orders')
   }
@@ -906,9 +1071,9 @@ const AnalyticsDashboard = () => {
         return (
           <div className="w-full flex flex-col gap-6">
             <div className="w-full h-[500px]">
-              <AreaChartContent data={salesTrendData} formatPrice={formatPrice} />
+              <AreaChartContent data={salesTrendData} forecastData={salesForecastData} formatPrice={formatPrice} />
             </div>
-            <SalesForecastPanel forecast={salesForecastData} formatPrice={formatPrice} />
+            {insight && <SalesForecastPanel forecast={salesForecastData} formatPrice={formatPrice} />}
           </div>
         )
       case 'donut':
@@ -944,7 +1109,7 @@ const AnalyticsDashboard = () => {
       case 'orders':
         return (
           <div className="w-full">
-            <RecentOrdersTable key={recentOrdersModalResetKey} formatPrice={formatPrice} transactions={recentSalesTransactions} resetKey={recentOrdersModalResetKey} />
+            <RecentOrdersTable key={recentOrdersModalResetKey} formatPrice={formatPrice} transactions={recentSalesTransactions} resetKey={recentOrdersModalResetKey} initialOpenId={selectedTxnId} />
           </div>
         )
       case 'stock':
@@ -1416,9 +1581,8 @@ const AnalyticsDashboard = () => {
               <motion.div key="trends-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="lg:col-span-2 h-full w-full">
                 <ChartCard onClick={() => setActiveModal('area')} className="p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-3">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                       {t('dash_trends_title')}
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 px-2 py-0.5 rounded-md">Recorded</span>
                     </h3>
                     <div className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
@@ -1426,7 +1590,7 @@ const AnalyticsDashboard = () => {
                     </div>
                   </div>
                   <div className="flex-1 w-full h-full min-h-[220px]">
-                    <AreaChartContent data={salesTrendData} formatPrice={formatPrice} />
+                    <AreaChartContent data={salesTrendData} forecastData={salesForecastData} formatPrice={formatPrice} />
                   </div>
                 </ChartCard>
               </motion.div>
@@ -1511,7 +1675,7 @@ const AnalyticsDashboard = () => {
                     </div>
                   </div>
                   <div className="overflow-x-auto flex-1">
-                    <RecentOrdersTable limit={3} formatPrice={formatPrice} transactions={recentSalesTransactions} allowExpand={false} />
+                    <RecentOrdersTable limit={3} formatPrice={formatPrice} transactions={recentSalesTransactions} allowExpand={false} onRowClick={(txn) => openRecentOrdersModal(txn.id)} />
                   </div>
                 </ChartCard>
               </motion.div>
