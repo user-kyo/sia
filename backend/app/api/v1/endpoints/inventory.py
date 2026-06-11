@@ -75,12 +75,13 @@ def list_inventory(
     stock_status: Optional[str] = Query(None),
     min_price: Optional[float] = Query(None, ge=0),
     max_price: Optional[float] = Query(None, ge=0),
+    supplier_id: Optional[str] = Query(None),
     created_from: Optional[datetime] = Query(None),
     created_to: Optional[datetime] = Query(None),
     include_summary: bool = Query(False),
     sort_by: str = Query("created_at"),
     sort_order: str = Query("desc"),
-    limit: int = Query(LIMIT, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     current_user: dict = Depends(get_current_user),
 ):
@@ -111,6 +112,8 @@ def list_inventory(
             q = q.gte("price", min_price)
         if max_price is not None:
             q = q.lte("price", max_price)
+        if supplier_id is not None:
+            q = q.eq("supplier_id", supplier_id)
         if created_from is not None:
             q = q.gte("created_at", created_from.isoformat())
         if created_to is not None:

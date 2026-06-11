@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router'
-import { LayoutDashboard, Package, ShoppingCart, FileText, Settings, Users, LogOut, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, FileText, Settings, Users, LogOut, ChevronLeft, ChevronRight, Download, Building2, ClipboardList } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useAppSettings } from '../../contexts/AppSettingsContext'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -10,6 +10,8 @@ const ALL_NAV = [
   { key: 'nav_dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin'] },
   { key: 'nav_inventory', path: '/inventory', icon: Package, roles: ['super_admin', 'admin', 'staff'] },
   { key: 'nav_pos', path: '/sales', icon: ShoppingCart, roles: ['super_admin', 'admin', 'staff'] },
+  { key: 'nav_suppliers', path: '/suppliers', icon: Building2, roles: ['super_admin', 'admin'] },
+  { key: 'nav_procurements', path: '/procurements', icon: ClipboardList, roles: ['super_admin', 'admin', 'staff'] },
   { key: 'nav_data_reports', path: '/data-reports', icon: Download, roles: ['super_admin', 'admin'] },
   { key: 'nav_reports', path: '/reports', icon: FileText, roles: ['super_admin', 'admin'] },
   { key: 'nav_users', path: '/users', icon: Users, roles: ['super_admin'] },

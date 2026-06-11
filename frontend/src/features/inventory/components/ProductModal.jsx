@@ -6,12 +6,12 @@ import { useCurrency } from '../../../contexts/CurrencyContext'
 import { useAppSettings } from '../../../contexts/AppSettingsContext'
 
 const EMPTY = {
-  name: '', sku: '', brand: '', category: '', cost: '', selling_price: '',
+  name: '', sku: '', brand: '', category: '', supplier_id: '', cost: '', selling_price: '',
   quantity: '', reorder_point: '10', description: '', image_url: '',
   currency: 'PHP', // overwritten by useEffect based on display currency
 }
 
-export default function ProductModal({ mode = 'add', product = null, categories = [], onClose, onSubmit, isPending }) {
+export default function ProductModal({ mode = 'add', product = null, categories = [], suppliers = [], onClose, onSubmit, isPending }) {
   const [form, setForm] = useState(EMPTY)
   const [localError, setLocalError] = useState(null)
   const [imageFile, setImageFile] = useState(null)
@@ -25,10 +25,11 @@ export default function ProductModal({ mode = 'add', product = null, categories 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (mode === 'edit' && product) {
       setForm({
-        name: product.name,
-        sku: product.sku,
+        name: product.name || '',
+        sku: product.sku || '',
         brand: product.brand || '',
         category: product.category,
+        supplier_id: product.supplier_id || '',
         cost: String(product.cost ?? 0),
         selling_price: String(product.selling_price || product.price || 0),
         quantity: String(product.quantity),
@@ -68,17 +69,18 @@ export default function ProductModal({ mode = 'add', product = null, categories 
 
       await onSubmit({
         ...(mode === 'edit' && { id: product.id }),
-        name: form.name.trim(),
-        sku: form.sku.trim() || undefined,
-        brand: form.brand.trim() || undefined,
+        name: (form.name || '').trim(),
+        sku: (form.sku || '').trim() || undefined,
+        brand: (form.brand || '').trim() || undefined,
         category: form.category.trim(),
+        supplier_id: form.supplier_id || undefined,
         cost: parseFloat(form.cost) || 0,
         selling_price: parseFloat(form.selling_price) || 0,
         price: parseFloat(form.selling_price) || 0,
         currency: form.currency,
         quantity: parseInt(form.quantity, 10),
         reorder_point: parseInt(form.reorder_point, 10),
-        description: form.description.trim() || undefined,
+        description: (form.description || '').trim() || undefined,
         image_url: finalImageUrl,
       })
     } catch (err) {
@@ -151,6 +153,22 @@ export default function ProductModal({ mode = 'add', product = null, categories 
                 <option value="" disabled className="bg-white dark:bg-[#0d0f1a]">Select a category</option>
                 {categories.map(c => (
                   <option key={c.id || c.name} value={c.name} className="bg-white dark:bg-[#0d0f1a]">{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="col-span-2">
+              <label className={labelCls}>
+                Preferred Supplier <span className="font-normal text-slate-400 dark:text-slate-500">{t('field_optional')}</span>
+              </label>
+              <select
+                value={form.supplier_id}
+                onChange={set('supplier_id')}
+                className={inputCls}
+              >
+                <option value="" className="bg-white dark:bg-[#0d0f1a]">No preferred supplier</option>
+                {suppliers.map(s => (
+                  <option key={s.id} value={s.id} className="bg-white dark:bg-[#0d0f1a]">{s.name}</option>
                 ))}
               </select>
             </div>
