@@ -54,6 +54,7 @@ export default function InventoryPage() {
   const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false)
   const [modal, setModal] = useState(null)
   const [showZeroSupplierModal, setShowZeroSupplierModal] = useState(false)
+  const [showZeroCategoryModal, setShowZeroCategoryModal] = useState(false)
 
   const { data: suppliers = [], isLoading: suppliersLoading } = useQuery({
     queryKey: ['suppliers'],
@@ -68,6 +69,11 @@ export default function InventoryPage() {
   useEffect(() => { setSelectedIds(new Set()) }, [debouncedSearch, filters, sort])
 
   const handleAddProductClick = () => {
+    if (categories.length === 0) {
+      setShowZeroCategoryModal(true)
+      return
+    }
+    
     if (!suppliersLoading && suppliers.length === 0) {
       setShowZeroSupplierModal(true)
     } else {
@@ -291,6 +297,28 @@ export default function InventoryPage() {
               toast('Category updated successfully.')
             }}
           />
+        )}
+
+        {showZeroCategoryModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden border border-slate-200 dark:border-white/10 p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-500 mx-auto mb-4">
+                <AlertCircle size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No Categories Found</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                You must add at least one category before creating a product.
+              </p>
+              <div className="flex flex-col gap-3">
+                <button onClick={() => { setShowZeroCategoryModal(false); setIsCategoryModalOpen(true); }} className="w-full py-2.5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-colors shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+                  Go to Add Category
+                </button>
+                <button onClick={() => setShowZeroCategoryModal(false)} className="w-full py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl transition-colors">
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
 
         {showZeroSupplierModal && (

@@ -29,7 +29,11 @@ export default function ProcurementsPage() {
 
   const updateStatusMut = useMutation({
     mutationFn: updateProcurementStatus,
-    onSuccess: () => queryClient.invalidateQueries(['procurements'])
+    onSuccess: () => {
+      queryClient.invalidateQueries(['procurements'])
+      queryClient.invalidateQueries(['inventory'])
+      queryClient.invalidateQueries(['notification-inventory'])
+    }
   })
 
   const location = useLocation()
