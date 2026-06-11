@@ -1,5 +1,5 @@
 import React from 'react'
-import { TrendingUp, Package, DollarSign, AlertCircle, ChevronDown, Download, ShoppingCart, Maximize2, X, Sparkles, Loader2, Calendar, Check, FileText } from 'lucide-react'
+import { TrendingUp, Package, DollarSign, AlertCircle, ChevronDown, Download, ShoppingCart, Maximize2, X, Sparkles, Loader2, Calendar, Check, FileText, ChevronRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
 import {
@@ -12,57 +12,60 @@ import { useCurrency } from '../contexts/CurrencyContext'
 import { useAppSettings } from '../contexts/AppSettingsContext'
 import { CardSkeleton, TableSkeleton, ChartCardSkeleton, TrendsChartSkeleton, CategoryChartSkeleton } from '../components/ui/Skeletons'
 import { fetchInventory } from '../features/inventory/api/inventoryApi'
+import { fetchSalesTransactions, SALES_TRANSACTIONS_QUERY_KEY } from '../features/sales/api/salesApi'
 
-// --- Mock Data ---
-const revenueData = Array.from({ length: 30 }, (_, i) => ({
-  name: `${i + 1}`,
-  revenue: Math.floor(Math.random() * 5000) + 3000 + (i * 100),
-  orders: Math.floor(Math.random() * 20) + 10 + (i * 2)
-}));
-
-const categoryData = [
-  { name: 'Electronics', value: 4200 },
-  { name: 'Photography', value: 3100 },
-  { name: 'Computers', value: 2800 },
-  { name: 'Audio', value: 1500 },
-  { name: 'Accessories', value: 900 },
-  { name: 'Gaming', value: 1200 },
-  { name: 'Office', value: 600 }
-];
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#ec4899', '#06b6d4'];
 
-const topProductsData = [
-  { name: 'Sony Alpha a7 IV', sales: 145 },
-  { name: 'MacBook Pro 16"', sales: 120 },
-  { name: 'AirPods Pro Gen 2', sales: 98 },
-  { name: 'DJI Mini 4 Pro', sales: 85 },
-  { name: 'Herman Miller Embody', sales: 72 },
-  { name: 'Samsung 49" Odyssey', sales: 64 },
-  { name: 'Keychron K8 Pro', sales: 58 },
-  { name: 'Logitech MX Master 3S', sales: 49 },
-];
+const formatRelativeTime = (dateString) => {
+  if (!dateString) return 'Just now'
+  const diffMs = Date.now() - new Date(dateString).getTime()
+  const diffMins = Math.max(0, Math.floor(diffMs / 60000))
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins} min${diffMins === 1 ? '' : 's'} ago`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
+  const diffDays = Math.floor(diffHours / 24)
+  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
+}
 
-const recentTransactions = [
-  { id: 'TXN-9823', amount: 1299.00, items: 2, status: 'Completed', time: '10 mins ago' },
-  { id: 'TXN-9824', amount: 45.50, items: 1, status: 'Completed', time: '15 mins ago' },
-  { id: 'TXN-9825', amount: 349.99, items: 4, status: 'Completed', time: '1 hour ago' },
-  { id: 'TXN-9826', amount: 2100.00, items: 3, status: 'Completed', time: '2 hours ago' },
-  { id: 'TXN-9827', amount: 89.95, items: 2, status: 'Completed', time: '3 hours ago' },
-  { id: 'TXN-9828', amount: 599.00, items: 1, status: 'Completed', time: '4 hours ago' },
-];
+const getPeriodWindow = (periodKey) => {
+  const daysByPeriod = {
+    dash_period_30: 30,
+    dash_period_qtr: 90,
+    dash_period_yr: 365,
+  }
+  const days = daysByPeriod[periodKey] || daysByPeriod.dash_period_30
+  const now = new Date()
+  const currentStart = new Date(now)
+  currentStart.setDate(currentStart.getDate() - days)
+  const previousStart = new Date(currentStart)
+  previousStart.setDate(previousStart.getDate() - days)
 
+  return {
+    currentStart: currentStart.toISOString(),
+    currentEnd: now.toISOString(),
+    previousStart: previousStart.toISOString(),
+    previousEnd: currentStart.toISOString(),
+  }
+}
+
+const formatSignedPercent = (value) => {
+  const digits = Math.abs(value) >= 10 ? 0 : 1
+  const formatted = Math.abs(value).toFixed(digits)
+  return `${value >= 0 ? '+' : '-'}${formatted}%`
+}
 
 // --- Custom Tooltips ---
-const CustomTooltip = ({ active, payload, label, prefix = '', isDay = false }) => {
+const CustomTooltip = ({ active, payload, label, prefix = '', isDay = false, valueFormatter }) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white/90 dark:bg-[#0d0f1a]/90 backdrop-blur-md border border-slate-200 dark:border-white/10 p-4 rounded-xl shadow-xl dark:shadow-none z-50">
-        {label && <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold mb-2">{isDay ? `Day ${label}` : label}</p>}
+        {label && <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold mb-2">{isDay ? label : label}</p>}
         {payload.map((entry, index) => (
           <div key={index} className="flex items-center gap-2 mb-1 last:mb-0">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
             <span className="text-slate-900 dark:text-white font-medium text-sm capitalize">
-              {entry.name}: {prefix}{entry.value.toLocaleString()}
+              {entry.name}: {valueFormatter ? valueFormatter(entry.value, entry) : `${prefix}${entry.value.toLocaleString()}`}
             </span>
           </div>
         ))}
@@ -73,48 +76,125 @@ const CustomTooltip = ({ active, payload, label, prefix = '', isDay = false }) =
 };
 
 // --- Extracted Chart Components ---
-const AreaChartContent = ({ code }) => (
+const TrendDateDot = ({ cx, cy, payload }) => {
+  if (cx == null || cy == null) return null
+  const label = payload?.label || ''
+  const showLabel = payload?.showPointLabel && label
+  const showMarker = payload?.showPointMarker || showLabel
+  if (!showMarker) return null
+
+  const labelWidth = label.length * 6 + 12
+  const labelY = Math.max(cy - 18, 14)
+
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={3} fill="#6366f1" stroke="#ffffff" strokeWidth={1.5} />
+      {showLabel && (
+        <g>
+          <rect
+            x={cx - labelWidth / 2}
+            y={labelY - 12}
+            width={labelWidth}
+            height={17}
+            rx={5}
+            fill="rgba(15, 23, 42, 0.82)"
+            stroke="rgba(148, 163, 184, 0.35)"
+          />
+          <text x={cx} y={labelY} textAnchor="middle" fontSize={10} fontWeight={800} fill="#e2e8f0">
+            {label}
+          </text>
+        </g>
+      )}
+    </g>
+  )
+}
+
+const AreaChartContent = ({ data = [], formatPrice }) => (
   <ResponsiveContainer width="100%" height="100%">
-    <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+    <AreaChart data={data} margin={{ top: 34, right: 8, left: -20, bottom: 0 }}>
       <defs>
         <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
           <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
           <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
         </linearGradient>
+        <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+          <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+        </linearGradient>
       </defs>
       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" className="stroke-slate-200 dark:stroke-white/5" />
-      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} className="fill-slate-500 dark:fill-slate-400" minTickGap={20} />
-      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} className="fill-slate-500 dark:fill-slate-400" />
-      <RechartsTooltip content={<CustomTooltip prefix={code + ' '} isDay={true} />} cursor={{ stroke: 'rgba(99,102,241,0.2)', strokeWidth: 2 }} />
-      <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+      <XAxis
+        dataKey="label"
+        axisLine={false}
+        tickLine={false}
+        tick={{ fontSize: 11, fontWeight: 600 }}
+        tickMargin={10}
+        height={34}
+        interval={0}
+        tickFormatter={(value, index) => data[index]?.showAxisTick ? value : ''}
+        className="fill-slate-500 dark:fill-slate-400"
+      />
+      <YAxis yAxisId="revenue" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} className="fill-slate-500 dark:fill-slate-400" />
+      <YAxis yAxisId="orders" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} className="fill-slate-500 dark:fill-slate-400" allowDecimals={false} />
+      <RechartsTooltip
+        content={<CustomTooltip isDay={true} valueFormatter={(value, entry) => entry.dataKey === 'revenue' ? formatPrice(value) : value.toLocaleString()} />}
+        cursor={{ stroke: 'rgba(99,102,241,0.2)', strokeWidth: 2 }}
+      />
+      <Area yAxisId="revenue" name="Revenue" type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" dot={<TrendDateDot />} activeDot={{ r: 5 }} />
+      <Area yAxisId="orders" name="Orders" type="monotone" dataKey="orders" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorOrders)" dot={false} />
     </AreaChart>
   </ResponsiveContainer>
 );
 
-const DonutChartContent = ({ code }) => (
-  <ResponsiveContainer width="100%" height="100%">
-    <PieChart>
-      <Pie
-        data={categoryData}
-        cx="50%"
-        cy="50%"
-        innerRadius="60%"
-        outerRadius="80%"
-        paddingAngle={5}
-        dataKey="value"
-        stroke="none"
-      >
-        {categoryData.map((entry, index) => (
-          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-        ))}
-      </Pie>
-      <RechartsTooltip content={<CustomTooltip prefix={code + ' '} />} cursor={{ fill: 'transparent' }} />
-    </PieChart>
-  </ResponsiveContainer>
-);
+const DonutChartContent = ({ data = [], formatPrice }) => {
+  if (data.length === 0) {
+    return (
+      <div className="h-full min-h-[220px] flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+        No category sales recorded yet.
+      </div>
+    )
+  }
 
-const BarChartContent = ({ limit }) => {
-  const data = limit ? topProductsData.slice(0, limit) : topProductsData;
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <PieChart>
+        <Pie
+          data={data}
+          cx="50%"
+          cy="50%"
+          innerRadius="60%"
+          outerRadius="80%"
+          paddingAngle={5}
+          dataKey="value"
+          stroke="none"
+        >
+          {data.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          ))}
+        </Pie>
+        <RechartsTooltip
+          content={<CustomTooltip valueFormatter={(value) => formatPrice(value)} />}
+          cursor={{ fill: 'transparent' }}
+        />
+      </PieChart>
+    </ResponsiveContainer>
+  )
+}
+
+const BarChartContent = ({ limit, products = [] }) => {
+  const data = (limit ? products.slice(0, limit) : products).map(product => ({
+    name: product.name,
+    sales: Number(product.quantity) || 0,
+  }))
+
+  if (data.length === 0) {
+    return (
+      <div className="h-full min-h-[220px] flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+        No product sales recorded yet.
+      </div>
+    )
+  }
+
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} layout="vertical" margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
@@ -128,8 +208,22 @@ const BarChartContent = ({ limit }) => {
   );
 };
 
-const RecentOrdersTable = ({ limit, formatPrice }) => {
-  const data = limit ? recentTransactions.slice(0, limit) : recentTransactions;
+const RecentOrdersTable = ({ limit, formatPrice, transactions = [], allowExpand = true, resetKey }) => {
+  const [openId, setOpenId] = React.useState(null)
+  const data = limit ? transactions.slice(0, limit) : transactions;
+
+  React.useEffect(() => {
+    setOpenId(null)
+  }, [resetKey])
+
+  if (data.length === 0) {
+    return (
+      <div className="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+        No sales transactions recorded yet.
+      </div>
+    )
+  }
+
   return (
     <table className="w-full text-sm text-left">
       <thead className="text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold bg-slate-50 dark:bg-white/[0.03] border-b border-slate-100 dark:border-white/10 transition-colors">
@@ -140,23 +234,67 @@ const RecentOrdersTable = ({ limit, formatPrice }) => {
       </thead>
       <tbody className="divide-y divide-slate-100 dark:divide-white/5 transition-colors">
         <AnimatePresence>
-          {data.map((txn, index) => (
-            <motion.tr
-              key={txn.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors"
-            >
-              <td className="px-6 py-3">
-                <div className="font-medium text-slate-900 dark:text-slate-200">{txn.id}</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">{txn.time} • {txn.items} items</div>
-              </td>
-              <td className="px-6 py-3 text-right font-semibold text-slate-900 dark:text-white">
-                {formatPrice(txn.amount)}
-              </td>
-            </motion.tr>
-          ))}
+          {data.map((txn, index) => {
+            const isOpen = allowExpand && openId === txn.id
+            const items = Array.isArray(txn.items) ? txn.items : []
+
+            return (
+              <React.Fragment key={txn.id}>
+                <motion.tr
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={`hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors ${allowExpand ? 'cursor-pointer' : ''}`}
+                  onClick={allowExpand ? () => setOpenId(isOpen ? null : txn.id) : undefined}
+                >
+                  <td className="px-6 py-3">
+                    <div className="flex items-center gap-2">
+                      {allowExpand && (
+                        <ChevronRight className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                      )}
+                      <div>
+                        <div className="font-medium text-slate-900 dark:text-slate-200">{txn.transaction_code || txn.id}</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                          {formatRelativeTime(txn.created_at)} - {txn.item_count} item{txn.item_count === 1 ? '' : 's'}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-3 text-right font-semibold text-slate-900 dark:text-white">
+                    {formatPrice(Number(txn.total_amount) || 0, txn.currency)}
+                  </td>
+                </motion.tr>
+                {isOpen && (
+                  <motion.tr
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="bg-slate-50/70 dark:bg-white/[0.02]"
+                  >
+                    <td colSpan={2} className="px-6 py-4">
+                      {items.length > 0 ? (
+                        <div className="space-y-3">
+                          {items.map((item, itemIndex) => (
+                            <div key={`${txn.id}-${item.product_id || item.sku || item.name}-${itemIndex}`} className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] px-3 py-2.5 text-xs">
+                              <div className="min-w-0">
+                                <div className="font-semibold text-sm text-slate-700 dark:text-slate-200 truncate">{item.quantity}x {item.name}</div>
+                                <div className="mt-1 text-slate-400 dark:text-slate-500 truncate">{item.sku || item.product_id || 'No SKU'}</div>
+                              </div>
+                              <div className="text-right font-semibold text-slate-700 dark:text-slate-200 shrink-0">
+                                {formatPrice(Number(item.line_total) || 0, item.currency)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-slate-500 dark:text-slate-400">No item details recorded for this order.</div>
+                      )}
+                    </td>
+                  </motion.tr>
+                )}
+              </React.Fragment>
+            )
+          })}
         </AnimatePresence>
       </tbody>
     </table>
@@ -210,49 +348,51 @@ const LowStockTable = ({ limit, t, items = [] }) => {
   );
 };
 
-const InsightSidebar = ({ activeModal, formatPrice, code, insight, isGenerating, generateInsight, lowStockItems = [] }) => {
+const InsightSidebar = ({ activeModal, formatPrice, code, insight, isGenerating, generateInsight, lowStockItems = [], recentTransactions = [], topProducts = [], salesTrendData = [], categoryPerformanceData = [] }) => {
   const metrics = React.useMemo(() => {
     switch (activeModal) {
       case 'area': {
-        const totalRev = revenueData.reduce((acc, curr) => acc + curr.revenue, 0);
-        const avgRev = totalRev / revenueData.length;
-        const maxDay = revenueData.reduce((prev, current) => (prev.revenue > current.revenue) ? prev : current);
+        const totalRev = salesTrendData.reduce((acc, curr) => acc + curr.revenue, 0);
+        const totalOrders = salesTrendData.reduce((acc, curr) => acc + curr.orders, 0);
+        const avgRev = salesTrendData.length > 0 ? totalRev / salesTrendData.length : 0;
+        const maxDay = salesTrendData.reduce((prev, current) => (prev.revenue > current.revenue) ? prev : current, salesTrendData[0] || { label: 'No sales', revenue: 0 });
         return [
           { label: "Total Revenue", value: formatPrice(totalRev) },
           { label: "Avg Daily Revenue", value: formatPrice(avgRev) },
-          { label: "Best Day", value: `Day ${maxDay.name} (${formatPrice(maxDay.revenue)})` }
+          { label: "Orders", value: totalOrders.toString() },
+          { label: "Best Day", value: `${maxDay.label} (${formatPrice(maxDay.revenue)})` }
         ];
       }
       case 'donut': {
-        const topCat = categoryData[0];
-        const weakCat = categoryData[categoryData.length - 1];
-        const totalRev = categoryData.reduce((acc, curr) => acc + curr.value, 0);
-        const topCatPercent = ((topCat.value / totalRev) * 100).toFixed(1);
-        const weakCatPercent = ((weakCat.value / totalRev) * 100).toFixed(1);
+        const topCat = categoryPerformanceData[0];
+        const weakCat = categoryPerformanceData[categoryPerformanceData.length - 1];
+        const totalRev = categoryPerformanceData.reduce((acc, curr) => acc + curr.value, 0);
+        const topCatPercent = topCat && totalRev > 0 ? ((topCat.value / totalRev) * 100).toFixed(1) : '0.0';
+        const weakCatPercent = weakCat && totalRev > 0 ? ((weakCat.value / totalRev) * 100).toFixed(1) : '0.0';
         return [
-          { label: "Top Category", value: `${topCat.name} (${topCatPercent}%)` },
-          { label: "Top Revenue", value: formatPrice(topCat.value) },
-          { label: "Weakest Category", value: `${weakCat.name} (${weakCatPercent}%)` },
-          { label: "Lowest Revenue", value: formatPrice(weakCat.value) },
-          { label: "Total Categories", value: categoryData.length.toString() }
+          { label: "Top Category", value: topCat ? `${topCat.name} (${topCatPercent}%)` : "No sales yet" },
+          { label: "Top Revenue", value: formatPrice(topCat?.value || 0) },
+          { label: "Weakest Category", value: weakCat ? `${weakCat.name} (${weakCatPercent}%)` : "No sales yet" },
+          { label: "Lowest Revenue", value: formatPrice(weakCat?.value || 0) },
+          { label: "Total Categories", value: categoryPerformanceData.length.toString() }
         ];
       }
       case 'bar': {
-        const totalSales = topProductsData.reduce((acc, curr) => acc + curr.sales, 0);
-        const avgSales = Math.floor(totalSales / topProductsData.length);
+        const totalSales = topProducts.reduce((acc, curr) => acc + (Number(curr.quantity) || 0), 0);
+        const avgSales = topProducts.length > 0 ? Math.floor(totalSales / topProducts.length) : 0;
         return [
           { label: "Total Units Sold", value: totalSales.toString() },
-          { label: "Top Mover", value: topProductsData[0].name },
+          { label: "Top Mover", value: topProducts[0]?.name || "No sales yet" },
           { label: "Avg per Product", value: avgSales.toString() }
         ];
       }
       case 'orders': {
-        const totalOrders = recentTransactions.reduce((acc, curr) => acc + curr.amount, 0);
-        const avgOrder = totalOrders / recentTransactions.length;
+        const totalOrders = recentTransactions.reduce((acc, curr) => acc + (Number(curr.total_amount) || 0), 0);
+        const avgOrder = recentTransactions.length > 0 ? totalOrders / recentTransactions.length : 0;
         return [
           { label: "Total Volume", value: formatPrice(totalOrders) },
           { label: "Avg Order Value", value: formatPrice(avgOrder) },
-          { label: "Pending Orders", value: "0" }
+          { label: "Recent Orders", value: recentTransactions.length.toString() }
         ];
       }
       case 'stock': {
@@ -274,7 +414,7 @@ const InsightSidebar = ({ activeModal, formatPrice, code, insight, isGenerating,
       default:
         return [];
     }
-  }, [activeModal, formatPrice]);
+  }, [activeModal, formatPrice, recentTransactions, lowStockItems, topProducts, salesTrendData, categoryPerformanceData]);
 
   return (
     <div className="p-6 flex flex-col h-full">
@@ -322,9 +462,15 @@ const AnalyticsDashboard = () => {
   })
   const [showSlowHint, setShowSlowHint] = React.useState(false)
   const [activeModal, setActiveModal] = React.useState(null)
+  const [recentOrdersModalResetKey, setRecentOrdersModalResetKey] = React.useState(0)
   const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = React.useState(false)
   const [selectedPeriod, setSelectedPeriod] = React.useState('dash_period_30')
   const periodDropdownRef = React.useRef(null)
+
+  const openRecentOrdersModal = () => {
+    setRecentOrdersModalResetKey(key => key + 1)
+    setActiveModal('orders')
+  }
 
   React.useEffect(() => {
     setInsight(null);
@@ -348,10 +494,14 @@ const AnalyticsDashboard = () => {
           text = "Revenue is trending upwards by 18% compared to the previous period. Based on the current trajectory, expect a 12-15% increase in gross revenue next week. Highest volume typically occurs between day 18-22.";
           break;
         case 'donut':
-          text = "Electronics makes up 42% of total revenue. Photography is showing the highest growth rate (+24%). Consider bundling Accessories with Audio products to lift the weakest segment.";
+          text = categoryPerformanceData[0]
+            ? `${categoryPerformanceData[0].name} is currently the strongest category with ${formatPrice(categoryPerformanceData[0].value)} in recorded sales for this period.`
+            : "No category sales have been recorded for this period yet.";
           break;
         case 'bar':
-          text = `The top product dominates with ${topProductsData[0].sales} sales. AirPods Pro Gen 2 velocity has increased 30% in the last 5 days. Consider restocking high-velocity items.`;
+          text = topProducts[0]
+            ? `${topProducts[0].name} is currently leading with ${topProducts[0].quantity} units sold. Keep an eye on stock for your fastest movers.`
+            : "No product sales have been recorded yet. Once POS checkout has sales, this section will highlight your fastest-moving products.";
           break;
         case 'orders':
           text = "Average order value is strong. High-value transactions (>$1,000) constitute 40% of recent volume. Conversion rates are peaking during morning hours.";
@@ -409,51 +559,166 @@ const AnalyticsDashboard = () => {
     }
   }, [loadingStates]);
 
-  const { formatPrice, code } = useCurrency()
+  const { formatPrice, code, current, convertAmount } = useCurrency()
   const { t } = useAppSettings()
+  const inventoryTrendWindow = React.useMemo(() => getPeriodWindow(selectedPeriod), [selectedPeriod])
 
   const { data: inventoryTotalData } = useQuery({
-    queryKey: ['dashboard-inventory-total'],
-    queryFn: () => fetchInventory({ limit: 1, offset: 0 }),
+    queryKey: ['inventory', 'dashboard-total'],
+    queryFn: () => fetchInventory({ limit: 1, offset: 0, includeSummary: true }),
     staleTime: 60_000,
   })
 
   const { data: lowStockQueryData, isLoading: isLowStockLoading } = useQuery({
-    queryKey: ['dashboard-low-stock'],
+    queryKey: ['inventory', 'dashboard-low-stock'],
     queryFn: () => fetchInventory({ stockStatus: 'low_stock,out_of_stock', limit: 100, offset: 0 }),
     staleTime: 60_000,
   })
 
+  const { data: currentPeriodInventoryData } = useQuery({
+    queryKey: ['inventory', 'dashboard-period-current', inventoryTrendWindow.currentStart, inventoryTrendWindow.currentEnd],
+    queryFn: () => fetchInventory({
+      createdFrom: inventoryTrendWindow.currentStart,
+      createdTo: inventoryTrendWindow.currentEnd,
+      limit: 1,
+      offset: 0,
+    }),
+    staleTime: 60_000,
+  })
+
+  const { data: previousPeriodInventoryData } = useQuery({
+    queryKey: ['inventory', 'dashboard-period-previous', inventoryTrendWindow.previousStart, inventoryTrendWindow.previousEnd],
+    queryFn: () => fetchInventory({
+      createdFrom: inventoryTrendWindow.previousStart,
+      createdTo: inventoryTrendWindow.previousEnd,
+      limit: 1,
+      offset: 0,
+    }),
+    staleTime: 60_000,
+  })
+
+  const { data: salesTransactionsData, isLoading: isSalesTransactionsLoading } = useQuery({
+    queryKey: [...SALES_TRANSACTIONS_QUERY_KEY, inventoryTrendWindow.currentStart, inventoryTrendWindow.currentEnd],
+    queryFn: () => fetchSalesTransactions({
+      limit: 6,
+      offset: 0,
+      summaryFrom: inventoryTrendWindow.currentStart,
+      summaryTo: inventoryTrendWindow.currentEnd,
+    }),
+    staleTime: 30_000,
+  })
+
   const totalInventoryItems = inventoryTotalData?.total ?? null
+  const inventoryCategoryBreakdown = inventoryTotalData?.summary?.category_breakdown ?? []
   const lowStockItems = lowStockQueryData?.data ?? []
   const lowStockCount = lowStockQueryData?.total ?? null
+  const inventoryTrend = React.useMemo(() => {
+    const currentAdded = currentPeriodInventoryData?.total
+    const previousAdded = previousPeriodInventoryData?.total
+
+    if (currentAdded === undefined || previousAdded === undefined) {
+      return { label: '—', up: false, tone: 'neutral' }
+    }
+    if (previousAdded > 0) {
+      const percent = ((currentAdded - previousAdded) / previousAdded) * 100
+      return { label: formatSignedPercent(percent), up: percent > 0, tone: percent > 0 ? 'up' : percent < 0 ? 'down' : 'neutral' }
+    }
+    if (currentAdded > 0) {
+      return { label: `+${currentAdded} new`, up: true, tone: 'up' }
+    }
+    return { label: '0 new', up: false, tone: 'neutral' }
+  }, [currentPeriodInventoryData, previousPeriodInventoryData])
+  const recentSalesTransactions = salesTransactionsData?.data ?? []
+  const salesTransactionCount = salesTransactionsData?.total ?? null
+  const revenueByCurrency = salesTransactionsData?.summary?.revenue_by_currency ?? {}
+  const topProducts = salesTransactionsData?.summary?.top_products ?? []
+  const salesTrendData = React.useMemo(() => {
+    const rawTrendData = (salesTransactionsData?.summary?.daily_trends ?? []).map(point => ({
+      date: point.date,
+      label: point.label,
+      orders: Number(point.orders) || 0,
+      revenue: Object.entries(point.revenue_by_currency || {}).reduce((sum, [currency, amount]) => (
+        sum + convertAmount(Number(amount) || 0, currency, code)
+      ), 0),
+    }))
+    const axisInterval = Math.max(1, Math.ceil(rawTrendData.length / 5))
+    const pointLabelGap = Math.max(1, Math.ceil(rawTrendData.length / 12))
+    let lastPointLabelIndex = -Infinity
+
+    return rawTrendData.map((point, index) => {
+      const isCurrentPoint = index === rawTrendData.length - 1
+      const hasActivity = point.orders > 0 || point.revenue > 0
+      const canLabelActivity = hasActivity && index - lastPointLabelIndex >= pointLabelGap
+      const showPointLabel = isCurrentPoint || canLabelActivity
+
+      if (showPointLabel) {
+        lastPointLabelIndex = index
+      }
+
+      return {
+        ...point,
+        showAxisTick: index === 0 || isCurrentPoint || index % axisInterval === 0,
+        showPointMarker: isCurrentPoint || hasActivity,
+        showPointLabel,
+      }
+    })
+  }, [salesTransactionsData, convertAmount, code])
+  const categoryPerformanceData = React.useMemo(() => (
+    (salesTransactionsData?.summary?.category_performance ?? []).map(category => ({
+      name: category.category,
+      quantity: Number(category.quantity) || 0,
+      value: Object.entries(category.revenue_by_currency || {}).reduce((sum, [currency, amount]) => (
+        sum + convertAmount(Number(amount) || 0, currency, code)
+      ), 0),
+    })).filter(category => category.quantity > 0 || category.value > 0)
+      .sort((a, b) => b.value - a.value)
+  ), [salesTransactionsData, convertAmount, code])
+  const totalRevenue = React.useMemo(() => (
+    Object.entries(revenueByCurrency).reduce((sum, [currency, amount]) => (
+      sum + convertAmount(Number(amount) || 0, currency, code)
+    ), 0)
+  ), [revenueByCurrency, convertAmount, code])
+  const RevenueCurrencyIcon = React.useMemo(() => {
+    const symbol = current?.symbol || code
+
+    return ({ className = '' }) => (
+      <span
+        className={`${className} inline-flex items-center justify-center font-black leading-none`}
+        style={{ fontSize: symbol.length > 1 ? '0.75rem' : '1rem' }}
+      >
+        {symbol}
+      </span>
+    )
+  }, [current, code])
 
   const renderModalContent = () => {
     switch (activeModal) {
       case 'area':
         return (
           <div className="w-full h-[500px]">
-            <AreaChartContent code={code} />
+            <AreaChartContent data={salesTrendData} formatPrice={formatPrice} />
           </div>
         )
       case 'donut':
         return (
           <div className="w-full flex flex-col gap-8 p-4">
             <div className="w-full h-[400px]">
-              <DonutChartContent code={code} />
+              <DonutChartContent data={categoryPerformanceData} formatPrice={formatPrice} />
             </div>
             <div className="w-full flex flex-col gap-3">
               <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Category Breakdown</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {categoryData.map((entry, index) => (
+                {categoryPerformanceData.length > 0 ? categoryPerformanceData.map((entry, index) => (
                   <div key={entry.name} className="flex justify-between items-center bg-slate-50 dark:bg-white/[0.02] p-4 rounded-xl border border-slate-100 dark:border-white/5 shadow-sm transition-all hover:bg-slate-100 dark:hover:bg-white/[0.05]">
                     <div className="flex items-center gap-3">
                       <div className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
                       <span className="font-semibold text-slate-700 dark:text-slate-200">{entry.name}</span>
                     </div>
-                    <span className="font-bold text-slate-900 dark:text-white">{code} {entry.value.toLocaleString()}</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{formatPrice(entry.value)}</span>
                   </div>
-                ))}
+                )) : (
+                  <div className="sm:col-span-2 text-center text-sm text-slate-500 dark:text-slate-400 py-8">No category sales recorded yet.</div>
+                )}
               </div>
             </div>
           </div>
@@ -461,13 +726,13 @@ const AnalyticsDashboard = () => {
       case 'bar':
         return (
           <div className="w-full h-[600px]">
-            <BarChartContent />
+            <BarChartContent products={topProducts} />
           </div>
         )
       case 'orders':
         return (
           <div className="w-full">
-            <RecentOrdersTable formatPrice={formatPrice} />
+            <RecentOrdersTable key={recentOrdersModalResetKey} formatPrice={formatPrice} transactions={recentSalesTransactions} resetKey={recentOrdersModalResetKey} />
           </div>
         )
       case 'stock':
@@ -644,17 +909,11 @@ const AnalyticsDashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-sm">
-                {[
-                  { source: 'Online Store', amount: 32476.50, percent: 71.8 },
-                  { source: 'In-Store POS', amount: 8412.00, percent: 18.6 },
-                  { source: 'B2B Wholesale', amount: 4343.39, percent: 9.6 },
-                ].map((row, i) => (
-                  <tr key={i} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                    <td className="p-4 font-medium text-slate-900 dark:text-slate-100">{row.source}</td>
-                    <td className="p-4 text-right text-slate-600 dark:text-slate-300">{formatPrice(row.amount)}</td>
-                    <td className="p-4 text-right text-emerald-600 dark:text-emerald-400 font-medium">{row.percent}%</td>
-                  </tr>
-                ))}
+                <tr className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                  <td className="p-4 font-medium text-slate-900 dark:text-slate-100">POS Checkout</td>
+                  <td className="p-4 text-right text-slate-600 dark:text-slate-300">{salesTransactionsData ? formatPrice(totalRevenue) : '—'}</td>
+                  <td className="p-4 text-right text-emerald-600 dark:text-emerald-400 font-medium">{totalRevenue > 0 ? '100%' : '0%'}</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -665,53 +924,78 @@ const AnalyticsDashboard = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  <th className="p-4">Payment Method</th>
+                  <th className="p-4">Source</th>
                   <th className="p-4 text-right">Transactions</th>
                   <th className="p-4 text-right">% of Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-sm">
-                {[
-                  { type: 'Credit Card', count: 850, percent: 70.6 },
-                  { type: 'Cash', count: 210, percent: 17.4 },
-                  { type: 'Digital Wallet', count: 144, percent: 12.0 },
-                ].map((row, i) => (
-                  <tr key={i} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                    <td className="p-4 font-medium text-slate-900 dark:text-slate-100">{row.type}</td>
-                    <td className="p-4 text-right text-slate-600 dark:text-slate-300">{row.count}</td>
-                    <td className="p-4 text-right text-indigo-600 dark:text-indigo-400 font-medium">{row.percent}%</td>
-                  </tr>
-                ))}
+                <tr className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                  <td className="p-4 font-medium text-slate-900 dark:text-slate-100">POS Checkout</td>
+                  <td className="p-4 text-right text-slate-600 dark:text-slate-300">{salesTransactionCount !== null ? salesTransactionCount.toLocaleString() : '—'}</td>
+                  <td className="p-4 text-right text-indigo-600 dark:text-indigo-400 font-medium">{salesTransactionCount && salesTransactionCount > 0 ? '100%' : '0%'}</td>
+                </tr>
               </tbody>
             </table>
           </div>
         )
       case 'kpi_inventory':
         return (
-          <div className="w-full">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  <th className="p-4">Category</th>
-                  <th className="p-4 text-right">Items in Stock</th>
-                  <th className="p-4 text-right">Est. Value</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-sm">
-                {[
-                  { category: 'Electronics', count: 3200, value: 150000 },
-                  { category: 'Accessories', count: 2800, value: 45000 },
-                  { category: 'Photography', count: 1500, value: 210000 },
-                  { category: 'Audio', count: 932, value: 85000 },
-                ].map((row, i) => (
-                  <tr key={i} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                    <td className="p-4 font-medium text-slate-900 dark:text-slate-100">{row.category}</td>
-                    <td className="p-4 text-right text-slate-600 dark:text-slate-300">{row.count}</td>
-                    <td className="p-4 text-right text-slate-600 dark:text-slate-300">{formatPrice(row.value)}</td>
+          <div className="w-full space-y-8">
+            <div>
+              <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Category Breakdown</h4>
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className="p-4">Category</th>
+                    <th className="p-4 text-right">Products</th>
+                    <th className="p-4 text-right">Stock Qty</th>
+                    <th className="p-4 text-right">Est. Value</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-sm">
+                  {inventoryCategoryBreakdown.length > 0 ? (
+                    inventoryCategoryBreakdown.map((row) => {
+                      const estimatedValue = Object.entries(row.value_by_currency || {}).reduce((sum, [currency, amount]) => (
+                        sum + convertAmount(Number(amount) || 0, currency, code)
+                      ), 0)
+
+                      return (
+                        <tr key={row.category} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                          <td className="p-4 font-medium text-slate-900 dark:text-slate-100">{row.category}</td>
+                          <td className="p-4 text-right text-slate-600 dark:text-slate-300">{row.product_count.toLocaleString()}</td>
+                          <td className="p-4 text-right text-slate-600 dark:text-slate-300">{row.stock_quantity.toLocaleString()}</td>
+                          <td className="p-4 text-right text-slate-600 dark:text-slate-300">{formatPrice(estimatedValue)}</td>
+                        </tr>
+                      )
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="p-6 text-center text-slate-500 dark:text-slate-400">No inventory items yet.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Product Count Movement</h4>
+              <table className="w-full text-left border-collapse">
+                <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-sm">
+                  <tr>
+                    <td className="p-4 font-medium text-slate-900 dark:text-slate-100">Added in {t(selectedPeriod)}</td>
+                    <td className="p-4 text-right text-slate-600 dark:text-slate-300">{currentPeriodInventoryData?.total?.toLocaleString() ?? '—'}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-4 font-medium text-slate-900 dark:text-slate-100">Added in previous period</td>
+                    <td className="p-4 text-right text-slate-600 dark:text-slate-300">{previousPeriodInventoryData?.total?.toLocaleString() ?? '—'}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-4 font-medium text-slate-900 dark:text-slate-100">Trend</td>
+                    <td className={`p-4 text-right font-semibold ${inventoryTrend.up ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300'}`}>{inventoryTrend.label}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         )
       case 'kpi_alerts':
@@ -815,7 +1099,7 @@ const AnalyticsDashboard = () => {
                   </div>
                   {!['global_forecast', 'kpi_revenue', 'kpi_sales', 'kpi_inventory', 'kpi_alerts'].includes(activeModal) && (
                     <div className="w-full lg:w-80 shrink-0 bg-slate-50/30 dark:bg-white/[0.01] overflow-y-auto">
-                      <InsightSidebar activeModal={activeModal} formatPrice={formatPrice} code={code} insight={insight} isGenerating={isGenerating} generateInsight={generateInsight} lowStockItems={lowStockItems} />
+                      <InsightSidebar activeModal={activeModal} formatPrice={formatPrice} code={code} insight={insight} isGenerating={isGenerating} generateInsight={generateInsight} lowStockItems={lowStockItems} recentTransactions={recentSalesTransactions} topProducts={topProducts} salesTrendData={salesTrendData} categoryPerformanceData={categoryPerformanceData} />
                     </div>
                   )}
                 </div>
@@ -901,9 +1185,9 @@ const AnalyticsDashboard = () => {
             </motion.div>
           ) : (
             <motion.div key="kpi-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card onClick={() => setActiveModal('kpi_revenue')} title={t('dash_revenue')} value={formatPrice(45231.89)} icon={DollarSign} trend="+20.1%" trendUp={true} attention={t('dash_attention')} />
-              <Card onClick={() => setActiveModal('kpi_sales')} title={t('dash_sales_txn')} value="1,204" icon={TrendingUp} trend="+12.5%" trendUp={true} attention={t('dash_attention')} />
-              <Card onClick={() => setActiveModal('kpi_inventory')} title={t('dash_inv_items')} value={totalInventoryItems !== null ? totalInventoryItems.toLocaleString() : '—'} icon={Package} trend="-4.2%" trendUp={false} attention={t('dash_attention')} />
+              <Card onClick={() => setActiveModal('kpi_revenue')} title={t('dash_revenue')} value={salesTransactionsData ? formatPrice(totalRevenue) : '—'} icon={RevenueCurrencyIcon} trend={salesTransactionCount && salesTransactionCount > 0 ? 'Recorded' : 'No sales yet'} trendUp={salesTransactionCount && salesTransactionCount > 0} attention={t('dash_attention')} />
+              <Card onClick={() => setActiveModal('kpi_sales')} title={t('dash_sales_txn')} value={salesTransactionCount !== null ? salesTransactionCount.toLocaleString() : '—'} icon={TrendingUp} trend="Recorded" trendUp={true} attention={t('dash_attention')} />
+              <Card onClick={() => setActiveModal('kpi_inventory')} title={t('dash_inv_items')} value={totalInventoryItems !== null ? totalInventoryItems.toLocaleString() : '—'} icon={Package} trend={inventoryTrend.label} trendUp={inventoryTrend.up} trendTone={inventoryTrend.tone} attention={t('dash_attention')} />
               <Card onClick={() => setActiveModal('kpi_alerts')} title={t('dash_low_alerts')} value={lowStockCount !== null ? lowStockCount.toString() : '—'} icon={AlertCircle} trend={t('dash_attention')} alert={true} attention={t('dash_attention')} />
             </motion.div>
           )}
@@ -912,7 +1196,7 @@ const AnalyticsDashboard = () => {
         {/* Charts Area 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <AnimatePresence mode="wait">
-            {loadingStates.trends ? (
+            {loadingStates.trends || isSalesTransactionsLoading ? (
               <motion.div key="trends-skel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="lg:col-span-2 h-full w-full">
                 <TrendsChartSkeleton />
               </motion.div>
@@ -922,7 +1206,7 @@ const AnalyticsDashboard = () => {
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-3">
                       {t('dash_trends_title')}
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 px-2 py-0.5 rounded-md">{t('dash_predicted')}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 px-2 py-0.5 rounded-md">Recorded</span>
                     </h3>
                     <div className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
@@ -930,7 +1214,7 @@ const AnalyticsDashboard = () => {
                     </div>
                   </div>
                   <div className="flex-1 w-full h-full min-h-[220px]">
-                    <AreaChartContent code={code} />
+                    <AreaChartContent data={salesTrendData} formatPrice={formatPrice} />
                   </div>
                 </ChartCard>
               </motion.div>
@@ -938,7 +1222,7 @@ const AnalyticsDashboard = () => {
           </AnimatePresence>
 
           <AnimatePresence mode="wait">
-            {loadingStates.category ? (
+            {loadingStates.category || isSalesTransactionsLoading ? (
               <motion.div key="cat-skel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="h-full w-full">
                 <CategoryChartSkeleton />
               </motion.div>
@@ -953,10 +1237,10 @@ const AnalyticsDashboard = () => {
                     </div>
                   </div>
                   <div className="flex-1 w-full h-full min-h-[220px]">
-                    <DonutChartContent code={code} />
+                    <DonutChartContent data={categoryPerformanceData} formatPrice={formatPrice} />
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-2">
-                    {categoryData.slice(0, 4).map((entry, index) => (
+                    {categoryPerformanceData.slice(0, 4).map((entry, index) => (
                       <div key={entry.name} className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                         <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
                         <span className="truncate">{entry.name}</span>
@@ -972,7 +1256,7 @@ const AnalyticsDashboard = () => {
         {/* Additional Reports Area */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <AnimatePresence mode="wait">
-            {loadingStates.top ? (
+            {loadingStates.top || isSalesTransactionsLoading ? (
               <motion.div key="top-skel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="h-full w-full">
                 <ChartCardSkeleton />
               </motion.div>
@@ -987,7 +1271,7 @@ const AnalyticsDashboard = () => {
                     </div>
                   </div>
                   <div className="flex-1 w-full h-full min-h-[220px]">
-                    <BarChartContent limit={5} />
+                    <BarChartContent limit={5} products={topProducts} />
                   </div>
                 </ChartCard>
               </motion.div>
@@ -995,20 +1279,19 @@ const AnalyticsDashboard = () => {
           </AnimatePresence>
 
           <AnimatePresence mode="wait">
-            {loadingStates.orders ? (
+            {loadingStates.orders || isSalesTransactionsLoading ? (
               <motion.div key="orders-skel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="h-full w-full">
                 <ChartCardSkeleton />
               </motion.div>
             ) : (
               <motion.div key="orders-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="h-full w-full">
-                <ChartCard onClick={() => setActiveModal('orders')}>
+                <ChartCard onClick={openRecentOrdersModal}>
                   <div className="p-6 border-b border-slate-100 dark:border-white/10 flex items-center justify-between transition-colors">
                     <div className="flex items-center gap-3">
                       <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                         <ShoppingCart className="w-4 h-4 text-indigo-500" />
                         Recent Orders
                       </h3>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded-md">Top 3</span>
                     </div>
                     <div className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
@@ -1016,7 +1299,7 @@ const AnalyticsDashboard = () => {
                     </div>
                   </div>
                   <div className="overflow-x-auto flex-1">
-                    <RecentOrdersTable limit={3} formatPrice={formatPrice} />
+                    <RecentOrdersTable limit={3} formatPrice={formatPrice} transactions={recentSalesTransactions} allowExpand={false} />
                   </div>
                 </ChartCard>
               </motion.div>
@@ -1037,7 +1320,6 @@ const AnalyticsDashboard = () => {
                         <AlertCircle className="w-4 h-4 text-rose-500" />
                         {t('dash_warn_title')}
                       </h3>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded-md">Top 3</span>
                     </div>
                     <div className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
@@ -1057,7 +1339,18 @@ const AnalyticsDashboard = () => {
   )
 }
 
-const Card = ({ title, value, icon: Icon, trend, trendUp, alert, attention, onClick }) => (
+const getTrendClass = (trendTone, trendUp) => {
+  const tone = trendTone || (trendUp ? 'up' : 'neutral')
+  if (tone === 'up') {
+    return 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20'
+  }
+  if (tone === 'down') {
+    return 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20'
+  }
+  return 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10'
+}
+
+const Card = ({ title, value, icon: Icon, trend, trendUp, trendTone, alert, attention, onClick }) => (
   <div onClick={onClick} className={`relative h-full w-full bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col justify-between group hover:-translate-y-1 hover:shadow-xl dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.1)] hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all duration-300 shadow-sm overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}>
     {/* Subtle Background Glow on Hover */}
     <div className="absolute -inset-4 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none blur-lg" />
@@ -1074,10 +1367,7 @@ const Card = ({ title, value, icon: Icon, trend, trendUp, alert, attention, onCl
           {attention}
         </span>
       ) : (
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider shadow-sm ${trendUp
-          ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20'
-          : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10'
-          }`}>
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider shadow-sm ${getTrendClass(trendTone, trendUp)}`}>
           {trend}
         </span>
       )}

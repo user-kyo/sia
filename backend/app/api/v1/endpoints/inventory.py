@@ -1,6 +1,7 @@
 import uuid
 from fastapi import APIRouter, HTTPException, status, Query, UploadFile, File, Depends
 from typing import Optional
+from datetime import datetime
 from app.schemas.inventory import (
     InventoryItemCreate, InventoryItemUpdate, InventoryItemResponse,
     StockAdjustment, InventoryListResponse,
@@ -17,6 +18,54 @@ def _generate_sku() -> str:
     return f"PRD-{str(uuid.uuid4())[:8].upper()}"
 
 
+def _load_inventory_summary(company_id: str) -> dict:
+    categories: dict[str, dict] = {}
+    page_size = 1000
+    offset = 0
+
+    while True:
+        result = (
+            supabase_client.table("inventory")
+            .select("category,quantity,price,currency")
+            .eq("company_id", company_id)
+            .range(offset, offset + page_size - 1)
+            .execute()
+        )
+        rows = result.data or []
+
+        for row in rows:
+            category = row.get("category") or "Uncategorized"
+            quantity = int(row.get("quantity") or 0)
+            price = float(row.get("price") or 0)
+            currency = row.get("currency") or "PHP"
+            entry = categories.setdefault(
+                category,
+                {
+                    "category": category,
+                    "product_count": 0,
+                    "stock_quantity": 0,
+                    "value_by_currency": {},
+                },
+            )
+            entry["product_count"] += 1
+            entry["stock_quantity"] += quantity
+            entry["value_by_currency"][currency] = (
+                entry["value_by_currency"].get(currency, 0.0) + (price * quantity)
+            )
+
+        if len(rows) < page_size:
+            break
+        offset += page_size
+
+    return {
+        "category_breakdown": sorted(
+            categories.values(),
+            key=lambda category: category["stock_quantity"],
+            reverse=True,
+        )
+    }
+
+
 @router.get("", response_model=InventoryListResponse)
 def list_inventory(
     search: Optional[str] = Query(None),
@@ -26,6 +75,9 @@ def list_inventory(
     stock_status: Optional[str] = Query(None),
     min_price: Optional[float] = Query(None, ge=0),
     max_price: Optional[float] = Query(None, ge=0),
+    created_from: Optional[datetime] = Query(None),
+    created_to: Optional[datetime] = Query(None),
+    include_summary: bool = Query(False),
     sort_by: str = Query("created_at"),
     sort_order: str = Query("desc"),
     limit: int = Query(LIMIT, ge=1, le=100),
@@ -59,6 +111,10 @@ def list_inventory(
             q = q.gte("price", min_price)
         if max_price is not None:
             q = q.lte("price", max_price)
+        if created_from is not None:
+            q = q.gte("created_at", created_from.isoformat())
+        if created_to is not None:
+            q = q.lt("created_at", created_to.isoformat())
         return q
 
     if not needs_python_filter:
@@ -70,7 +126,10 @@ def list_inventory(
         if hasattr(result, "error") and result.error:
             raise HTTPException(status_code=400, detail=str(result.error))
         total = result.count or 0
-        return {"data": result.data, "total": total, "has_more": offset + limit < total}
+        response = {"data": result.data, "total": total, "has_more": offset + limit < total}
+        if include_summary:
+            response["summary"] = _load_inventory_summary(current_user["company_id"])
+        return response
 
     # Python-level filtering for low_stock / in_stock
     q = _build_base(with_count=False).order(sort_by, desc=not ascending)
@@ -94,7 +153,10 @@ def list_inventory(
             filtered_items.append(i)
 
     total = len(filtered_items)
-    return {"data": filtered_items[offset: offset + limit], "total": total, "has_more": offset + limit < total}
+    response = {"data": filtered_items[offset: offset + limit], "total": total, "has_more": offset + limit < total}
+    if include_summary:
+        response["summary"] = _load_inventory_summary(current_user["company_id"])
+    return response
 
 
 @router.get("/{item_id}", response_model=InventoryItemResponse)
