@@ -87,22 +87,24 @@ export default function UserProfilePage() {
   const [editForm, setEditForm] = useState({ role: '', status: '' });
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    fetchUser();
-  }, [id]);
-
   const fetchUser = async () => {
     try {
       setIsLoading(true);
       const res = await api.get(`/users/${id}`);
       setUser(res.data);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load user profile');
       navigate('/users');
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const handleResetPassword = async () => {
     if (!user?.email) return;
