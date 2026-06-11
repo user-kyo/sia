@@ -5,6 +5,8 @@ import { useAppSettings } from '../contexts/AppSettingsContext'
 import { useCurrency } from '../contexts/CurrencyContext'
 import FiltersPanel from '../features/inventory/components/FiltersPanel'
 import { ProductGridSkeleton } from '../components/ui/Skeletons'
+import { createSalesTransaction, SALES_TRANSACTIONS_QUERY_KEY } from '../features/sales/api/salesApi'
+import { useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 
 const CATEGORY_ICONS = {
@@ -18,12 +20,15 @@ const POSPage = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [cart, setCart] = useState([])
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
+  const [checkoutError, setCheckoutError] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [stockAlert, setStockAlert] = useState(null)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [filters, setFilters] = useState({ categories: [], brands: [], stockStatuses: [], minPrice: '', maxPrice: '', hasImage: false, sortBy: 'created_at-desc' })
 
   const { t } = useAppSettings()
   const { code, formatPrice, formatAs, convertAmount } = useCurrency()
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300)
@@ -52,13 +57,21 @@ const POSPage = () => {
   const adjustStockMutation = useAdjustStock()
 
   const addToCart = (product) => {
+    const existing = cart.find(item => item.id === product.id)
+    if (product.quantity <= 0) {
+      setStockAlert({ product, type: 'out_of_stock' })
+      return
+    }
+    if (existing && existing.cartQuantity >= product.quantity) {
+      setStockAlert({ product, type: 'max_stock' })
+      return
+    }
+
     setCart(prev => {
-      const existing = prev.find(item => item.id === product.id)
-      if (existing) {
-        if (existing.cartQuantity >= product.quantity) return prev
+      const existingInPrev = prev.find(item => item.id === product.id)
+      if (existingInPrev) {
         return prev.map(item => item.id === product.id ? { ...item, cartQuantity: item.cartQuantity + 1 } : item)
       }
-      if (product.quantity <= 0) return prev
       return [...prev, { ...product, cartQuantity: 1 }]
     })
   }
@@ -89,6 +102,7 @@ const POSPage = () => {
   const processCheckout = async () => {
     if (cart.length === 0) return
     setIsCheckoutLoading(true)
+    setCheckoutError(null)
     try {
       await Promise.all(cart.map(item =>
         adjustStockMutation.mutateAsync({
@@ -97,10 +111,31 @@ const POSPage = () => {
           quantity: item.cartQuantity,
         })
       ))
+
+      await createSalesTransaction({
+        total_amount: total,
+        currency: code,
+        items: cart.map(item => {
+          const unitPrice = Number(item.price) || 0
+          return {
+            product_id: item.id,
+            sku: item.sku,
+            name: item.name,
+            category: item.category || 'Uncategorized',
+            quantity: item.cartQuantity,
+            unit_price: unitPrice,
+            line_total: unitPrice * item.cartQuantity,
+            currency: item.currency || code,
+          }
+        }),
+      })
+      queryClient.invalidateQueries({ queryKey: SALES_TRANSACTIONS_QUERY_KEY })
+
       setCart([])
       setIsModalOpen(false)
     } catch (error) {
       console.error('Checkout failed:', error)
+      setCheckoutError(error?.response?.data?.detail || error?.message || 'Checkout failed. Please try again.')
     } finally {
       setIsCheckoutLoading(false)
     }
@@ -120,20 +155,20 @@ const POSPage = () => {
         <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.01] transition-colors">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
-              <Search className="w-5 h-5 text-slate-400 dark:text-slate-500 absolute left-4 top-2.5" />
+              <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none z-10" />
               <input
                 type="text"
                 placeholder={t('pos_search_ph')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl pl-12 pr-10 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all backdrop-blur-md shadow-sm dark:shadow-none"
+                className="w-full bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl pl-11 pr-10 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all backdrop-blur-md shadow-sm dark:shadow-none"
               />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm('')}
-                  className="absolute right-4 top-2.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-white transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-white transition-colors"
                 >
-                  <X className="w-5 h-5" />
+                  <X size={18} />
                 </button>
               )}
             </div>
@@ -181,14 +216,15 @@ const POSPage = () => {
                   <motion.div
                     key={product.id}
                     initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    animate={{ opacity: 1, y: 0, transition: { delay: index * 0.05, type: 'spring', stiffness: 380, damping: 30 } }}
                     exit={{ opacity: 0, y: -10 }}
-                    transition={{ delay: index * 0.05, type: 'spring', stiffness: 380, damping: 30 }}
+                    whileHover={{ y: -4 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                     onClick={() => addToCart(product)}
-                    className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 hover:shadow-md dark:hover:shadow-none hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:bg-slate-50 dark:hover:bg-white/[0.04] cursor-pointer transition-all duration-300 group flex flex-col items-center shadow-sm dark:shadow-none relative overflow-hidden"
+                    className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-white/10 hover:shadow-lg dark:hover:shadow-none hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:bg-slate-50 dark:hover:bg-white/[0.04] cursor-pointer transition-colors transition-shadow duration-300 group flex flex-col items-center shadow-sm dark:shadow-none relative overflow-hidden"
                   >
                     {/* Stock Indicator Pill */}
-                    <div className={`absolute top-3 left-3 px-2 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 ${stock.bg} ${stock.text} shadow-sm dark:shadow-none z-10 transition-colors`}>
+                    <div className={`absolute top-3 left-3 px-2 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 backdrop-blur-md bg-white/80 dark:bg-black/50 border border-slate-200/50 dark:border-white/10 ${stock.text} shadow-sm dark:shadow-none z-10 transition-colors`}>
                       <div className={`w-1.5 h-1.5 rounded-full ${stock.dot}`} />
                       {t(stock.tKey)}
                     </div>
@@ -196,12 +232,12 @@ const POSPage = () => {
                     {/* Image Area */}
                     <div className="w-full h-32 bg-slate-50 dark:bg-white/[0.03] rounded-lg mb-4 flex items-center justify-center border border-slate-100 dark:border-white/5 group-hover:bg-slate-100 dark:group-hover:bg-white/[0.05] transition-colors mt-6 overflow-hidden relative">
                       {product.image_url ? (
-                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       ) : (
                         (() => {
                           const catObj = categories.find(c => c.name === product.category)
                           const IconComp = catObj && CATEGORY_ICONS[catObj.icon] ? CATEGORY_ICONS[catObj.icon] : ImageIcon
-                          return <IconComp className="w-8 h-8 text-slate-300 dark:text-white/10" />
+                          return <IconComp className="w-8 h-8 text-slate-300 dark:text-white/10 group-hover:scale-110 transition-transform duration-500" />
                         })()
                       )}
                     </div>
@@ -263,10 +299,12 @@ const POSPage = () => {
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-transparent">
           {cart.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-500">
-              <ShoppingCart className="w-12 h-12 mb-3 text-slate-300 dark:text-white/10" />
-              <p className="font-medium text-sm">{t('pos_empty_title')}</p>
-              <p className="text-xs mt-1 text-slate-400 dark:text-slate-500">{t('pos_empty_hint')}</p>
+            <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-white/5 rounded-2xl m-2 bg-slate-50/50 dark:bg-white/[0.01]">
+              <div className="w-16 h-16 mb-4 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center">
+                <ShoppingCart className="w-8 h-8 text-slate-300 dark:text-white/20" />
+              </div>
+              <p className="font-medium text-sm text-slate-600 dark:text-slate-300">{t('pos_empty_title')}</p>
+              <p className="text-xs mt-1 text-slate-400 dark:text-slate-500 max-w-[200px] text-center leading-relaxed">{t('pos_empty_hint')}</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -287,7 +325,7 @@ const POSPage = () => {
               const itemStoredCcy = item.currency || code
               const unitInDisplay = convertAmount(item.price, itemStoredCcy, code)
               return (
-              <div key={item.id} className="flex justify-between items-start group">
+              <div key={item.id} className="flex justify-between items-start group hover:bg-slate-50 dark:hover:bg-white/[0.02] p-2 -mx-2 rounded-xl transition-colors">
                 <div className="flex-1 pr-4">
                   <h5 className="font-semibold text-sm text-slate-900 dark:text-slate-100 line-clamp-1" title={item.name}>{item.name}</h5>
                   {/* Unit price: native currency so the user can see what it was entered as */}
@@ -310,13 +348,13 @@ const POSPage = () => {
                       <Minus className="w-4 h-4" />
                     </button>
                     <span className="w-8 text-center text-xs font-bold text-slate-900 dark:text-white">{item.cartQuantity}</span>
-                    <button onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, 1) }} disabled={item.cartQuantity >= item.quantity} className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-r-lg transition-colors disabled:opacity-50">
+                    <button onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, 1) }} disabled={item.cartQuantity >= item.quantity} className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-r-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-500 dark:disabled:hover:bg-transparent dark:disabled:hover:text-slate-400">
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); removeFromCart(item.id) }} className="ml-4 mt-1 opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-all">
-                  <X className="w-4 h-4" />
+                <button onClick={(e) => { e.stopPropagation(); removeFromCart(item.id) }} className="ml-4 mt-1 p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-all">
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
               )
@@ -338,10 +376,11 @@ const POSPage = () => {
           <button
             onClick={() => setIsModalOpen(true)}
             disabled={cart.length === 0}
-            className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-300 dark:disabled:bg-white/10 text-white py-4 rounded-xl font-bold transition-all active:scale-[0.98] shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)] disabled:shadow-none"
+            className="relative w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:from-slate-300 disabled:to-slate-300 dark:disabled:from-white/10 dark:disabled:to-white/10 text-white py-4 rounded-xl font-bold transition-all active:scale-[0.98] shadow-lg disabled:shadow-none group overflow-hidden"
           >
-            <CreditCard className="w-5 h-5" />
-            {t('pos_charge')} {formatPrice(total)}
+            {cart.length > 0 && <div className="absolute inset-0 bg-white/20 blur-xl scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-700" />}
+            <CreditCard className="w-5 h-5 relative z-10" />
+            <span className="relative z-10">{t('pos_charge')} {formatPrice(total)}</span>
           </button>
         </div>
       </div>
@@ -392,6 +431,11 @@ const POSPage = () => {
                 <span>{t('pos_amount')}</span>
                 <span className="text-indigo-600 dark:text-indigo-400">{formatPrice(total)}</span>
               </div>
+              {checkoutError && (
+                <div className="mt-4 rounded-xl border border-rose-200 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/10 px-3 py-2 text-xs font-medium text-rose-700 dark:text-rose-300">
+                  {checkoutError}
+                </div>
+              )}
             </div>
 
             <div className="p-6 flex gap-3 bg-white dark:bg-[#0d0f1a]">
@@ -416,6 +460,49 @@ const POSPage = () => {
               </button>
             </div>
             </motion.div>
+        </div>
+      )}
+      </AnimatePresence>
+
+      {/* Out of Stock Modal */}
+      <AnimatePresence>
+      {stockAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm"
+            onClick={() => setStockAlert(null)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+            className="relative bg-white dark:bg-[#0d0f1a] dark:border dark:border-white/10 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden z-10 text-center p-6"
+          >
+            <div className="w-12 h-12 bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Package className="w-6 h-6" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+              {stockAlert.type === 'out_of_stock' ? 'Out of Stock' : 'Maximum Stock Reached'}
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 mb-6">
+              {stockAlert.type === 'out_of_stock' ? (
+                <>Sorry, <span className="font-semibold text-slate-700 dark:text-slate-300">"{stockAlert.product.name}"</span> is currently out of stock.</>
+              ) : (
+                <>The maximum available quantity of <span className="font-semibold text-slate-700 dark:text-slate-300">"{stockAlert.product.name}"</span> is already in your cart.</>
+              )}
+            </p>
+            <button
+              onClick={() => setStockAlert(null)}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-colors"
+            >
+              Close
+            </button>
+          </motion.div>
         </div>
       )}
       </AnimatePresence>
