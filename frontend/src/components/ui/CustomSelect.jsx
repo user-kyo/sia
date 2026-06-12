@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, Check } from 'lucide-react'
 
-export default function CustomSelect({ value, onChange, options, placeholder, disabled, required, className, onClick }) {
+export default function CustomSelect({ value, onChange, options, placeholder, disabled, required, className, onClick, openUpwards = false }) {
   const [isOpen, setIsOpen] = useState(false)
   const ref = useRef(null)
 
@@ -40,11 +40,11 @@ export default function CustomSelect({ value, onChange, options, placeholder, di
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: openUpwards ? 10 : -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
+            exit={{ opacity: 0, y: openUpwards ? 10 : -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl overflow-y-auto max-h-60 z-50 py-1 custom-scrollbar"
+            className={`absolute ${openUpwards ? 'bottom-full mb-1.5' : 'top-full mt-1.5'} left-0 right-0 bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl overflow-y-auto max-h-60 z-50 py-1 custom-scrollbar`}
           >
             {options.map(o => (
               <div

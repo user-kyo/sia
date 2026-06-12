@@ -1,15 +1,32 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, Building2, Phone, Mail, MapPin, Edit2, Trash2, X, Package, Clock, Box, ShoppingCart, ChevronRight, ChevronLeft, Users, CheckCircle, XCircle, ArrowUpDown } from 'lucide-react'
+import { Plus, Search, Building2, Phone, Mail, MapPin, Edit2, Trash2, X, Package, Clock, Box, ShoppingCart, ChevronRight, ChevronLeft, Users, CheckCircle, XCircle, ArrowUpDown, ShieldAlert, ExternalLink } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchSuppliers, createSupplier, updateSupplier, deleteSupplier } from '../features/suppliers/api/suppliersApi'
 import { fetchInventory } from '../features/inventory/api/inventoryApi'
 import { fetchProcurements } from '../features/procurements/api/procurementsApi'
 import { useCurrency } from '../contexts/CurrencyContext'
 import { useToast } from '../components/ui/Toast'
+import CustomSelect from '../components/ui/CustomSelect'
 
-const StatCard = ({ title, value, icon: Icon, colorClass }) => {
+const Card = ({ title, icon: Icon, children, className = '' }) => (
+  <div className={`bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm transition-all duration-300 hover:shadow-md flex flex-col ${className}`}>
+    <div className="flex items-center gap-2 mb-3 shrink-0">
+      <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+        <Icon size={16} />
+      </div>
+      <h3 className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight">{title}</h3>
+    </div>
+    <div className="space-y-4 flex-1 flex flex-col">
+      {children}
+    </div>
+  </div>
+)
+
+const EMPTY_SUPPLIER = { name: '', contact_name: '', email: '', phone: '', address: '', status: '' }
+
+const StatCard = ({ title, value, icon: Icon, colorClass, onClick }) => {
   const colors = {
     indigo: {
       bg: 'bg-white dark:bg-[#0A0A0B]',
@@ -43,14 +60,22 @@ const StatCard = ({ title, value, icon: Icon, colorClass }) => {
   const theme = colors[colorClass] || colors.indigo;
 
   return (
-    <div className={`relative h-full w-full rounded-2xl p-5 flex flex-col justify-end group hover:-translate-y-1 hover:shadow-xl dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.1)] transition-all duration-300 shadow-sm overflow-hidden border ${theme.bg} ${theme.border}`}>
+    <div onClick={onClick} className={`relative h-full w-full rounded-2xl p-5 flex flex-col justify-end group hover:-translate-y-1 hover:shadow-xl dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.1)] transition-all duration-300 shadow-sm overflow-hidden border ${theme.bg} ${theme.border} ${onClick ? 'cursor-pointer' : ''}`}>
       <div className={`absolute -inset-4 bg-gradient-to-br ${theme.glow} opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none blur-lg`} />
 
       <div className={`absolute -top-2 -right-2 p-4 opacity-10 transition-transform duration-500 group-hover:scale-[1.2] group-hover:-rotate-6 ${theme.iconText}`}>
         <Icon size={64} />
       </div>
 
-      <div className={`text-sm font-medium mb-1 relative z-10 ${theme.text}`}>{title}</div>
+      <div className={`text-sm font-medium mb-1 relative z-10 ${theme.text} flex items-center justify-between`}>
+        <span>{title}</span>
+        {onClick && (
+          <div className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-300`}>
+            <span className="hidden sm:block">Open</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </div>
+        )}
+      </div>
       <div className="text-2xl font-bold text-slate-900 dark:text-white relative z-10">{value}</div>
     </div>
   );
@@ -77,10 +102,13 @@ export default function SuppliersDirectoryPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingSupplier, setEditingSupplier] = useState(null)
   const [supplierToDelete, setSupplierToDelete] = useState(null)
+  const [deleteErrorMsg, setDeleteErrorMsg] = useState(null)
+  
+  const [hasDraft, setHasDraft] = useState(false)
+  const [selectedKpi, setSelectedKpi] = useState(null)
   const [selectedSupplier, setSelectedSupplier] = useState(null)
   const [activeTab, setActiveTab] = useState('products') // 'products' or 'orders'
   const [errorMsg, setErrorMsg] = useState(null)
-  const [deleteErrorMsg, setDeleteErrorMsg] = useState(null)
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
   const { formatPrice } = useCurrency()
   
@@ -90,8 +118,51 @@ export default function SuppliersDirectoryPage() {
     contact_name: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    status: ''
   })
+
+  // Sync draft state when formData changes and we're not editing
+  useEffect(() => {
+    if (!editingSupplier && isModalOpen) {
+      const hasData = Object.values(formData).some(val => !!val)
+      if (hasData) {
+        localStorage.setItem('sia_supplier_draft', JSON.stringify(formData))
+        setHasDraft(true)
+      } else {
+        localStorage.removeItem('sia_supplier_draft')
+        setHasDraft(false)
+      }
+    }
+  }, [formData, editingSupplier, isModalOpen])
+
+  const openAddModal = () => {
+    let initForm = { ...EMPTY_SUPPLIER }
+    const draft = localStorage.getItem('sia_supplier_draft')
+    let draftExists = false
+    if (draft) {
+      try {
+        const parsed = JSON.parse(draft)
+        const hasData = Object.values(parsed).some(val => !!val)
+        if (hasData) {
+          initForm = { ...initForm, ...parsed }
+          draftExists = true
+        }
+      } catch (e) {}
+    }
+    setFormData(initForm)
+    setEditingSupplier(null)
+    setHasAttemptedSubmit(false)
+    setErrorMsg(null)
+    setHasDraft(draftExists)
+    setIsModalOpen(true)
+  }
+
+  const handleClearDraft = () => {
+    localStorage.removeItem('sia_supplier_draft')
+    setHasDraft(false)
+    setFormData({ ...EMPTY_SUPPLIER })
+  }
 
   const { data: suppliers = [], isLoading } = useQuery({
     queryKey: ['suppliers', { search: searchTerm }],
@@ -187,7 +258,7 @@ export default function SuppliersDirectoryPage() {
   })
 
   const resetForm = () => {
-    setFormData({ name: '', contact_name: '', email: '', phone: '', address: '' })
+    setFormData({ ...EMPTY_SUPPLIER })
     setEditingSupplier(null)
     setErrorMsg(null)
     setHasAttemptedSubmit(false)
@@ -200,16 +271,43 @@ export default function SuppliersDirectoryPage() {
       contact_name: s.contact_name || '',
       email: s.email || '',
       phone: s.phone || '',
-      address: s.address || ''
+      address: s.address || '',
+      status: s.status || ''
     })
     setIsModalOpen(true)
+  }
+
+  const handleCapitalizedChange = (field) => (e) => {
+    const val = e.target.value
+    const capitalized = val.replace(/\b[a-z]/g, c => c.toUpperCase())
+    setFormData(f => ({ ...f, [field]: capitalized }))
+  }
+
+  const handlePhoneChange = (e) => {
+    let val = e.target.value.replace(/\D/g, '')
+    
+    if (val.startsWith('09')) val = '63' + val.substring(1)
+    if (val.startsWith('9')) val = '63' + val
+    
+    let formatted = ''
+    if (val.length > 0) {
+      if (val.startsWith('63')) {
+        formatted = '+63'
+        if (val.length > 2) formatted += ' ' + val.substring(2, 5)
+        if (val.length > 5) formatted += ' ' + val.substring(5, 8)
+        if (val.length > 8) formatted += ' ' + val.substring(8, 12)
+      } else {
+        formatted = '+' + val
+      }
+    }
+    setFormData({...formData, phone: formatted})
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
     setHasAttemptedSubmit(true)
     
-    if (!formData.name || !formData.contact_name || !formData.email) {
+    if (!formData.name || !formData.contact_name || !formData.email || !formData.status) {
       return
     }
 
@@ -217,6 +315,8 @@ export default function SuppliersDirectoryPage() {
       updateMut.mutate({ id: editingSupplier.id, ...formData })
     } else {
       createMut.mutate(formData)
+      localStorage.removeItem('sia_supplier_draft')
+      setHasDraft(false)
     }
   }
 
@@ -227,7 +327,7 @@ export default function SuppliersDirectoryPage() {
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Suppliers Directory</h2>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Manage your supplier partners and contacts</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+        <button onClick={openAddModal} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
           <Plus className="w-4 h-4" />
           Add Supplier
         </button>
@@ -242,12 +342,58 @@ export default function SuppliersDirectoryPage() {
           </>
         ) : (
           <>
-            <StatCard title="Total Suppliers" value={suppliers.length} icon={Users} colorClass="indigo" />
-            <StatCard title="Active Suppliers" value={suppliers.filter(s => s.status?.toLowerCase() === 'active').length} icon={CheckCircle} colorClass="emerald" />
-            <StatCard title="Inactive Suppliers" value={suppliers.filter(s => s.status?.toLowerCase() === 'inactive').length} icon={XCircle} colorClass="rose" />
+            <StatCard title="Total Suppliers" value={suppliers.length} icon={Users} colorClass="indigo" onClick={() => setSelectedKpi('total')} />
+            <StatCard title="Active Suppliers" value={suppliers.filter(s => s.status?.toLowerCase() === 'active').length} icon={CheckCircle} colorClass="emerald" onClick={() => setSelectedKpi('active')} />
+            <StatCard title="Inactive Suppliers" value={suppliers.filter(s => s.status?.toLowerCase() === 'inactive').length} icon={XCircle} colorClass="rose" onClick={() => setSelectedKpi('inactive')} />
           </>
         )}
       </div>
+
+      <AnimatePresence>
+        {selectedKpi && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => setSelectedKpi(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white dark:bg-[#0d0f1a] rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-white/10 flex flex-col max-h-[80vh]">
+              <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-white/10">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white capitalize">
+                  {selectedKpi === 'total' ? 'All Suppliers' : `${selectedKpi} Suppliers`}
+                </h3>
+                <button onClick={() => setSelectedKpi(null)} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="p-5 overflow-y-auto custom-scrollbar">
+                <div className="space-y-2">
+                  {(() => {
+                    let list = suppliers;
+                    if (selectedKpi === 'active') list = suppliers.filter(s => s.status?.toLowerCase() === 'active');
+                    if (selectedKpi === 'inactive') list = suppliers.filter(s => s.status?.toLowerCase() === 'inactive');
+                    
+                    if (list.length === 0) return <p className="text-sm text-slate-500">No suppliers found.</p>;
+                    
+                    return list.map(s => (
+                      <div key={s.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-slate-800 dark:text-slate-200">{s.name}</span>
+                          {s.email && <span className="text-xs text-slate-500 mt-1">{s.email}</span>}
+                        </div>
+                        {s.status && (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${s.status.toLowerCase() === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
+                            {s.status}
+                          </span>
+                        )}
+                      </div>
+                    ));
+                  })()}
+                </div>
+                <button onClick={() => setSelectedKpi(null)} className="mt-4 w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition-colors shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -360,8 +506,8 @@ export default function SuppliersDirectoryPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 uppercase tracking-wider">
-                      {supplier.status}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${supplier.status?.toLowerCase() === 'inactive' ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border-rose-200 dark:border-rose-500/20' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'}`}>
+                      {supplier.status || 'active'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -485,66 +631,106 @@ export default function SuppliersDirectoryPage() {
                 onClick={() => {setIsModalOpen(false); resetForm()}}
               />
               <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-white/10"
-            >
-              <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-white/[0.02]">
-                <h3 className="font-semibold text-slate-900 dark:text-white">
-                  {editingSupplier ? 'Edit Supplier' : 'Add Supplier'}
-                </h3>
-                <button onClick={() => {setIsModalOpen(false); resetForm()}} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-                  <X size={20} />
-                </button>
-              </div>
-              <form onSubmit={handleSubmit} noValidate className="flex flex-col">
-                <div className="p-6 space-y-4">
-                  {errorMsg && (
-                    <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 p-3 text-sm text-rose-600 dark:text-rose-400 rounded-xl">
-                      {errorMsg}
-                    </div>
-                  )}
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                className="relative z-10 bg-slate-50 dark:bg-[#0A0A0B] border border-transparent dark:border-white/10 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] lg:max-h-[85vh]"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 bg-white dark:bg-[#12141c] border-b border-slate-200 dark:border-white/10 shrink-0 z-10">
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Supplier Name *</label>
-                    <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className={`w-full bg-slate-50 dark:bg-white/5 border ${hasAttemptedSubmit && !formData.name ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50`} />
-                    {hasAttemptedSubmit && !formData.name && (
-                      <p className="text-[11px] text-rose-500 mt-1.5 flex items-center gap-1">This field is required.</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Representative Name *</label>
-                    <input required type="text" value={formData.contact_name} onChange={e => setFormData({...formData, contact_name: e.target.value})} className={`w-full bg-slate-50 dark:bg-white/5 border ${hasAttemptedSubmit && !formData.contact_name ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50`} />
-                    {hasAttemptedSubmit && !formData.contact_name && (
-                      <p className="text-[11px] text-rose-500 mt-1.5 flex items-center gap-1">This field is required.</p>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email *</label>
-                      <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={`w-full bg-slate-50 dark:bg-white/5 border ${hasAttemptedSubmit && !formData.email ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50`} />
-                      {hasAttemptedSubmit && !formData.email && (
-                        <p className="text-[11px] text-rose-500 mt-1.5 flex items-center gap-1">This field is required.</p>
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                        {editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}
+                      </h2>
+                      {!editingSupplier && hasDraft && (
+                        <button type="button" onClick={handleClearDraft} className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-md hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors">Clear Draft</button>
                       )}
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Phone</label>
-                      <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
-                    </div>
+                    <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      {editingSupplier ? 'Update supplier details and contact information' : 'Register a new supplier to your directory'}
+                    </p>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Corporate Address</label>
-                    <textarea rows={2} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
-                  </div>
+                  <button onClick={() => {setIsModalOpen(false); resetForm()}} className="w-8 h-8 flex items-center justify-center border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                    <X size={14} />
+                  </button>
                 </div>
-                <div className="p-6 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] flex justify-end gap-3 mt-auto">
-                  <button type="button" onClick={() => {setIsModalOpen(false); resetForm()}} className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors">Cancel</button>
-                  <button type="submit" disabled={createMut.isPending || updateMut.isPending} className="px-4 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-colors disabled:opacity-50 shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+
+                <div className="overflow-y-auto p-4 md:p-5 pb-32 custom-scrollbar relative flex-1">
+                  <form onSubmit={handleSubmit} noValidate className="h-full">
+                    <div className="flex flex-col h-full">
+                      {errorMsg && (
+                        <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 p-4 text-sm font-medium text-rose-600 dark:text-rose-400 rounded-xl mb-5 flex items-center gap-2 shrink-0">
+                          <ShieldAlert size={18} />
+                          {errorMsg}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 flex-1">
+                        {/* Left Column - Company Info */}
+                        <Card title="Company Details" icon={Building2} className="h-full">
+                          <div>
+                            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-1">Supplier Name <span className="text-red-500">*</span></label>
+                            <input required type="text" placeholder="e.g. Acme Corporation" value={formData.name} onChange={handleCapitalizedChange('name')} className={`w-full px-3 py-2 bg-slate-50 dark:bg-[#0A0A0B] border ${hasAttemptedSubmit && !formData.name ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:bg-white dark:focus:bg-[#12141c] focus:ring-2 focus:ring-inset focus:ring-indigo-500/30 focus:border-indigo-500 transition-all shadow-sm focus:shadow-md`} />
+                            {hasAttemptedSubmit && !formData.name && <p className="text-[11px] text-rose-500 mt-1.5 font-medium">This field is required.</p>}
+                          </div>
+
+                          <div className="flex-1 flex flex-col">
+                            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-1">Corporate Address</label>
+                            <textarea placeholder="Full business address" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full flex-1 px-3 py-2 bg-slate-50 dark:bg-[#0A0A0B] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:bg-white dark:focus:bg-[#12141c] focus:ring-2 focus:ring-inset focus:ring-indigo-500/30 focus:border-indigo-500 transition-all shadow-sm focus:shadow-md resize-none" />
+                          </div>
+                        </Card>
+
+                        {/* Right Column - Contact Info */}
+                        <Card title="Primary Contact" icon={Users} className="h-full">
+                          <div>
+                            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-1">Representative Name <span className="text-red-500">*</span></label>
+                            <input required type="text" placeholder="e.g. John Doe" value={formData.contact_name} onChange={handleCapitalizedChange('contact_name')} className={`w-full px-3 py-2 bg-slate-50 dark:bg-[#0A0A0B] border ${hasAttemptedSubmit && !formData.contact_name ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:bg-white dark:focus:bg-[#12141c] focus:ring-2 focus:ring-inset focus:ring-indigo-500/30 focus:border-indigo-500 transition-all shadow-sm focus:shadow-md`} />
+                            {hasAttemptedSubmit && !formData.contact_name && <p className="text-[11px] text-rose-500 mt-1.5 font-medium">This field is required.</p>}
+                          </div>
+
+                          <div>
+                            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-1">Email Address <span className="text-red-500">*</span></label>
+                            <input required type="email" placeholder="john@example.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={`w-full px-3 py-2 bg-slate-50 dark:bg-[#0A0A0B] border ${hasAttemptedSubmit && !formData.email ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:bg-white dark:focus:bg-[#12141c] focus:ring-2 focus:ring-inset focus:ring-indigo-500/30 focus:border-indigo-500 transition-all shadow-sm focus:shadow-md`} />
+                            {hasAttemptedSubmit && !formData.email && <p className="text-[11px] text-rose-500 mt-1.5 font-medium">This field is required.</p>}
+                          </div>
+
+                          <div>
+                            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-1">Phone Number</label>
+                            <input type="text" placeholder="+63 900 000 0000" value={formData.phone} onChange={handlePhoneChange} className="w-full px-3 py-2 bg-slate-50 dark:bg-[#0A0A0B] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:bg-white dark:focus:bg-[#12141c] focus:ring-2 focus:ring-inset focus:ring-indigo-500/30 focus:border-indigo-500 transition-all shadow-sm focus:shadow-md" />
+                          </div>
+                          <div>
+                            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-1">Status <span className="text-red-500">*</span></label>
+                            <CustomSelect 
+                              value={formData.status} 
+                              onChange={val => setFormData({...formData, status: val})} 
+                              options={[
+                                { value: 'active', label: 'Active' },
+                                { value: 'inactive', label: 'Inactive' }
+                              ]}
+                              placeholder="Select Status"
+                              openUpwards={true}
+                              className={`w-full px-3 py-2 bg-slate-50 dark:bg-[#0A0A0B] border ${hasAttemptedSubmit && !formData.status ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-xl text-sm font-medium text-slate-900 dark:text-white outline-none focus:bg-white dark:focus:bg-[#12141c] focus:ring-2 focus:ring-inset focus:ring-indigo-500/30 focus:border-indigo-500 transition-all shadow-sm focus:shadow-md`}
+                            />
+                            {hasAttemptedSubmit && !formData.status && <p className="text-[11px] text-rose-500 mt-1.5 font-medium">This field is required.</p>}
+                          </div>
+                        </Card>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Footer */}
+                <div className="bg-white dark:bg-[#12141c] border-t border-slate-200 dark:border-white/10 p-4 md:p-6 shrink-0 z-10 flex justify-end gap-3">
+                  <button type="button" onClick={() => {setIsModalOpen(false); resetForm()}} className="px-5 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors">
+                    Cancel
+                  </button>
+                  <button type="submit" onClick={handleSubmit} disabled={createMut.isPending || updateMut.isPending} className="px-6 py-2.5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all disabled:opacity-50 shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)] hover:shadow-lg active:scale-[0.98]">
                     {editingSupplier ? 'Save Changes' : 'Add Supplier'}
                   </button>
                 </div>
-              </form>
-            </motion.div>
+              </motion.div>
           </div>
         )}
       </AnimatePresence>,
@@ -624,8 +810,8 @@ export default function SuppliersDirectoryPage() {
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">{selectedSupplier.name}</h2>
-                      <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 uppercase tracking-wider">
-                        {selectedSupplier.status}
+                      <span className={`inline-flex items-center px-2 py-0.5 mt-1 rounded text-[10px] font-bold border uppercase tracking-wider ${selectedSupplier.status?.toLowerCase() === 'inactive' ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border-rose-200 dark:border-rose-500/20' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'}`}>
+                        {selectedSupplier.status || 'active'}
                       </span>
                     </div>
                   </div>
@@ -633,9 +819,11 @@ export default function SuppliersDirectoryPage() {
                     <button onClick={() => { openEdit(selectedSupplier); setSelectedSupplier(null); }} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-colors" title="Edit Supplier">
                       <Edit2 className="w-5 h-5" />
                     </button>
-                    <button onClick={() => { setSupplierToDelete(selectedSupplier); setDeleteErrorMsg(null); setSelectedSupplier(null); }} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors" title="Delete Supplier">
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+                    {selectedSupplier.name !== 'In-House Production' && (
+                      <button onClick={() => { setSupplierToDelete(selectedSupplier); setDeleteErrorMsg(null); setSelectedSupplier(null); }} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors" title="Delete Supplier">
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
                     <div className="w-px h-5 bg-slate-200 dark:bg-white/10 mx-1"></div>
                     <button onClick={() => setSelectedSupplier(null)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors" title="Close Drawer">
                       <X className="w-5 h-5" />

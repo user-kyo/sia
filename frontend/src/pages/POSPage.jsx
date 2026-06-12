@@ -948,7 +948,7 @@ const POSPage = () => {
                   <p className="text-slate-500 dark:text-slate-400 font-medium">No parked orders found.</p>
                 </motion.div>
               ) : (
-                <motion.div key="held-list" className="flex flex-col gap-4">
+                <motion.div key="held-list" className="flex flex-col">
                   <AnimatePresence initial={false}>
                   {heldOrders.map(order => (
                     <motion.div 
@@ -959,7 +959,7 @@ const POSPage = () => {
                       exit={{ opacity: 0, scale: 0.8, height: 0, padding: 0, margin: 0 }}
                       transition={{ duration: 0.2 }}
                       style={{ overflow: 'hidden' }}
-                      className="flex items-center justify-between px-4 py-4 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.02] hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-colors"
+                      className="flex items-center justify-between px-4 py-4 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.02] hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-colors mb-4 last:mb-0"
                     >
                       <div>
                         <h4 className="font-bold text-slate-900 dark:text-white">{order.name}</h4>

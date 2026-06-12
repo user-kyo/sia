@@ -19,6 +19,7 @@ import EditCategoryModal from '../features/inventory/components/EditCategoryModa
 import EditBrandModal from '../features/inventory/components/EditBrandModal'
 import StockAdjustModal from '../features/inventory/components/StockAdjustModal'
 import DeleteConfirmModal from '../features/inventory/components/DeleteConfirmModal'
+import BulkRestockModal from '../features/inventory/components/BulkRestockModal'
 import { useQuery } from '@tanstack/react-query'
 import { fetchSuppliers } from '../features/suppliers/api/suppliersApi'
 import { useNavigate, useSearchParams } from 'react-router'
@@ -133,6 +134,7 @@ export default function InventoryPage() {
   const [showZeroCategoryModal, setShowZeroCategoryModal] = useState(false)
   const [selectedKpi, setSelectedKpi] = useState(null)
   const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false)
+  const [isBulkRestockModalOpen, setIsBulkRestockModalOpen] = useState(false)
   const moreActionsRef = useRef(null)
 
   const { data: suppliers = [], isLoading: suppliersLoading } = useQuery({
@@ -485,15 +487,15 @@ export default function InventoryPage() {
         </div>
 
       {/* Bulk action bar */}
-      <AnimatePresence>
-        {selectedIds.size > 0 && (
-          <BulkActionBar
-            count={selectedIds.size}
-            onExport={() => exportToCSV(allItems.filter(i => selectedIds.has(i.id)), 'selected.csv', formatPrice)}
-            onDelete={() => setModal({ type: 'delete', products: allItems.filter(i => selectedIds.has(i.id)) })}
-          />
-        )}
-      </AnimatePresence>
+        <AnimatePresence>
+          {selectedIds.size > 0 && (
+            <BulkActionBar
+              count={selectedIds.size}
+              onBulkRestock={() => setIsBulkRestockModalOpen(true)}
+              onDelete={() => setModal({ type: 'delete', products: allItems.filter(i => selectedIds.has(i.id)) })}
+            />
+          )}
+        </AnimatePresence>
 
       {/* Table */}
       <div className="overflow-x-auto relative min-h-[780px]">
@@ -850,6 +852,16 @@ export default function InventoryPage() {
         </>,
         document.body
       )}
+
+      <AnimatePresence>
+        {isBulkRestockModalOpen && (
+          <BulkRestockModal
+            products={allItems.filter(i => selectedIds.has(i.id))}
+            suppliers={suppliers}
+            onClose={() => setIsBulkRestockModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
