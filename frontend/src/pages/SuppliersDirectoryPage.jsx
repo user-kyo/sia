@@ -1,20 +1,88 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, Building2, Phone, Mail, MapPin, Edit2, Trash2, X } from 'lucide-react'
+import { Plus, Search, Building2, Phone, Mail, MapPin, Edit2, Trash2, X, Package, Clock, Box, ShoppingCart, ChevronRight, ChevronLeft, Users, CheckCircle, XCircle, ArrowUpDown } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchSuppliers, createSupplier, updateSupplier, deleteSupplier } from '../features/suppliers/api/suppliersApi'
+import { fetchInventory } from '../features/inventory/api/inventoryApi'
+import { fetchProcurements } from '../features/procurements/api/procurementsApi'
+import { useCurrency } from '../contexts/CurrencyContext'
 import { useToast } from '../components/ui/Toast'
+
+const StatCard = ({ title, value, icon: Icon, colorClass }) => {
+  const colors = {
+    indigo: {
+      bg: 'bg-white dark:bg-[#0A0A0B]',
+      border: 'border-slate-200 dark:border-white/10 hover:border-indigo-300 dark:hover:border-indigo-500/30',
+      text: 'text-slate-500 dark:text-slate-400',
+      glow: 'from-indigo-500/5 to-purple-500/5',
+      iconText: 'text-slate-400 dark:text-slate-600'
+    },
+    emerald: {
+      bg: 'bg-white dark:bg-emerald-500/5',
+      border: 'border-emerald-200 dark:border-emerald-500/20 hover:border-emerald-400 dark:hover:border-emerald-500/40',
+      text: 'text-emerald-600 dark:text-emerald-400',
+      glow: 'from-emerald-500/5 to-teal-500/5',
+      iconText: 'text-emerald-500'
+    },
+    amber: {
+      bg: 'bg-white dark:bg-amber-500/5',
+      border: 'border-amber-200 dark:border-amber-500/20 hover:border-amber-400 dark:hover:border-amber-500/40',
+      text: 'text-amber-600 dark:text-amber-400',
+      glow: 'from-amber-500/5 to-orange-500/5',
+      iconText: 'text-amber-500'
+    },
+    rose: {
+      bg: 'bg-white dark:bg-rose-500/5',
+      border: 'border-rose-200 dark:border-rose-500/20 hover:border-rose-400 dark:hover:border-rose-500/40',
+      text: 'text-rose-600 dark:text-rose-400',
+      glow: 'from-rose-500/5 to-pink-500/5',
+      iconText: 'text-rose-500'
+    }
+  };
+  const theme = colors[colorClass] || colors.indigo;
+
+  return (
+    <div className={`relative h-full w-full rounded-2xl p-5 flex flex-col justify-end group hover:-translate-y-1 hover:shadow-xl dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.1)] transition-all duration-300 shadow-sm overflow-hidden border ${theme.bg} ${theme.border}`}>
+      <div className={`absolute -inset-4 bg-gradient-to-br ${theme.glow} opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none blur-lg`} />
+
+      <div className={`absolute -top-2 -right-2 p-4 opacity-10 transition-transform duration-500 group-hover:scale-[1.2] group-hover:-rotate-6 ${theme.iconText}`}>
+        <Icon size={64} />
+      </div>
+
+      <div className={`text-sm font-medium mb-1 relative z-10 ${theme.text}`}>{title}</div>
+      <div className="text-2xl font-bold text-slate-900 dark:text-white relative z-10">{value}</div>
+    </div>
+  );
+};
+
+const StatCardSkeleton = () => (
+  <div className="relative h-full w-full bg-white dark:bg-[#0A0A0B] rounded-2xl p-5 flex flex-col justify-end border border-slate-200 dark:border-white/10 overflow-hidden min-h-[104px]">
+    <div className="absolute -top-2 -right-2 p-4 opacity-5">
+      <div className="w-16 h-16 rounded-xl bg-slate-300 dark:bg-white/20 animate-pulse" />
+    </div>
+    <div className="h-5 w-24 bg-slate-200 dark:bg-white/10 rounded-md mb-1 relative z-10 animate-pulse" />
+    <div className="h-8 w-16 bg-slate-200 dark:bg-white/10 rounded-md relative z-10 animate-pulse" />
+  </div>
+);
 
 export default function SuppliersDirectoryPage() {
   const queryClient = useQueryClient()
   const toast = useToast()
   const [searchTerm, setSearchTerm] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' })
+  
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingSupplier, setEditingSupplier] = useState(null)
   const [supplierToDelete, setSupplierToDelete] = useState(null)
+  const [selectedSupplier, setSelectedSupplier] = useState(null)
+  const [activeTab, setActiveTab] = useState('products') // 'products' or 'orders'
   const [errorMsg, setErrorMsg] = useState(null)
   const [deleteErrorMsg, setDeleteErrorMsg] = useState(null)
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
+  const { formatPrice } = useCurrency()
   
   // Form State
   const [formData, setFormData] = useState({
@@ -29,6 +97,55 @@ export default function SuppliersDirectoryPage() {
     queryKey: ['suppliers', { search: searchTerm }],
     queryFn: () => fetchSuppliers({ search: searchTerm }),
   })
+
+  // Reset pagination on search
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCurrentPage(1)
+  }, [searchTerm, sortConfig])
+
+  const handleSort = (key) => {
+    let direction = 'asc'
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc'
+    }
+    setSortConfig({ key, direction })
+  }
+
+  const sortedSuppliers = [...suppliers].sort((a, b) => {
+    let aVal = a[sortConfig.key] || ''
+    let bVal = b[sortConfig.key] || ''
+    
+    // Make sorting case-insensitive for strings
+    if (typeof aVal === 'string') aVal = aVal.toLowerCase()
+    if (typeof bVal === 'string') bVal = bVal.toLowerCase()
+    
+    if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1
+    if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1
+    return 0
+  })
+
+  const total = sortedSuppliers.length
+  const totalPages = Math.ceil(total / itemsPerPage)
+  const paginatedSuppliers = sortedSuppliers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
+  const { data: productsData } = useQuery({
+    queryKey: ['inventory', { supplierId: selectedSupplier?.id }],
+    queryFn: () => fetchInventory({ supplierId: selectedSupplier?.id, limit: 100 }),
+    enabled: !!selectedSupplier
+  })
+  
+  const { data: procurementsData } = useQuery({
+    queryKey: ['procurements', { status: '' }],
+    queryFn: () => fetchProcurements({ status: '' }),
+    enabled: !!selectedSupplier
+  })
+
+  // Extract products and procurements specific to the selected supplier
+  const supplierProducts = productsData?.data || productsData?.items || productsData || []
+  
+  const allProcurements = procurementsData?.data || procurementsData || []
+  const supplierProcurements = allProcurements.filter(p => p.supplier_id === selectedSupplier?.id)
 
   const createMut = useMutation({
     mutationFn: createSupplier,
@@ -116,44 +233,121 @@ export default function SuppliersDirectoryPage() {
         </button>
       </div>
 
-      <div className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm dark:shadow-none">
-        <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01]">
-          <div className="relative w-72">
-            <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-2.5" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {isLoading ? (
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
+        ) : (
+          <>
+            <StatCard title="Total Suppliers" value={suppliers.length} icon={Users} colorClass="indigo" />
+            <StatCard title="Active Suppliers" value={suppliers.filter(s => s.status?.toLowerCase() === 'active').length} icon={CheckCircle} colorClass="emerald" />
+            <StatCard title="Inactive Suppliers" value={suppliers.filter(s => s.status?.toLowerCase() === 'inactive').length} icon={XCircle} colorClass="rose" />
+          </>
+        )}
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-white dark:bg-[#0A0A0B] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm overflow-visible transition-colors duration-300"
+      >
+        <div className="p-5 border-b border-slate-200 dark:border-white/10 flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50/50 dark:bg-white/[0.01] transition-colors rounded-t-2xl">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={18} />
             <input
               type="text"
+              placeholder="Search suppliers..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search suppliers..."
-              className="w-full bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+              className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all shadow-sm dark:shadow-none"
             />
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold bg-slate-50 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/10">
+        <div className="overflow-x-auto relative min-h-[780px]">
+          <table className="w-full min-w-[800px] text-left text-sm table-fixed">
+            <thead className="bg-slate-50 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 transition-colors">
               <tr>
-                <th className="px-6 py-4">Supplier Name</th>
-                <th className="px-6 py-4">Contact</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th 
+                  className="px-6 py-4 font-semibold cursor-pointer select-none group transition-colors hover:bg-slate-100 dark:hover:bg-white/5 w-[30%]"
+                  onClick={() => handleSort('name')}
+                >
+                  <div className="flex items-center justify-start gap-1">
+                    Supplier Name
+                    <ArrowUpDown size={14} className={`transition-colors ${sortConfig.key === 'name' ? 'text-indigo-500' : 'text-slate-300 dark:text-slate-600 group-hover:text-slate-400'}`} />
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-4 font-semibold cursor-pointer select-none group transition-colors hover:bg-slate-100 dark:hover:bg-white/5 w-[40%]"
+                  onClick={() => handleSort('email')}
+                >
+                  <div className="flex items-center justify-start gap-1">
+                    Contact
+                    <ArrowUpDown size={14} className={`transition-colors ${sortConfig.key === 'email' ? 'text-indigo-500' : 'text-slate-300 dark:text-slate-600 group-hover:text-slate-400'}`} />
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-4 font-semibold cursor-pointer select-none group transition-colors hover:bg-slate-100 dark:hover:bg-white/5 w-[15%]"
+                  onClick={() => handleSort('status')}
+                >
+                  <div className="flex items-center justify-start gap-1">
+                    Status
+                    <ArrowUpDown size={14} className={`transition-colors ${sortConfig.key === 'status' ? 'text-indigo-500' : 'text-slate-300 dark:text-slate-600 group-hover:text-slate-400'}`} />
+                  </div>
+                </th>
+                <th className="px-6 py-4 font-semibold text-center transition-colors w-[15%]"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+            <AnimatePresence mode="wait">
               {isLoading ? (
-                <tr><td colSpan="4" className="text-center py-8 text-slate-500">Loading...</td></tr>
-              ) : suppliers.length === 0 ? (
-                <tr><td colSpan="4" className="text-center py-8 text-slate-500">No suppliers found.</td></tr>
-              ) : suppliers.map(supplier => (
-                <tr key={supplier.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors">
+                <motion.tbody
+                  key="skeleton-body"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+                  className="divide-y divide-slate-100 dark:divide-white/5 transition-colors relative"
+                >
+                  {Array.from({ length: 10 }).map((_, idx) => (
+                    <tr key={`skel-${idx}`} className="h-[73px] bg-transparent border-b border-slate-100 dark:border-white/5 last:border-0 opacity-40">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-xl bg-slate-200 dark:bg-white/10 shrink-0 animate-pulse" />
+                          <div className="h-4 w-32 bg-slate-200 dark:bg-white/10 rounded animate-pulse" />
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 w-40 bg-slate-200 dark:bg-white/10 rounded animate-pulse mb-2" />
+                        <div className="h-3 w-24 bg-slate-200 dark:bg-white/10 rounded animate-pulse" />
+                      </td>
+                      <td className="px-6 py-4"><div className="h-6 w-20 bg-slate-200 dark:bg-white/10 rounded-md animate-pulse" /></td>
+                      <td className="px-6 py-4 text-right"><div className="h-6 w-16 ml-auto bg-slate-200 dark:bg-white/10 rounded-md animate-pulse" /></td>
+                    </tr>
+                  ))}
+                </motion.tbody>
+              ) : (
+                <motion.tbody
+                  key={`data-${currentPage}-${searchTerm}-${sortConfig.key}-${sortConfig.direction}`}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+                  className="divide-y divide-slate-100 dark:divide-white/5 transition-colors relative"
+                >
+                  {paginatedSuppliers.map((supplier, index) => (
+                    <motion.tr 
+                      key={supplier.id} 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.03, duration: 0.2 }}
+                      onClick={() => setSelectedSupplier(supplier)} 
+                      className="hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors cursor-pointer group"
+                    >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                        <Building2 size={18} />
+                      <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-lg uppercase shadow-sm">
+                        {supplier.name.substring(0, 2)}
                       </div>
                       <div>
-                        <div className="font-semibold text-slate-900 dark:text-white">{supplier.name}</div>
+                        <div className="font-semibold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{supplier.name}</div>
                         <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5"><MapPin size={10} /> {supplier.address || 'No address'}</div>
                       </div>
                     </div>
@@ -171,26 +365,126 @@ export default function SuppliersDirectoryPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => openEdit(supplier)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-colors">
-                        <Edit2 size={16} />
-                      </button>
-                      <button onClick={() => { setSupplierToDelete(supplier); setDeleteErrorMsg(null) }} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors">
-                        <Trash2 size={16} />
-                      </button>
+                    <div className="flex items-center justify-end text-slate-300 dark:text-slate-600 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">
+                      <span className="text-xs font-semibold mr-1 opacity-0 group-hover:opacity-100 transition-opacity">View details</span>
+                      <ChevronRight size={18} />
                     </div>
                   </td>
+                </motion.tr>
+              ))}
+              
+              {/* Pad with empty rows to maintain consistent table height */}
+              {Array.from({ length: Math.max(0, itemsPerPage - paginatedSuppliers.length) }).map((_, idx) => (
+                <tr key={`empty-${idx}`} className="h-[73px] bg-transparent pointer-events-none">
+                  <td className="px-6 py-4"></td>
+                  <td className="px-6 py-4"></td>
+                  <td className="px-6 py-4"></td>
+                  <td className="px-6 py-4"></td>
                 </tr>
               ))}
-            </tbody>
+            </motion.tbody>
+              )}
+            </AnimatePresence>
           </table>
-        </div>
-      </div>
 
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-            <motion.div
+          {/* Loading Overlay */}
+          <AnimatePresence>
+            {isLoading && (
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="absolute inset-0 top-[53px] flex flex-col items-center justify-center pointer-events-none z-10 bg-white/30 dark:bg-[#0A0A0B]/30 backdrop-blur-[1px]"
+              >
+                <div className="bg-white dark:bg-[#12141c] px-6 py-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col items-center">
+                  <div className="w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-3"></div>
+                  <p className="font-semibold text-slate-900 dark:text-white">Loading suppliers...</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Fetching data from the server</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Empty State Overlay */}
+          {!isLoading && paginatedSuppliers.length === 0 && (
+            <div className="absolute inset-0 top-[53px] flex flex-col items-center justify-center pointer-events-none">
+              <div className="flex flex-col items-center justify-center max-w-sm mx-auto pointer-events-auto">
+                <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-500/10 rounded-full flex items-center justify-center mb-6">
+                  <Building2 className="w-10 h-10 text-indigo-500 dark:text-indigo-400" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No Suppliers Found</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 text-center">
+                  {searchTerm ? "We couldn't find any suppliers matching your search." : "You haven't added any suppliers yet."}
+                </p>
+                {!searchTerm && (
+                  <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all">
+                    <Plus className="w-4 h-4" />
+                    Add First Supplier
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Pagination UI */}
+        <div className="p-4 border-t border-slate-200 dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#0A0A0B] rounded-b-2xl">
+          <span className="text-sm text-slate-500 dark:text-slate-400">
+            {total === 0 ? (
+              'No results found'
+            ) : total === 1 ? (
+              'Showing 1 result'
+            ) : totalPages === 1 ? (
+              <>Showing all <span className="font-medium text-slate-900 dark:text-white">{total}</span> results</>
+            ) : (
+              <>Showing <span className="font-medium text-slate-900 dark:text-white">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium text-slate-900 dark:text-white">{Math.min(currentPage * itemsPerPage, total)}</span> of <span className="font-medium text-slate-900 dark:text-white">{total}</span> results</>
+            )}
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-2 rounded-xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <div className="hidden sm:flex gap-1">
+              {Array.from({ length: totalPages }).map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentPage(idx + 1)}
+                  className={`w-9 h-9 rounded-xl text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 ${currentPage === idx + 1
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'
+                    }`}
+                >
+                  {idx + 1}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages || total === 0}
+              className="p-2 rounded-xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      </motion.div>
+
+      {createPortal(
+        <AnimatePresence>
+          {isModalOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm"
+                onClick={() => {setIsModalOpen(false); resetForm()}}
+              />
+              <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -253,11 +547,14 @@ export default function SuppliersDirectoryPage() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
-      <AnimatePresence>
-        {supplierToDelete && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      {createPortal(
+        <AnimatePresence>
+          {supplierToDelete && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -301,7 +598,142 @@ export default function SuppliersDirectoryPage() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
+
+      {createPortal(
+        <AnimatePresence>
+          {selectedSupplier && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm z-[70]"
+              onClick={() => setSelectedSupplier(null)}
+            />
+            <motion.div
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-white dark:bg-[#0A0A0B] border-l border-slate-200 dark:border-white/10 z-[75] flex flex-col shadow-2xl"
+            >
+              {/* Drawer Header */}
+              <div className="p-6 border-b border-slate-100 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02]">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xl uppercase shadow-sm">
+                      {selectedSupplier.name.substring(0, 2)}
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">{selectedSupplier.name}</h2>
+                      <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 uppercase tracking-wider">
+                        {selectedSupplier.status}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => { openEdit(selectedSupplier); setSelectedSupplier(null); }} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-colors" title="Edit Supplier">
+                      <Edit2 className="w-5 h-5" />
+                    </button>
+                    <button onClick={() => { setSupplierToDelete(selectedSupplier); setDeleteErrorMsg(null); setSelectedSupplier(null); }} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors" title="Delete Supplier">
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                    <div className="w-px h-5 bg-slate-200 dark:bg-white/10 mx-1"></div>
+                    <button onClick={() => setSelectedSupplier(null)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors" title="Close Drawer">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 text-sm mt-6">
+                  <div className="flex items-start gap-2 text-slate-600 dark:text-slate-400">
+                    <Mail className="w-4 h-4 mt-0.5 text-slate-400" />
+                    <span className="break-all">{selectedSupplier.email || 'No email'}</span>
+                  </div>
+                  <div className="flex items-start gap-2 text-slate-600 dark:text-slate-400">
+                    <Phone className="w-4 h-4 mt-0.5 text-slate-400" />
+                    <span>{selectedSupplier.phone || 'No phone'}</span>
+                  </div>
+                  <div className="flex items-start gap-2 text-slate-600 dark:text-slate-400 col-span-2">
+                    <MapPin className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
+                    <span>{selectedSupplier.address || 'No address'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex border-b border-slate-200 dark:border-white/10 px-4 pt-2">
+                <button
+                  onClick={() => setActiveTab('products')}
+                  className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${activeTab === 'products' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                >
+                  Products Supplied
+                </button>
+                <button
+                  onClick={() => setActiveTab('orders')}
+                  className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${activeTab === 'orders' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                >
+                  Order History
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-50/30 dark:bg-transparent">
+                <AnimatePresence mode="wait">
+                  {activeTab === 'products' ? (
+                    <motion.div key="products" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="space-y-3">
+                      {supplierProducts.length === 0 ? (
+                        <div className="text-center py-10">
+                          <Box className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                          <p className="text-sm font-medium text-slate-500">No products linked to this supplier.</p>
+                        </div>
+                      ) : supplierProducts.map(p => (
+                        <div key={p.id} className="flex items-center gap-3 p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm">
+                          {p.image_url ? (
+                            <img src={p.image_url} alt={p.name} className="w-12 h-12 rounded-lg object-cover" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400">
+                              <Package size={20} />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-sm text-slate-900 dark:text-white truncate">{p.name}</div>
+                            <div className="text-xs text-slate-500 mt-0.5 truncate">{p.sku}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-sm text-slate-900 dark:text-white">{formatPrice(p.cost_price || p.price)}</div>
+                            <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">Stock: {p.stock_level}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </motion.div>
+                  ) : (
+                    <motion.div key="orders" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="space-y-3">
+                      {supplierProcurements.length === 0 ? (
+                        <div className="text-center py-10">
+                          <ShoppingCart className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                          <p className="text-sm font-medium text-slate-500">No purchase orders found.</p>
+                        </div>
+                      ) : supplierProcurements.map(proc => (
+                        <div key={proc.id} className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded">{proc.po_number}</span>
+                            <span className="text-sm font-black text-slate-900 dark:text-white">{formatPrice(proc.total_amount)}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 mt-3">
+                            <span className="flex items-center gap-1"><Clock size={12} /> {new Date(proc.created_at).toLocaleDateString()}</span>
+                            <span className={`inline-flex px-2 py-0.5 rounded font-medium ${proc.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : proc.status === 'Pending' ? 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400' : 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300'}`}>{proc.status}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>,
+      document.body
+      )}
     </div>
   )
 }

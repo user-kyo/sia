@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronUp, ChevronDown, ChevronsUpDown, MoreVertical, Edit, Trash2, Package, Eye, Search, Truck } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronsUpDown, MoreVertical, Edit, Trash2, Package, Eye, Search, Truck, ArrowUpDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCurrency } from '../../../contexts/CurrencyContext'
 import { useAppSettings } from '../../../contexts/AppSettingsContext'
@@ -37,10 +37,13 @@ function stockStatus(qty, reorder, t) {
 }
 
 function SortIcon({ colKey, sort }) {
-  if (sort.by !== colKey) return <ChevronsUpDown size={11} className="text-slate-400 dark:text-slate-500" />
-  return sort.order === 'asc'
-    ? <ChevronUp size={11} className="text-indigo-600 dark:text-indigo-400" />
-    : <ChevronDown size={11} className="text-indigo-600 dark:text-indigo-400" />
+  const isActive = sort.by === colKey
+  return (
+    <ArrowUpDown 
+      size={14} 
+      className={`transition-colors ${isActive ? 'text-indigo-500' : 'text-slate-300 dark:text-slate-600 group-hover:text-slate-400'}`} 
+    />
+  )
 }
 
 export default function ProductTable({
@@ -92,12 +95,12 @@ export default function ProductTable({
               <th
                 key={col.key}
                 onClick={() => handleSort(col.key)}
-                className={`px-6 py-4 font-semibold cursor-pointer hover:text-slate-900 dark:hover:text-white select-none whitespace-nowrap transition-colors ${col.width || ''}`}
+                className={`px-6 py-4 font-semibold cursor-pointer select-none group transition-colors hover:bg-slate-100 dark:hover:bg-white/5 ${col.width || ''}`}
               >
-                <span className="flex items-center gap-1">
+                <div className="flex items-center gap-1">
                   {t(col.tKey)}
                   <SortIcon colKey={col.key} sort={sort} />
-                </span>
+                </div>
               </th>
             ))}
             <th className="px-6 py-4 font-semibold text-center transition-colors w-[12%] min-w-[120px]">
