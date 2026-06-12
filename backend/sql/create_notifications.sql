@@ -31,3 +31,6 @@ CREATE POLICY "Users can insert their company notifications"
     WITH CHECK (company_id IN (
         SELECT company_id FROM public.profiles WHERE id = auth.uid()
     ));
+
+-- Enable realtime for notifications
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;

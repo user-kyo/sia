@@ -46,13 +46,24 @@ export function NotificationProvider({ children }) {
   })
 
   useEffect(() => {
-    const channel = supabase
+    const invChannel = supabase
       .channel('notification-inventory-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' },
         () => qc.invalidateQueries({ queryKey: ['notification-inventory'] })
       )
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+      
+    const dbNotifChannel = supabase
+      .channel('notification-db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' },
+        () => qc.invalidateQueries({ queryKey: ['db-notifications'] })
+      )
+      .subscribe()
+
+    return () => { 
+      supabase.removeChannel(invChannel) 
+      supabase.removeChannel(dbNotifChannel)
+    }
   }, [qc])
 
   const localCandidates = useMemo(() => {
