@@ -162,8 +162,10 @@ def update_procurement_status(
     if new_status == "approved":
         supplier = supabase_client.table("suppliers").select("name, email").eq("id", updated_po["supplier_id"]).eq("company_id", current_user["company_id"]).execute()
         if supplier.data and supplier.data[0].get("email"):
-            company = supabase_client.table("companies").select("name").eq("id", current_user["company_id"]).execute()
+            company = supabase_client.table("companies").select("name, smtp_email, smtp_password").eq("id", current_user["company_id"]).execute()
             company_name = company.data[0]["name"] if company.data else "Your Company"
+            smtp_email = company.data[0].get("smtp_email") if company.data else None
+            smtp_password = company.data[0].get("smtp_password") if company.data else None
             portal_link = f"http://localhost:5173/supplier/po/{updated_po['id']}"
             background_tasks.add_task(
                 send_po_approval_email,
@@ -172,7 +174,9 @@ def update_procurement_status(
                 po_number=updated_po["po_number"],
                 items=updated_po["items"],
                 company_name=company_name,
-                portal_link=portal_link
+                portal_link=portal_link,
+                custom_smtp_user=smtp_email,
+                custom_smtp_password=smtp_password
             )
 
     log_audit_event(
