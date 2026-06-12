@@ -69,12 +69,12 @@ const StatCard = ({ title, value, icon: Icon, colorClass }) => {
 };
 
 const StatCardSkeleton = () => (
-  <div className="relative h-full min-h-[118px] w-full bg-white dark:bg-[#0A0A0B] rounded-2xl p-5 flex flex-col justify-end border border-slate-200 dark:border-white/10 overflow-hidden">
+  <div className="relative h-full w-full bg-white dark:bg-[#0A0A0B] rounded-2xl p-5 flex flex-col justify-end border border-slate-200 dark:border-white/10 overflow-hidden min-h-[104px]">
     <div className="absolute -top-2 -right-2 p-4 opacity-5">
-      <div className="w-16 h-16 rounded-full bg-slate-300 dark:bg-white/20 animate-pulse" />
+      <div className="w-16 h-16 rounded-xl bg-slate-300 dark:bg-white/20 animate-pulse" />
     </div>
-    <div className="h-4 w-20 bg-slate-200 dark:bg-white/10 rounded mb-2 relative z-10 animate-pulse" />
-    <div className="h-7 w-12 bg-slate-200 dark:bg-white/10 rounded relative z-10 animate-pulse" />
+    <div className="h-5 w-24 bg-slate-200 dark:bg-white/10 rounded-md mb-1 relative z-10 animate-pulse" />
+    <div className="h-8 w-16 bg-slate-200 dark:bg-white/10 rounded-md relative z-10 animate-pulse" />
   </div>
 );
 

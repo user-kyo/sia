@@ -78,3 +78,28 @@ def update_category(category_id: str, category: CategoryUpdate, current_user: di
         raise HTTPException(status_code=500, detail="Failed to update category.")
 
     return update_result.data[0]
+
+@router.delete("/{category_id}")
+def delete_category(category_id: str, current_user: dict = Depends(get_current_user)):
+    if not supabase_client:
+        raise HTTPException(status_code=500, detail="Supabase client not initialized")
+
+    # 1. Fetch category to get the name
+    cat_result = supabase_client.table("categories").select("name").eq("id", category_id).eq("company_id", current_user["company_id"]).execute()
+    if not cat_result.data:
+        raise HTTPException(status_code=404, detail="Category not found.")
+    
+    cat_name = cat_result.data[0]["name"]
+
+    # 2. Check if products use it
+    inv_result = supabase_client.table("inventory").select("id", count="exact").eq("category", cat_name).eq("company_id", current_user["company_id"]).execute()
+    if inv_result.count and inv_result.count > 0:
+        raise HTTPException(status_code=400, detail=f"Cannot delete category because {inv_result.count} product(s) are using it.")
+
+    # 3. Delete
+    delete_result = supabase_client.table("categories").delete().eq("id", category_id).eq("company_id", current_user["company_id"]).execute()
+    
+    if hasattr(delete_result, "error") and delete_result.error:
+        raise HTTPException(status_code=400, detail=str(delete_result.error))
+
+    return {"message": "Category deleted successfully"}
