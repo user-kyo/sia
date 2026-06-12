@@ -206,6 +206,8 @@ def update_inventory_item(item_id: str, item: InventoryItemUpdate, current_user:
         raise HTTPException(status_code=404, detail="Item not found")
 
     update_data = item.model_dump(exclude_none=True)
+    if "supplier_id" in item.model_fields_set and item.supplier_id is None:
+        update_data["supplier_id"] = None
     if "sku" in update_data:
         conflict = supabase_client.table("inventory").select("id").eq("sku", update_data["sku"]).neq("id", item_id).eq("company_id", current_user["company_id"]).execute()
         if conflict.data:

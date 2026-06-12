@@ -124,7 +124,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
         sku: (form.sku || '').trim() || undefined,
         brand: (form.brand || '').trim() || undefined,
         category: form.category.trim(),
-        supplier_id: form.supplier_id || undefined,
+        supplier_id: form.supplier_id || null,
         cost: parseFloat(form.cost) || 0,
         selling_price: parseFloat(form.selling_price) || 0,
         price: parseFloat(form.selling_price) || 0,
@@ -312,7 +312,10 @@ export default function ProductModal({ mode = 'add', product = null, categories 
                         value={form.supplier_id}
                         onChange={(val) => setForm(f => ({ ...f, supplier_id: val }))}
                         placeholder="No preferred supplier..."
-                        options={suppliers.map(s => ({ value: s.id, label: s.name }))}
+                        options={[
+                          { value: '', label: 'No preferred supplier' },
+                          ...suppliers.map(s => ({ value: s.id, label: s.name })),
+                        ]}
                         className={inputCls}
                       />
                     </div>

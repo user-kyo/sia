@@ -8,6 +8,11 @@ import {
 
 const LIMIT = 20
 
+const invalidateInventoryViews = (qc) => {
+  qc.invalidateQueries({ queryKey: ['inventory'] })
+  qc.invalidateQueries({ queryKey: ['inventory-paginated'] })
+}
+
 export const useInventorySubscription = () => {
   const qc = useQueryClient()
   
@@ -73,7 +78,7 @@ export const useUpdateCategory = () => {
     mutationFn: updateCategory,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['categories'] })
-      qc.invalidateQueries({ queryKey: ['inventory'] })
+      invalidateInventoryViews(qc)
     },
   })
 }
@@ -84,7 +89,7 @@ export const useDeleteCategory = () => {
     mutationFn: deleteCategory,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['categories'] })
-      qc.invalidateQueries({ queryKey: ['inventory'] })
+      invalidateInventoryViews(qc)
     },
   })
 }
@@ -101,7 +106,7 @@ export const useCreateProduct = () => {
   return useMutation({
     mutationFn: createProduct,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['inventory'] })
+      invalidateInventoryViews(qc)
       qc.invalidateQueries({ queryKey: ['categories'] })
     },
   })
@@ -118,7 +123,7 @@ export const useUpdateProduct = () => {
   return useMutation({
     mutationFn: updateProduct,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['inventory'] })
+      invalidateInventoryViews(qc)
       qc.invalidateQueries({ queryKey: ['notification-inventory'] })
     },
   })
@@ -128,7 +133,7 @@ export const useDeleteProduct = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: deleteProduct,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['inventory'] }),
+    onSuccess: () => invalidateInventoryViews(qc),
   })
 }
 
@@ -137,7 +142,7 @@ export const useAdjustStock = () => {
   return useMutation({
     mutationFn: adjustStock,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['inventory'] })
+      invalidateInventoryViews(qc)
       qc.invalidateQueries({ queryKey: ['notification-inventory'] })
     },
   })
