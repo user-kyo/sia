@@ -126,6 +126,7 @@ export default function ProductTable({
               </motion.tr>
             ) : (
               <motion.tr key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="contents">
+                <AnimatePresence>
                 {items.map((item, index) => {
               const { dot, text, label } = stockStatus(item.quantity, item.reorder_point, t)
               const isSelected = selectedIds.has(item.id)
@@ -136,7 +137,7 @@ export default function ProductTable({
                   key={item.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
                   transition={{ delay: index * 0.05, type: 'spring', stiffness: 380, damping: 30 }}
                   className={`transition-colors group relative ${isSelected ? 'bg-indigo-50 dark:bg-indigo-500/10' : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'}`}
                 >
@@ -256,6 +257,7 @@ export default function ProductTable({
                 <td className="px-6 py-4"></td>
               </tr>
             ))}
+                </AnimatePresence>
               </motion.tr>
             )}
           </AnimatePresence>

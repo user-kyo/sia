@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, Check } from 'lucide-react'
 
-export default function CustomSelect({ value, onChange, options, placeholder, disabled, required, className }) {
+export default function CustomSelect({ value, onChange, options, placeholder, disabled, required, className, onClick }) {
   const [isOpen, setIsOpen] = useState(false)
   const ref = useRef(null)
 
@@ -24,7 +24,11 @@ export default function CustomSelect({ value, onChange, options, placeholder, di
   return (
     <div ref={ref} className="relative w-full">
       <div 
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={(e) => {
+          if (disabled) return
+          if (onClick) onClick(e)
+          setIsOpen(!isOpen)
+        }}
         className={`${finalCls} flex items-center justify-between cursor-pointer select-none ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <span className={selectedOption ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}>
