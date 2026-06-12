@@ -252,8 +252,6 @@ export default function LoginForm({ onToggle }) {
         </button>
       </div>
     </div>
-
-    </div>
     </>
   );
 }
