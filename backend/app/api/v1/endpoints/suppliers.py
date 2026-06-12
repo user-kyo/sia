@@ -3,6 +3,7 @@ from typing import Optional, List
 from app.schemas.suppliers import SupplierCreate, SupplierUpdate, SupplierResponse
 from app.db.supabase import supabase_client
 from app.api.deps import get_current_user
+from app.core.audit import log_action
 
 router = APIRouter()
 
@@ -44,8 +45,10 @@ def create_supplier(supplier: SupplierCreate, current_user: dict = Depends(get_c
     result = supabase_client.table("suppliers").insert(payload).execute()
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to create supplier")
-        
-    return result.data[0]
+
+    created = result.data[0]
+    log_action(current_user, "CREATE", "Supplier", f"Added supplier {created.get('name')}")
+    return created
 
 @router.put("/{supplier_id}", response_model=SupplierResponse)
 def update_supplier(supplier_id: str, supplier: SupplierUpdate, current_user: dict = Depends(get_current_user)):
@@ -56,14 +59,29 @@ def update_supplier(supplier_id: str, supplier: SupplierUpdate, current_user: di
     payload = supplier.model_dump(exclude_unset=True)
     if not payload:
         raise HTTPException(status_code=400, detail="No fields to update")
-        
+
+    old_result = supabase_client.table("suppliers").select("*").eq("id", supplier_id).eq("company_id", current_user["company_id"]).execute()
+    if not old_result.data:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    old_supplier = old_result.data[0]
+
     payload["updated_at"] = "now()"
 
     result = supabase_client.table("suppliers").update(payload).eq("id", supplier_id).eq("company_id", current_user["company_id"]).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Supplier not found or not updated")
-        
-    return result.data[0]
+
+    updated = result.data[0]
+    field_labels = {"name": "name", "contact_name": "contact", "email": "email", "phone": "phone", "address": "address", "status": "status"}
+    changes = [
+        f"{field_labels.get(key, key)} {old_supplier.get(key) or 'none'} → {value or 'none'}"
+        for key, value in payload.items()
+        if key != "updated_at" and old_supplier.get(key) != value
+    ]
+    base = f"Updated supplier {updated.get('name')}"
+    description = f"{base}: {', '.join(changes)}" if changes else base
+    log_action(current_user, "UPDATE", "Supplier", description, changes=changes)
+    return updated
 
 @router.delete("/{supplier_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_supplier(supplier_id: str, current_user: dict = Depends(get_current_user)):
@@ -73,7 +91,7 @@ def delete_supplier(supplier_id: str, current_user: dict = Depends(get_current_u
 
     supplier = (
         supabase_client.table("suppliers")
-        .select("id")
+        .select("id, name")
         .eq("id", supplier_id)
         .eq("company_id", current_user["company_id"])
         .limit(1)
@@ -81,6 +99,8 @@ def delete_supplier(supplier_id: str, current_user: dict = Depends(get_current_u
     )
     if not supplier.data:
         raise HTTPException(status_code=404, detail="Supplier not found")
+
+    supplier_name = supplier.data[0].get("name")
 
     linked_procurement = (
         supabase_client.table("procurements")
@@ -96,6 +116,8 @@ def delete_supplier(supplier_id: str, current_user: dict = Depends(get_current_u
             "status": "deleted",
             "updated_at": "now()",
         }).eq("id", supplier_id).eq("company_id", current_user["company_id"]).execute()
+        log_action(current_user, "DELETE", "Supplier", f"Archived supplier {supplier_name}")
         return
 
     supabase_client.table("suppliers").delete().eq("id", supplier_id).eq("company_id", current_user["company_id"]).execute()
+    log_action(current_user, "DELETE", "Supplier", f"Deleted supplier {supplier_name}")

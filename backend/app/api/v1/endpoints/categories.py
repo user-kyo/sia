@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from app.db.supabase import supabase_client
 from app.api.deps import get_current_user
+from app.core.audit import log_action
 from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryResponse
 
 router = APIRouter()
@@ -39,7 +40,9 @@ def create_category(category: CategoryCreate, current_user: dict = Depends(get_c
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to create category.")
 
-    return result.data[0]
+    created = result.data[0]
+    log_action(current_user, "CREATE", "Category", f"Added category {created.get('name')}")
+    return created
 
 @router.put("/{category_id}", response_model=CategoryResponse)
 def update_category(category_id: str, category: CategoryUpdate, current_user: dict = Depends(get_current_user)):
@@ -77,6 +80,8 @@ def update_category(category_id: str, category: CategoryUpdate, current_user: di
     if not update_result.data:
         raise HTTPException(status_code=500, detail="Failed to update category.")
 
+    description = f"Renamed category {old_name} to {new_name}" if old_name != new_name else f"Updated category {new_name}"
+    log_action(current_user, "UPDATE", "Category", description)
     return update_result.data[0]
 
 @router.delete("/{category_id}")
@@ -102,4 +107,5 @@ def delete_category(category_id: str, current_user: dict = Depends(get_current_u
     if hasattr(delete_result, "error") and delete_result.error:
         raise HTTPException(status_code=400, detail=str(delete_result.error))
 
+    log_action(current_user, "DELETE", "Category", f"Deleted category {cat_name}")
     return {"message": "Category deleted successfully"}

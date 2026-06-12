@@ -8,6 +8,7 @@ from app.schemas.inventory import (
 )
 from app.db.supabase import supabase_client
 from app.api.deps import get_current_user
+from app.core.audit import log_action
 
 router = APIRouter()
 
@@ -16,6 +17,63 @@ LIMIT = 20
 
 def _generate_sku() -> str:
     return f"PRD-{str(uuid.uuid4())[:8].upper()}"
+
+
+# Human-readable labels for product fields shown in audit descriptions.
+_FIELD_LABELS = {
+    "name": "name",
+    "sku": "SKU",
+    "price": "price",
+    "quantity": "quantity",
+    "category": "category",
+    "brand": "brand",
+    "reorder_point": "reorder point",
+    "currency": "currency",
+    "description": "description",
+    "supplier_id": "supplier",
+    "image_url": "image",
+}
+
+
+def _fmt_value(value) -> str:
+    if value is None or value == "":
+        return "none"
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def _supplier_name(company_id: str, supplier_id) -> str:
+    if not supplier_id:
+        return "none"
+    try:
+        res = supabase_client.table("suppliers").select("name").eq("id", supplier_id).eq("company_id", company_id).limit(1).execute()
+        if res.data:
+            return res.data[0].get("name") or "Unknown"
+    except Exception:
+        pass
+    return "Unknown"
+
+
+def _summarize_inventory_changes(old: dict, update_data: dict, company_id: str) -> list[str]:
+    """Build a list of 'field old → new' strings for the fields that changed."""
+    changes: list[str] = []
+    for key, new_val in update_data.items():
+        old_val = old.get(key)
+        if old_val == new_val:
+            continue
+        label = _FIELD_LABELS.get(key, key.replace("_", " "))
+        if key == "image_url":
+            changes.append("image updated")
+        elif key == "description":
+            changes.append("description updated")
+        elif key == "supplier_id":
+            changes.append(
+                f"supplier {_supplier_name(company_id, old_val)} → {_supplier_name(company_id, new_val)}"
+            )
+        else:
+            changes.append(f"{label} {_fmt_value(old_val)} → {_fmt_value(new_val)}")
+    return changes
 
 
 def _load_inventory_summary(company_id: str) -> dict:
@@ -194,7 +252,10 @@ def create_inventory_item(item: InventoryItemCreate, current_user: dict = Depend
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to create item — the inventory table may be missing required columns (category, reorder_point, description, brand). Please add them in Supabase.")
-    return result.data[0]
+
+    created = result.data[0]
+    log_action(current_user, "CREATE", "Inventory", f"Added product {created.get('name')} ({created.get('sku')})")
+    return created
 
 
 @router.put("/{item_id}", response_model=InventoryItemResponse)
@@ -202,8 +263,10 @@ def update_inventory_item(item_id: str, item: InventoryItemUpdate, current_user:
     if not supabase_client:
         raise HTTPException(status_code=500, detail="Supabase client not initialized")
 
-    if not supabase_client.table("inventory").select("id").eq("id", item_id).eq("company_id", current_user["company_id"]).execute().data:
+    old_result = supabase_client.table("inventory").select("*").eq("id", item_id).eq("company_id", current_user["company_id"]).execute()
+    if not old_result.data:
         raise HTTPException(status_code=404, detail="Item not found")
+    old_item = old_result.data[0]
 
     update_data = item.model_dump(exclude_none=True)
     if "supplier_id" in item.model_fields_set and item.supplier_id is None:
@@ -216,16 +279,28 @@ def update_inventory_item(item_id: str, item: InventoryItemUpdate, current_user:
     result = supabase_client.table("inventory").update(update_data).eq("id", item_id).eq("company_id", current_user["company_id"]).execute()
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to update item")
-    return result.data[0]
+
+    updated = result.data[0]
+    changes = _summarize_inventory_changes(old_item, update_data, current_user["company_id"])
+    base = f"Updated product {updated.get('name')} ({updated.get('sku')})"
+    # The diff is appended as a fallback in case the structured `changes` column
+    # isn't present yet; the UI strips it from the description for display.
+    description = f"{base}: {', '.join(changes)}" if changes else base
+    log_action(current_user, "UPDATE", "Inventory", description, changes=changes)
+    return updated
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_inventory_item(item_id: str, current_user: dict = Depends(get_current_user)):
     if not supabase_client:
         raise HTTPException(status_code=500, detail="Supabase client not initialized")
-    if not supabase_client.table("inventory").select("id").eq("id", item_id).eq("company_id", current_user["company_id"]).execute().data:
+    existing = supabase_client.table("inventory").select("name, sku").eq("id", item_id).eq("company_id", current_user["company_id"]).execute()
+    if not existing.data:
         raise HTTPException(status_code=404, detail="Item not found")
     supabase_client.table("inventory").delete().eq("id", item_id).eq("company_id", current_user["company_id"]).execute()
+
+    deleted = existing.data[0]
+    log_action(current_user, "DELETE", "Inventory", f"Deleted product {deleted.get('name')} ({deleted.get('sku')})")
 
 
 @router.post("/{item_id}/adjust-stock", response_model=InventoryItemResponse)
@@ -252,7 +327,15 @@ def adjust_stock(item_id: str, adjustment: StockAdjustment, current_user: dict =
     result = supabase_client.table("inventory").update({"quantity": new_qty}).eq("id", item_id).eq("company_id", current_user["company_id"]).execute()
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to adjust stock")
-    return result.data[0]
+
+    adjusted = result.data[0]
+    log_action(
+        current_user,
+        "ADJUST_STOCK",
+        "Inventory",
+        f"Adjusted stock for {adjusted.get('name')} ({adjusted.get('sku')}): {current_qty} → {new_qty}",
+    )
+    return adjusted
 
 @router.post("/upload-image")
 async def upload_image(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):

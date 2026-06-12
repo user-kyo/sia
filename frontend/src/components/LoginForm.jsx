@@ -129,19 +129,23 @@ export default function LoginForm({ onToggle }) {
       setFailedAttempts(newAttempts);
       setLoading(false);
     } else {
-      // Check custom status
+      // Check custom status. Prefer the auth metadata (always readable for the
+      // signed-in user) and fall back to the profiles table. Canonical statuses
+      // are 'approved' | 'pending' | 'revoked'.
       const { data: profile } = await supabase
         .from('profiles')
         .select('status')
         .eq('id', data.user.id)
         .single();
 
-      const realStatus = profile?.status || 'active';
+      const realStatus = data.user?.user_metadata?.status || profile?.status || 'approved';
 
-      if (realStatus !== 'active') {
+      if (realStatus !== 'approved') {
         setModalStatus(realStatus === 'pending' ? 'Pending' : 'Revoked');
         setShowModal(true);
         setLoading(false);
+        // Don't leave a usable session behind for a non-approved account.
+        await supabase.auth.signOut();
         return;
       }
 

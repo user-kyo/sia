@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from typing import List
 from app.db.supabase import supabase_client
 from app.api.deps import get_current_user
+from app.core.audit import log_action
 from app.schemas.users import UserResponse, UserUpdateStatus, UserUpdateRole, UserInviteRequest
 
 router = APIRouter()
@@ -73,7 +74,9 @@ def update_user_status(user_id: str, request: UserUpdateStatus, current_user: di
         
     # Fetch updated view record
     res = supabase_client.table("users_view").select("*").eq("id", user_id).execute()
-    return res.data[0]
+    target = res.data[0]
+    log_action(current_user, "UPDATE_STATUS", "User", f"Set {target.get('name') or target.get('email')}'s status to {request.status}")
+    return target
 
 @router.put("/{user_id}/role", response_model=UserResponse)
 def update_user_role(user_id: str, request: UserUpdateRole, current_user: dict = Depends(get_current_user)):
@@ -105,7 +108,9 @@ def update_user_role(user_id: str, request: UserUpdateRole, current_user: dict =
         
     # Fetch updated view record
     res = supabase_client.table("users_view").select("*").eq("id", user_id).execute()
-    return res.data[0]
+    target = res.data[0]
+    log_action(current_user, "UPDATE_ROLE", "User", f"Changed {target.get('name') or target.get('email')}'s role to {request.role}")
+    return target
 
 @router.post("/{user_id}/transfer-ownership", response_model=UserResponse)
 def transfer_ownership(user_id: str, current_user: dict = Depends(get_current_user)):
@@ -146,7 +151,9 @@ def transfer_ownership(user_id: str, current_user: dict = Depends(get_current_us
 
     # Fetch updated view record for the target user
     res = supabase_client.table("users_view").select("*").eq("id", user_id).execute()
-    return res.data[0]
+    target = res.data[0]
+    log_action(current_user, "TRANSFER_OWNERSHIP", "User", f"Transferred company ownership to {target.get('name') or target.get('email')}")
+    return target
 
 @router.post("/invite", response_model=UserResponse)
 def invite_user(request: UserInviteRequest, current_user: dict = Depends(get_current_user)):
@@ -187,8 +194,10 @@ def invite_user(request: UserInviteRequest, current_user: dict = Depends(get_cur
         # Wait for the trigger to insert the profile, then fetch the view
         # We need to use the newly created user's ID
         new_user_id = response.user.id
-        
-        # In a real async environment we might need a small delay for the trigger, 
+
+        log_action(current_user, "INVITE", "User", f"Invited {request.email} as {request.role}")
+
+        # In a real async environment we might need a small delay for the trigger,
         # but Supabase functions typically run synchronously within the transaction.
         res = supabase_client.table("users_view").select("*").eq("id", new_user_id).execute()
         if not res.data:
