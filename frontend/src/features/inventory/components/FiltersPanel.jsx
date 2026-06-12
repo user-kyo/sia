@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Filter, Check, RotateCcw, ChevronDown, ChevronUp, Plus, Minus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -19,6 +19,10 @@ const SORT_OPTIONS = [
   { value: 'price-desc', label: 'Price: High to Low' },
   { value: 'name-asc', label: 'Name: A to Z' }
 ]
+
+const PRICE_MIN = 0
+const PRICE_MAX = 10000
+const PRICE_STEP = 10
 
 function FilterSection({ title, defaultOpen = true, children }) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
@@ -104,8 +108,14 @@ export default function FiltersPanel({ isOpen, onClose, categories = [], brands 
     sortBy: filters.sortBy || 'created_at-desc'
   })
   const [activeThumb, setActiveThumb] = useState(null)
+  const priceSliderRef = useRef(null)
   const { t } = useAppSettings()
-  const { symbol } = useCurrency()
+  const { current, code } = useCurrency()
+  const currencyLabel = current?.symbol || code || ''
+  const currentMinPrice = local.minPrice === '' ? PRICE_MIN : Number(local.minPrice) || PRICE_MIN
+  const currentMaxPrice = local.maxPrice === '' ? PRICE_MAX : Number(local.maxPrice) || PRICE_MAX
+  const minPercent = ((currentMinPrice - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100
+  const maxPercent = ((currentMaxPrice - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100
 
   const handleReset = () => {
     const reset = { 
@@ -117,8 +127,55 @@ export default function FiltersPanel({ isOpen, onClose, categories = [], brands 
   }
 
   const handleApply = () => {
-    onApply(local)
+    onApply({
+      ...local,
+      minPrice: local.minPrice === '' ? '' : String(Math.max(0, Number(local.minPrice) || 0)),
+      maxPrice: local.maxPrice === '' ? '' : String(Math.max(0, Number(local.maxPrice) || 0)),
+    })
     onClose()
+  }
+
+  const priceFromPointer = (event) => {
+    const rect = priceSliderRef.current?.getBoundingClientRect()
+    if (!rect?.width) return PRICE_MIN
+    const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
+    const rawValue = PRICE_MIN + ratio * (PRICE_MAX - PRICE_MIN)
+    return Math.round(rawValue / PRICE_STEP) * PRICE_STEP
+  }
+
+  const updatePriceThumb = (thumb, value) => {
+    setLocal(l => {
+      const minPrice = l.minPrice === '' ? PRICE_MIN : Number(l.minPrice) || PRICE_MIN
+      const maxPrice = l.maxPrice === '' ? PRICE_MAX : Number(l.maxPrice) || PRICE_MAX
+
+      if (thumb === 'min') {
+        return { ...l, minPrice: String(Math.min(value, maxPrice)) }
+      }
+
+      return { ...l, maxPrice: String(Math.max(value, minPrice)) }
+    })
+  }
+
+  const handlePricePointerDown = (event) => {
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+
+    const value = priceFromPointer(event)
+    const thumb = Math.abs(value - currentMinPrice) <= Math.abs(value - currentMaxPrice) ? 'min' : 'max'
+    setActiveThumb(thumb)
+    updatePriceThumb(thumb, value)
+  }
+
+  const handlePricePointerMove = (event) => {
+    if (!activeThumb || event.buttons !== 1) return
+    updatePriceThumb(activeThumb, priceFromPointer(event))
+  }
+
+  const handlePricePointerUp = (event) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+    setActiveThumb(null)
   }
 
   const inputCls = 'w-full px-3.5 py-2 bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-lg text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all shadow-sm'
@@ -245,47 +302,46 @@ export default function FiltersPanel({ isOpen, onClose, categories = [], brands 
           <FilterSection title={t('filter_price')}>
             <div className="pt-2 space-y-6">
               {/* Dual Range Slider */}
-              <div className="relative h-5 flex items-center group">
-                <div className="absolute w-full h-1.5 bg-slate-200 dark:bg-white/10 rounded-full" />
-                <div 
-                  className="absolute h-1.5 bg-indigo-500 rounded-full z-10"
-                  style={{ 
-                    left: `${Math.min(100, Math.max(0, ((Number(local.minPrice) || 0) / 10000) * 100))}%`, 
-                    width: `${Math.max(0, Math.min(100, (((Number(local.maxPrice) || 10000) - (Number(local.minPrice) || 0)) / 10000) * 100))}%` 
+              <div className="px-2.5">
+                <div
+                  ref={priceSliderRef}
+                  role="presentation"
+                  onPointerDown={handlePricePointerDown}
+                  onPointerMove={handlePricePointerMove}
+                  onPointerUp={handlePricePointerUp}
+                  onPointerCancel={handlePricePointerUp}
+                  className="relative h-8 flex items-center touch-none select-none cursor-pointer"
+                >
+                <div className="absolute left-0 right-0 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full" />
+                <div
+                  className="absolute h-1.5 bg-indigo-500 rounded-full"
+                  style={{
+                    left: `${Math.min(100, Math.max(0, minPercent))}%`,
+                    width: `${Math.max(0, Math.min(100, maxPercent) - Math.max(0, minPercent))}%`,
                   }}
                 />
-                <input
-                  type="range"
-                  min="0"
-                  max="10000"
-                  step="10"
-                  value={Number(local.minPrice) || 0}
-                  onChange={e => {
-                    const val = Math.min(Number(e.target.value), (Number(local.maxPrice) || 10000));
-                    setLocal(l => ({ ...l, minPrice: String(val) }));
-                  }}
+                <button
+                  type="button"
+                  aria-label="Minimum price"
                   onPointerDown={() => setActiveThumb('min')}
-                  className={`absolute w-full appearance-none bg-transparent pointer-events-none h-full [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-[3px] [&::-webkit-slider-thumb]:border-indigo-600 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-grab active:[&::-webkit-slider-thumb]:cursor-grabbing ${activeThumb === 'min' ? 'z-40' : 'z-20'}`}
+                  className={`absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-indigo-600 bg-white shadow-md transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 ${activeThumb === 'min' ? 'z-20 scale-110 cursor-grabbing' : 'z-10 cursor-grab'}`}
+                  style={{ left: `${Math.min(100, Math.max(0, minPercent))}%` }}
                 />
-                <input
-                  type="range"
-                  min="0"
-                  max="10000"
-                  step="10"
-                  value={Number(local.maxPrice) || 10000}
-                  onChange={e => {
-                    const val = Math.max(Number(e.target.value), (Number(local.minPrice) || 0));
-                    setLocal(l => ({ ...l, maxPrice: String(val) }));
-                  }}
+                <button
+                  type="button"
+                  aria-label="Maximum price"
                   onPointerDown={() => setActiveThumb('max')}
-                  className={`absolute w-full appearance-none bg-transparent pointer-events-none h-full [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-[3px] [&::-webkit-slider-thumb]:border-indigo-600 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-grab active:[&::-webkit-slider-thumb]:cursor-grabbing ${activeThumb === 'max' ? 'z-40' : 'z-30'}`}
+                  className={`absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-indigo-600 bg-white shadow-md transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 ${activeThumb === 'max' ? 'z-20 scale-110 cursor-grabbing' : 'z-10 cursor-grab'}`}
+                  style={{ left: `${Math.min(100, Math.max(0, maxPercent))}%` }}
                 />
+                </div>
               </div>
 
               {/* Exact Inputs */}
               <div className="flex items-center gap-2">
                 <div className="relative flex items-center w-full">
                   <button
+                    type="button"
                     onClick={() => setLocal(l => ({ ...l, minPrice: String(Math.max(0, (Number(l.minPrice) || 0) - 10)) }))}
                     className="absolute left-1.5 p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-md transition-colors"
                   >
@@ -293,12 +349,14 @@ export default function FiltersPanel({ isOpen, onClose, categories = [], brands 
                   </button>
                   <input
                     type="number"
-                    placeholder={`${t('filter_min')} ${symbol}`}
+                    min="0"
+                    placeholder={`${t('filter_min')} ${currencyLabel}`}
                     value={local.minPrice}
                     onChange={e => setLocal(l => ({ ...l, minPrice: e.target.value }))}
                     className={`${inputCls} px-8 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                   />
                   <button
+                    type="button"
                     onClick={() => setLocal(l => ({ ...l, minPrice: String(Math.min((Number(l.minPrice) || 0) + 10, Number(l.maxPrice) || 10000)) }))}
                     className="absolute right-1.5 p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-md transition-colors"
                   >
@@ -310,6 +368,7 @@ export default function FiltersPanel({ isOpen, onClose, categories = [], brands 
                 
                 <div className="relative flex items-center w-full">
                   <button
+                    type="button"
                     onClick={() => setLocal(l => ({ ...l, maxPrice: String(Math.max(Number(l.minPrice) || 0, (Number(l.maxPrice) || 0) - 10)) }))}
                     className="absolute left-1.5 p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-md transition-colors"
                   >
@@ -317,12 +376,14 @@ export default function FiltersPanel({ isOpen, onClose, categories = [], brands 
                   </button>
                   <input
                     type="number"
-                    placeholder={`${t('filter_max')} ${symbol}`}
+                    min="0"
+                    placeholder={`${t('filter_max')} ${currencyLabel}`}
                     value={local.maxPrice}
                     onChange={e => setLocal(l => ({ ...l, maxPrice: e.target.value }))}
                     className={`${inputCls} px-8 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                   />
                   <button
+                    type="button"
                     onClick={() => setLocal(l => ({ ...l, maxPrice: String((Number(l.maxPrice) || 0) + 10) }))}
                     className="absolute right-1.5 p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-md transition-colors"
                   >
