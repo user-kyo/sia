@@ -6,6 +6,7 @@ create table if not exists public.audit_logs (
   action text not null,
   module text not null,
   description text not null,
+  changes jsonb,
   created_at timestamptz not null default now()
 );
 

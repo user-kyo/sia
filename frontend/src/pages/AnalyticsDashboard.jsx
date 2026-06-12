@@ -15,9 +15,53 @@ import { CardSkeleton, TableSkeleton, ChartCardSkeleton, TrendsChartSkeleton, Ca
 import { fetchInventory } from '../features/inventory/api/inventoryApi'
 import { fetchSalesTransactions, SALES_TRANSACTIONS_QUERY_KEY } from '../features/sales/api/salesApi'
 import { fetchProcurements } from '../features/procurements/api/procurementsApi'
+import { fetchSuppliers } from '../features/suppliers/api/suppliersApi'
+import { fetchAuditLogs, getAuditChanges, getAuditDescription } from '../features/audit/api/auditApi'
 import { ShieldAlert, Activity, ShoppingBag } from 'lucide-react'
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#ec4899', '#06b6d4'];
+
+// Maps a procurement status to a short label + badge classes. Statuses are
+// 'pending_approval' | 'approved' | 'invoice_received' | 'received' | 'cancelled'.
+const PROCUREMENT_STATUS_META = {
+  pending_approval: { label: 'PENDING', badge: 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400' },
+  approved: { label: 'APPROVED', badge: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400' },
+  invoice_received: { label: 'INVOICED', badge: 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' },
+  received: { label: 'COMPLETED', badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' },
+  cancelled: { label: 'CANCELLED', badge: 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400' },
+}
+
+const getProcurementStatusMeta = (status) => (
+  PROCUREMENT_STATUS_META[status] || {
+    label: (status || 'unknown').replace(/_/g, ' ').toUpperCase(),
+    badge: 'bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-400',
+  }
+)
+
+// Human-friendly wording for audit actions so the activity feed reads like
+// plain English instead of raw system codes (e.g. UPDATE_STATUS).
+const AUDIT_ACTION_LABEL = {
+  CREATE: 'Created',
+  UPDATE: 'Updated',
+  UPDATE_STATUS: 'Status Updated',
+  UPDATE_ROLE: 'Role Changed',
+  ADJUST_STOCK: 'Stock Adjusted',
+  DELETE: 'Deleted',
+  AUTH: 'Signed In',
+  INVITE: 'Invited',
+  TRANSFER_OWNERSHIP: 'Ownership Transferred',
+}
+
+const getAuditActionLabel = (action) => (
+  AUDIT_ACTION_LABEL[action] ||
+  (action || '')
+    .toLowerCase()
+    .split('_')
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ') ||
+  'Activity'
+)
 
 const formatRelativeTime = (dateString) => {
   if (!dateString) return 'Just now'
@@ -1013,19 +1057,46 @@ const AnalyticsDashboard = () => {
     placeholderData: keepPreviousData,
   })
 
-  const { data: procurementsData, isLoading: isProcurementsLoading } = useQuery({
+  // The list endpoint returns a plain array already sorted by created_at desc.
+  const { data: procurementsList = [], isLoading: isProcurementsLoading } = useQuery({
     queryKey: ['procurements', 'dashboard-recent'],
-    queryFn: () => fetchProcurements({ limit: 5, offset: 0, sort: 'desc' }),
+    queryFn: () => fetchProcurements(),
     staleTime: 60_000,
     placeholderData: keepPreviousData,
   })
+  const recentProcurements = Array.isArray(procurementsList) ? procurementsList : []
 
-  const mockAuditLogs = [
-    { id: 1, ts: '2026-06-04 14:32:01', user: 'john.admin', action: 'DELETE', module: 'Inventory', desc: 'Deleted product PRD-2023' },
-    { id: 2, ts: '2026-06-04 14:28:15', user: 'sarah.staff', action: 'CREATE', module: 'Sales', desc: 'Processed TRX-99382' },
-    { id: 3, ts: '2026-06-04 09:12:00', user: 'system', action: 'AUTH', module: 'Authentication', desc: 'john.admin logged in' },
-    { id: 4, ts: '2026-06-03 16:45:22', user: 'mike.manager', action: 'UPDATE', module: 'Settings', desc: 'Changed global tax rate' }
-  ];
+  const { data: suppliersList = [] } = useQuery({
+    queryKey: ['suppliers', { includeDeleted: true }],
+    queryFn: () => fetchSuppliers({ includeDeleted: true }),
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  })
+  const supplierMap = React.useMemo(
+    () => Object.fromEntries((Array.isArray(suppliersList) ? suppliersList : []).map(s => [s.id, s.name])),
+    [suppliersList]
+  )
+
+  const { data: auditLogsList = [], isLoading: isAuditLogsLoading } = useQuery({
+    queryKey: ['audit-logs', 'dashboard-recent'],
+    queryFn: () => fetchAuditLogs({ limit: 8 }),
+    staleTime: 0,
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
+    placeholderData: keepPreviousData,
+  })
+  const auditLogs = React.useMemo(
+    () => (Array.isArray(auditLogsList) ? auditLogsList : []).map(log => ({
+      id: log.id,
+      ts: log.created_at ? new Date(log.created_at).toLocaleString() : '',
+      user: log.name || log.username,
+      action: log.action,
+      module: log.module,
+      desc: getAuditDescription(log),
+      changes: getAuditChanges(log),
+    })),
+    [auditLogsList]
+  );
 
   const { data: lowStockQueryData, isLoading: isLowStockLoading } = useQuery({
     queryKey: ['inventory', 'dashboard-low-stock'],
@@ -1433,26 +1504,25 @@ const AnalyticsDashboard = () => {
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
                 </div>
-              ) : procurementsData?.data?.length > 0 ? (
+              ) : recentProcurements.length > 0 ? (
                 <div className="space-y-3">
-                  {procurementsData.data.map((proc) => (
+                  {recentProcurements.map((proc) => {
+                    const statusMeta = getProcurementStatusMeta(proc.status)
+                    return (
                     <div key={proc.id} className="flex justify-between items-center bg-slate-50 dark:bg-white/[0.02] p-4 rounded-xl border border-slate-100 dark:border-white/5 shadow-sm">
                       <div className="flex flex-col">
-                        <span className="font-semibold text-slate-900 dark:text-white">{proc.supplier?.name || 'Unknown Supplier'}</span>
+                        <span className="font-semibold text-slate-900 dark:text-white">{supplierMap[proc.supplier_id] || 'Unknown Supplier'}</span>
                         <span className="text-xs text-slate-500">{proc.po_number || `PO-${proc.id}`}</span>
                       </div>
                       <div className="flex flex-col items-end">
-                        <span className="font-bold text-slate-900 dark:text-white">{formatPrice(proc.total_amount)}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 ${
-                          proc.status === 'completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' :
-                          proc.status === 'pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400' :
-                          'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-400'
-                        }`}>
-                          {proc.status?.toUpperCase() || 'UNKNOWN'}
+                        <span className="font-bold text-slate-900 dark:text-white">{formatPrice(proc.total_amount, proc.currency)}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 ${statusMeta.badge}`}>
+                          {statusMeta.label}
                         </span>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <div className="text-center text-sm text-slate-500 dark:text-slate-400 py-8">No recent procurements found.</div>
@@ -1466,23 +1536,40 @@ const AnalyticsDashboard = () => {
           <div className="w-full flex flex-col gap-6">
             <div className="flex flex-col gap-4">
               <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Audit Logs</h4>
-              <div className="space-y-4">
-                {mockAuditLogs.map((log) => (
-                  <div key={log.id} className="flex gap-4 items-start border-l-2 border-slate-200 dark:border-white/10 pl-5 pb-4 relative">
-                    <div className="absolute w-3 h-3 rounded-full bg-slate-400 -left-[7px] top-1.5 ring-4 ring-white dark:ring-[#12141c]" />
-                    <div className="bg-slate-50 dark:bg-white/[0.02] p-4 rounded-xl border border-slate-100 dark:border-white/5 w-full shadow-sm">
-                      <div className="flex justify-between items-start mb-2">
-                        <p className="text-sm font-bold text-slate-900 dark:text-white flex gap-2 items-center">
-                          {log.user}
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300">{log.action}</span>
-                        </p>
-                        <p className="text-[11px] text-slate-400 font-mono">{log.ts}</p>
+              {isAuditLogsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+                </div>
+              ) : auditLogs.length > 0 ? (
+                <div className="space-y-4">
+                  {auditLogs.map((log) => (
+                    <div key={log.id} className="flex gap-4 items-start border-l-2 border-slate-200 dark:border-white/10 pl-5 pb-4 relative">
+                      <div className="absolute w-3 h-3 rounded-full bg-slate-400 -left-[7px] top-1.5 ring-4 ring-white dark:ring-[#12141c]" />
+                      <div className="bg-slate-50 dark:bg-white/[0.02] p-4 rounded-xl border border-slate-100 dark:border-white/5 w-full shadow-sm">
+                        <div className="flex justify-between items-start mb-2">
+                          <p className="text-sm font-bold text-slate-900 dark:text-white flex gap-2 items-center">
+                            {log.user}
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300">{getAuditActionLabel(log.action)}</span>
+                          </p>
+                          <p className="text-[11px] text-slate-400 font-mono">{log.ts}</p>
+                        </div>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">{log.desc}</p>
+                        {log.changes?.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {log.changes.map((change, i) => (
+                              <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono bg-white dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+                                {change}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">{log.desc}</p>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-sm text-slate-500 dark:text-slate-400 py-8">No system activity recorded yet.</div>
+              )}
             </div>
           </div>
         )
@@ -1767,6 +1854,8 @@ const AnalyticsDashboard = () => {
       case 'kpi_sales': return 'Sales Transactions Breakdown';
       case 'kpi_inventory': return 'Inventory Breakdown';
       case 'kpi_alerts': return 'Critical Stock Alerts';
+      case 'procurements': return 'Recent Procurements';
+      case 'system_activity': return 'System Activity Feed';
       default: return '';
     }
   }
@@ -2280,21 +2369,24 @@ const AnalyticsDashboard = () => {
                   </div>
                   <div className="p-6 flex-1 overflow-y-auto">
                     <div className="space-y-4">
-                      {procurementsData?.data?.slice(0, 4).map((proc) => (
+                      {recentProcurements.slice(0, 4).map((proc) => {
+                        const statusMeta = getProcurementStatusMeta(proc.status)
+                        return (
                         <div key={proc.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5">
                           <div>
-                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{proc.poNumber || `PO-${proc.id?.toString().padStart(4, '0')}`}</p>
-                            <p className="text-xs text-slate-500">{proc.supplierName || 'Unknown Supplier'}</p>
+                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{proc.po_number || `PO-${proc.id?.toString().padStart(4, '0')}`}</p>
+                            <p className="text-xs text-slate-500">{supplierMap[proc.supplier_id] || 'Unknown Supplier'}</p>
                           </div>
                           <div className="text-right">
-                            <span className={`inline-flex px-2 py-1 rounded text-[10px] font-bold uppercase ${proc.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : proc.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-700'}`}>
-                              {proc.status || 'unknown'}
+                            <span className={`inline-flex px-2 py-1 rounded text-[10px] font-bold uppercase ${statusMeta.badge}`}>
+                              {statusMeta.label}
                             </span>
-                            <p className="text-xs font-semibold text-slate-900 dark:text-slate-300 mt-1">{formatPrice(proc.totalAmount || proc.total || 0)}</p>
+                            <p className="text-xs font-semibold text-slate-900 dark:text-slate-300 mt-1">{formatPrice(proc.total_amount || 0, proc.currency)}</p>
                           </div>
                         </div>
-                      ))}
-                      {(!procurementsData?.data || procurementsData.data.length === 0) && (
+                        )
+                      })}
+                      {recentProcurements.length === 0 && (
                         <p className="text-sm text-slate-500 text-center py-4">No recent procurements found.</p>
                       )}
                     </div>
@@ -2327,19 +2419,31 @@ const AnalyticsDashboard = () => {
                 </div>
                 <div className="p-6 flex-1 overflow-y-auto">
                   <div className="space-y-4">
-                    {mockAuditLogs.map((log) => (
+                    {auditLogs.slice(0, 5).map((log) => (
                       <div key={log.id} className="flex gap-3 items-start border-l-2 border-slate-200 dark:border-white/10 pl-4 pb-2 relative">
                         <div className="absolute w-2 h-2 rounded-full bg-slate-400 -left-[5px] top-1.5 ring-4 ring-white dark:ring-[#1b2035]" />
                         <div>
                           <p className="text-xs font-bold text-slate-900 dark:text-white flex gap-2 items-center">
                             {log.user}
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 text-slate-500">{log.action}</span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 text-slate-500">{getAuditActionLabel(log.action)}</span>
                           </p>
                           <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">{log.desc}</p>
+                          {log.changes?.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {log.changes.map((change, i) => (
+                                <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+                                  {change}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                           <p className="text-[10px] text-slate-400 mt-1 font-mono">{log.ts}</p>
                         </div>
                       </div>
                     ))}
+                    {!isAuditLogsLoading && auditLogs.length === 0 && (
+                      <p className="text-sm text-slate-500 text-center py-4">No system activity recorded yet.</p>
+                    )}
                   </div>
                 </div>
               </ChartCard>

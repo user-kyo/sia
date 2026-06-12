@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.api.deps import get_current_user
+from app.core.audit import log_action
 from app.db.supabase import supabase_client
 from app.schemas.sales import (
     SalesTransactionCreate,
@@ -312,4 +313,11 @@ def create_sales_transaction(
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to record sales transaction")
 
-    return result.data[0]
+    created = result.data[0]
+    log_action(
+        current_user,
+        "CREATE",
+        "Sales",
+        f"Recorded sale {created.get('transaction_code')} — {item_count} item(s), {created.get('currency')} {created.get('total_amount')}",
+    )
+    return created

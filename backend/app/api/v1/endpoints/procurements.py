@@ -98,7 +98,7 @@ def create_procurement(
     log_audit_event(
         company_id=current_user["company_id"],
         user_id=current_user["id"],
-        username=current_user.get("username", current_user.get("email", "unknown")),
+        username=current_user.get("name") or current_user.get("email", "unknown"),
         action="CREATE",
         module="Procurement",
         description=f"Created Purchase Order {created_po['po_number']} for supplier {supplier.data[0]['name']}" + (" (Auto-Approved)" if new_status == "approved" else "")
@@ -357,7 +357,7 @@ def update_procurement_status(
     log_audit_event(
         company_id=current_user["company_id"],
         user_id=current_user["id"],
-        username=current_user.get("username", current_user.get("email", "unknown")),
+        username=current_user.get("name") or current_user.get("email", "unknown"),
         action="UPDATE_STATUS",
         module="Procurement",
         description=f"Marked Purchase Order {po['po_number']} as {new_status.upper()}" + (f" - Reason: {reason}" if reason else "")
@@ -399,7 +399,7 @@ def delete_completed_procurement(po_id: str, current_user: dict = Depends(get_cu
     log_audit_event(
         company_id=current_user["company_id"],
         user_id=current_user["id"],
-        username=current_user.get("username", current_user.get("email", "unknown")),
+        username=current_user.get("name") or current_user.get("email", "unknown"),
         action="DELETE",
         module="Procurement",
         description=f"Deleted {status_label} Purchase Order {po['po_number']}"

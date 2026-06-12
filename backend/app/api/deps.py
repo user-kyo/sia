@@ -35,6 +35,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         return {
             "id": user.id,
             "email": user.email,
+            "name": user.user_metadata.get("full_name") or user.email,
             "role": user.user_metadata.get("role"),
             "company_id": company_id
         }
