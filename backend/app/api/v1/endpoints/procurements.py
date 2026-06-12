@@ -189,3 +189,42 @@ def update_procurement_status(
     )
     
     return updated_po
+
+@router.delete("/{po_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_completed_procurement(po_id: str, current_user: dict = Depends(get_current_user)):
+    _check_admin(current_user)
+    if not supabase_client:
+        raise HTTPException(status_code=500, detail="Supabase client not initialized")
+
+    existing = (
+        supabase_client.table("procurements")
+        .select("*")
+        .eq("id", po_id)
+        .eq("company_id", current_user["company_id"])
+        .execute()
+    )
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Purchase Order not found")
+
+    po = existing.data[0]
+    if po["status"] != "received":
+        raise HTTPException(status_code=400, detail="Only completed purchase orders can be deleted")
+
+    result = (
+        supabase_client.table("procurements")
+        .delete()
+        .eq("id", po_id)
+        .eq("company_id", current_user["company_id"])
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Failed to delete purchase order")
+
+    log_audit_event(
+        company_id=current_user["company_id"],
+        user_id=current_user["id"],
+        username=current_user.get("username", current_user.get("email", "unknown")),
+        action="DELETE",
+        module="Procurement",
+        description=f"Deleted completed Purchase Order {po['po_number']}"
+    )

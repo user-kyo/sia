@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router';
 import { useToast } from '../components/ui/Toast';
+
+const PROCUREMENT_SYNC_CHANNEL = 'sia_procurements_updated';
 
 export default function SupplierPortalPage() {
   const toast = useToast();
@@ -30,7 +32,7 @@ export default function SupplierPortalPage() {
         toast(err.message, 'error');
       })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, toast]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,6 +59,12 @@ export default function SupplierPortalPage() {
       });
 
       if (!res.ok) throw new Error('Failed to submit invoice');
+      localStorage.setItem(PROCUREMENT_SYNC_CHANNEL, String(Date.now()));
+      if ('BroadcastChannel' in window) {
+        const channel = new BroadcastChannel(PROCUREMENT_SYNC_CHANNEL);
+        channel.postMessage({ type: 'invoice_submitted', poId: id });
+        channel.close();
+      }
       setSubmitted(true);
       toast('Invoice submitted successfully!', 'success');
     } catch (err) {

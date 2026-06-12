@@ -18,3 +18,7 @@ export const updateProcurementStatus = async ({ id, status, reason }) => {
   const { data } = await api.put(`/procurements/${id}/status?${p.toString()}`)
   return data
 }
+
+export const deleteProcurement = async (id) => {
+  await api.delete(`/procurements/${id}`)
+}

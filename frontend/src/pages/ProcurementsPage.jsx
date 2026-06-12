@@ -1,28 +1,71 @@
-import React, { useState, useEffect } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Eye, FileText, CheckCircle, XCircle, Trash2, Clock, Inbox, Calendar } from 'lucide-react'
+import { Plus, FileText, CheckCircle, XCircle, Trash2, Clock, Calendar } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchProcurements, createProcurement, updateProcurementStatus } from '../features/procurements/api/procurementsApi'
+import { fetchProcurements, createProcurement, updateProcurementStatus, deleteProcurement } from '../features/procurements/api/procurementsApi'
 import { fetchSuppliers } from '../features/suppliers/api/suppliersApi'
 import { fetchInventory } from '../features/inventory/api/inventoryApi'
 import { useAuth } from '../contexts/AuthContext'
 import { useCurrency } from '../contexts/CurrencyContext'
+import { useToast } from '../components/ui/Toast'
+import { supabase } from '../lib/supabase'
+
+const PROCUREMENT_SYNC_CHANNEL = 'sia_procurements_updated'
 
 export default function ProcurementsPage() {
   const { userRole } = useAuth()
   const { formatPrice } = useCurrency()
+  const toast = useToast()
   const queryClient = useQueryClient()
   const isAdmin = userRole === 'super_admin' || userRole === 'admin'
   
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isViewOpen, setIsViewOpen] = useState(false)
   const [selectedPO, setSelectedPO] = useState(null)
+  const [poToDelete, setPoToDelete] = useState(null)
   
   const { data: procurements = [], isLoading } = useQuery({
     queryKey: ['procurements'],
     queryFn: () => fetchProcurements(),
+    refetchInterval: 3000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
   })
+
+  useEffect(() => {
+    const refreshProcurements = () => {
+      queryClient.invalidateQueries({ queryKey: ['procurements'] })
+    }
+
+    const channel = supabase
+      .channel('procurements-page-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'procurements' },
+        refreshProcurements
+      )
+      .subscribe()
+
+    const handleStorage = (event) => {
+      if (event.key === PROCUREMENT_SYNC_CHANNEL) {
+        refreshProcurements()
+      }
+    }
+
+    const broadcastChannel = 'BroadcastChannel' in window
+      ? new BroadcastChannel(PROCUREMENT_SYNC_CHANNEL)
+      : null
+    broadcastChannel?.addEventListener('message', refreshProcurements)
+    window.addEventListener('storage', handleStorage)
+
+    return () => {
+      supabase.removeChannel(channel)
+      broadcastChannel?.removeEventListener('message', refreshProcurements)
+      broadcastChannel?.close()
+      window.removeEventListener('storage', handleStorage)
+    }
+  }, [queryClient])
 
   const { data: suppliers = [] } = useQuery({
     queryKey: ['suppliers', { includeDeleted: true }],
@@ -33,18 +76,32 @@ export default function ProcurementsPage() {
   const updateStatusMut = useMutation({
     mutationFn: updateProcurementStatus,
     onSuccess: () => {
-      queryClient.invalidateQueries(['procurements'])
-      queryClient.invalidateQueries(['inventory'])
-      queryClient.invalidateQueries(['notification-inventory'])
+      queryClient.invalidateQueries({ queryKey: ['procurements'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-paginated'] })
+      queryClient.invalidateQueries({ queryKey: ['notification-inventory'] })
     }
   })
 
+  const deleteMut = useMutation({
+    mutationFn: deleteProcurement,
+    onSuccess: () => {
+      const poNumber = poToDelete?.po_number || 'Purchase order'
+      queryClient.invalidateQueries({ queryKey: ['procurements'] })
+      setPoToDelete(null)
+      toast(`${poNumber} deleted successfully.`, 'success')
+    },
+    onError: (err) => {
+      toast(err.response?.data?.detail || err.message || 'Failed to delete purchase order', 'error')
+    },
+  })
+
   const location = useLocation()
-  const navigate = useNavigate()
   const [initialProduct, setInitialProduct] = useState(null)
 
   useEffect(() => {
     if (location.state?.autoCreatePO) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInitialProduct(location.state.autoCreatePO)
       setIsCreateOpen(true)
       // Clear state manually without triggering React Router navigation loop
@@ -119,6 +176,16 @@ export default function ProcurementsPage() {
                       Stocks Credited
                     </div>
                   )}
+                  {isReceived && isAdmin && (
+                    <button
+                      onClick={() => setPoToDelete(po)}
+                      disabled={deleteMut.isPending}
+                      className="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 size={16} />
+                      Delete
+                    </button>
+                  )}
                   {isApproved && isAdmin && (
                     <div className="flex items-center gap-1.5 text-slate-500 font-semibold text-sm mr-2">
                       <Clock size={16} />
@@ -177,7 +244,62 @@ export default function ProcurementsPage() {
       <AnimatePresence>
         {isCreateOpen && <CreateProcurementModal initialProduct={initialProduct} onClose={() => setIsCreateOpen(false)} />}
         {isViewOpen && selectedPO && <ViewProcurementModal po={selectedPO} isAdmin={isAdmin} onClose={() => { setIsViewOpen(false); setSelectedPO(null) }} />}
+        {poToDelete && (
+          <DeleteCompletedProcurementModal
+            po={poToDelete}
+            supplierName={supplierMap[poToDelete.supplier_id] || 'Unknown Supplier'}
+            onClose={() => setPoToDelete(null)}
+            onConfirm={() => deleteMut.mutate(poToDelete.id)}
+            isPending={deleteMut.isPending}
+          />
+        )}
       </AnimatePresence>
+    </div>
+  )
+}
+
+function DeleteCompletedProcurementModal({ po, supplierName, onClose, onConfirm, isPending }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        className="relative z-10 w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-white/10 dark:bg-[#12141c]"
+      >
+        <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border border-rose-100 bg-rose-50 text-rose-500 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400">
+          <Trash2 size={20} />
+        </div>
+        <h3 className="mb-2 text-base font-semibold text-slate-900 dark:text-white">Delete Completed PO</h3>
+        <p className="mb-6 text-sm leading-6 text-slate-500 dark:text-slate-400">
+          Delete <span className="font-semibold text-slate-700 dark:text-slate-300">{po.po_number}</span> for <span className="font-semibold text-slate-700 dark:text-slate-300">{supplierName}</span>? This removes the completed purchase order from the list. Restocked inventory will not be reversed.
+        </p>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending}
+            className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isPending}
+            className="flex-1 rounded-xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-rose-600 disabled:opacity-50"
+          >
+            {isPending ? 'Deleting...' : 'Delete'}
+          </button>
+        </div>
+      </motion.div>
     </div>
   )
 }
@@ -226,10 +348,13 @@ function CreateProcurementModal({ onClose, initialProduct = null }) {
     enabled: !!supplierId,
   })
 
+  const shouldAutofillItems = items.length === 1 && !items[0].product_name && !items[0].product_id
+
   useEffect(() => {
-    if (supplierInvData?.data && items.length === 1 && !items[0].product_name && !items[0].product_id) {
+    if (supplierInvData?.data && shouldAutofillItems) {
       const lowStockItems = supplierInvData.data.filter(i => i.quantity <= i.reorder_point)
       if (lowStockItems.length > 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setItems(lowStockItems.map(i => {
           const qtyToOrder = Math.max(1, i.reorder_point - i.quantity)
           const price = i.cost || i.price || 0
@@ -243,7 +368,7 @@ function CreateProcurementModal({ onClose, initialProduct = null }) {
         }))
       }
     }
-  }, [supplierInvData?.data, supplierId])
+  }, [supplierInvData?.data, supplierId, shouldAutofillItems])
 
   const handleSupplierChange = (e) => {
     setSupplierId(e.target.value)
@@ -253,7 +378,7 @@ function CreateProcurementModal({ onClose, initialProduct = null }) {
   const createMut = useMutation({
     mutationFn: createProcurement,
     onSuccess: () => {
-      queryClient.invalidateQueries(['procurements'])
+      queryClient.invalidateQueries({ queryKey: ['procurements'] })
       onClose()
     },
     onError: (err) => {
@@ -396,8 +521,9 @@ function ViewProcurementModal({ po, isAdmin, onClose }) {
   const statusMut = useMutation({
     mutationFn: updateProcurementStatus,
     onSuccess: () => {
-      queryClient.invalidateQueries(['procurements'])
-      queryClient.invalidateQueries(['inventory'])
+      queryClient.invalidateQueries({ queryKey: ['procurements'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-paginated'] })
       onClose()
     }
   })
