@@ -9,7 +9,6 @@ import { fetchInventory } from '../features/inventory/api/inventoryApi'
 import { useAuth } from '../contexts/AuthContext'
 import { useCurrency } from '../contexts/CurrencyContext'
 import { useToast } from '../components/ui/Toast'
-import CustomSelect from '../components/ui/CustomSelect'
 import { supabase } from '../lib/supabase'
 
 const PROCUREMENT_SYNC_CHANNEL = 'sia_procurements_updated'
@@ -117,7 +116,7 @@ export default function ProcurementsPage() {
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">Refill Procurement & Purchase Orders</h2>
           <p className="text-sm font-medium text-slate-400 dark:text-slate-500 mt-1">Restock inventory depots through supplier contracts</p>
         </div>
-        <button onClick={() => { setInitialProduct(null); setIsCreateOpen(true); }} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+        <button onClick={() => { setInitialProduct(null); setIsCreateOpen(true); }} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-[0_4px_14px_0_rgba(37,99,235,0.2)]">
           <Plus className="w-4 h-4" />
           Create Procurement PO
         </button>
@@ -181,7 +180,7 @@ export default function ProcurementsPage() {
                     <button
                       onClick={() => setPoToDelete(po)}
                       disabled={deleteMut.isPending}
-                      className="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 px-4 py-2 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+                      className="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
                     >
                       <Trash2 size={16} />
                       Delete
@@ -204,14 +203,14 @@ export default function ProcurementsPage() {
                       <button 
                         onClick={() => updateStatusMut.mutate({ id: po.id, status: 'received' })}
                         disabled={updateStatusMut.isPending}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50 shadow-[0_4px_14px_0_rgba(16,185,129,0.2)]"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 shadow-[0_4px_14px_0_rgba(16,185,129,0.2)]"
                       >
                         Stock Received
                       </button>
                       <button 
                         onClick={() => updateStatusMut.mutate({ id: po.id, status: 'cancelled' })}
                         disabled={updateStatusMut.isPending}
-                        className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 px-4 py-2 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+                        className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
                       >
                         Cancel
                       </button>
@@ -222,14 +221,14 @@ export default function ProcurementsPage() {
                       <button 
                         onClick={() => updateStatusMut.mutate({ id: po.id, status: 'approved' })}
                         disabled={updateStatusMut.isPending}
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50 shadow-[0_4px_14px_0_rgba(99,102,241,0.2)]"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 shadow-[0_4px_14px_0_rgba(37,99,235,0.2)]"
                       >
                         Approve PO
                       </button>
                       <button 
                         onClick={() => updateStatusMut.mutate({ id: po.id, status: 'cancelled' })}
                         disabled={updateStatusMut.isPending}
-                        className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 px-4 py-2 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+                        className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
                       >
                         Cancel
                       </button>
@@ -287,7 +286,7 @@ function DeleteCompletedProcurementModal({ po, supplierName, onClose, onConfirm,
             type="button"
             onClick={onClose}
             disabled={isPending}
-            className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition-all active:scale-[0.98] hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+            className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
           >
             Cancel
           </button>
@@ -295,7 +294,7 @@ function DeleteCompletedProcurementModal({ po, supplierName, onClose, onConfirm,
             type="button"
             onClick={onConfirm}
             disabled={isPending}
-            className="flex-1 rounded-xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition-all active:scale-[0.98] hover:bg-rose-600 disabled:opacity-50"
+            className="flex-1 rounded-xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-rose-600 disabled:opacity-50"
           >
             {isPending ? 'Deleting...' : 'Delete'}
           </button>
@@ -349,6 +348,28 @@ function CreateProcurementModal({ onClose, initialProduct = null }) {
     enabled: !!supplierId,
   })
 
+  const shouldAutofillItems = items.length === 1 && !items[0].product_name && !items[0].product_id
+
+  useEffect(() => {
+    if (supplierInvData?.data && shouldAutofillItems) {
+      const lowStockItems = supplierInvData.data.filter(i => i.quantity <= i.reorder_point)
+      if (lowStockItems.length > 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setItems(lowStockItems.map(i => {
+          const qtyToOrder = Math.max(1, i.reorder_point - i.quantity)
+          const price = i.cost || i.price || 0
+          return {
+            product_id: i.id,
+            product_name: i.name,
+            quantity: qtyToOrder,
+            unit_price: price,
+            line_total: qtyToOrder * price
+          }
+        }))
+      }
+    }
+  }, [supplierInvData?.data, supplierId, shouldAutofillItems])
+
   const handleSupplierChange = (e) => {
     setSupplierId(e.target.value)
     setItems([{ product_id: '', product_name: '', quantity: 1, unit_price: 0, line_total: 0 }])
@@ -392,7 +413,7 @@ function CreateProcurementModal({ onClose, initialProduct = null }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white dark:bg-[#12141c] rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh]">
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh]">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-white/[0.02]">
           <h3 className="font-semibold text-slate-900 dark:text-white">Create Purchase Order</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><XCircle size={20} /></button>
@@ -407,15 +428,10 @@ function CreateProcurementModal({ onClose, initialProduct = null }) {
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Supplier *</label>
-                <CustomSelect
-                  value={supplierId}
-                  onChange={(val) => handleSupplierChange({ target: { value: val } })}
-                  options={[
-                    { value: '', label: 'Select Supplier...' },
-                    ...suppliers.map(s => ({ value: s.id, label: s.name }))
-                  ]}
-                  placeholder="Select Supplier..."
-                />
+                <select required value={supplierId} onChange={handleSupplierChange} className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+                  <option value="">Select Supplier...</option>
+                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Remarks / Notes</label>
@@ -426,27 +442,28 @@ function CreateProcurementModal({ onClose, initialProduct = null }) {
             <div>
               <div className="flex justify-between items-center mb-3">
                 <label className="block text-sm font-semibold text-slate-900 dark:text-white">Items</label>
-                <button type="button" onClick={addItem} className="text-xs font-medium text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline active:scale-[0.98]"><Plus size={14} /> Add Row</button>
+                <button type="button" onClick={addItem} className="text-xs font-medium text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline"><Plus size={14} /> Add Row</button>
               </div>
-              <div className="border border-slate-200 dark:border-white/10 rounded-xl">
+              <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 dark:bg-white/[0.03] text-left text-xs text-slate-500 dark:text-slate-400">
                     <tr>
-                      <th className="px-4 py-2 rounded-tl-xl">Item Name</th>
+                      <th className="px-4 py-2">Item Name</th>
                       <th className="px-4 py-2 w-24">Qty</th>
                       <th className="px-4 py-2 w-32">Unit Cost</th>
                       <th className="px-4 py-2 w-32">Total</th>
-                      <th className="px-4 py-2 w-10 rounded-tr-xl"></th>
+                      <th className="px-4 py-2 w-10"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                     {items.map((item, idx) => (
                       <tr key={idx}>
                         <td className="p-2">
-                          <CustomSelect
+                          <select
+                            required
                             value={item.product_id || ''}
-                            onChange={(val) => {
-                              const selected = supplierInvData?.data?.find(p => p.id === val)
+                            onChange={e => {
+                              const selected = supplierInvData?.data?.find(p => p.id === e.target.value)
                               if (selected) {
                                 const newItems = [...items]
                                 newItems[idx].product_id = selected.id
@@ -456,12 +473,13 @@ function CreateProcurementModal({ onClose, initialProduct = null }) {
                                 setItems(newItems)
                               }
                             }}
-                            options={[
-                              { value: '', label: 'Select product...' },
-                              ...(supplierInvData?.data || []).map(p => ({ value: p.id, label: p.name }))
-                            ]}
-                            placeholder="Select product..."
-                          />
+                            className="w-full bg-transparent border-none focus:ring-0 text-sm px-2 text-slate-900 dark:text-slate-200"
+                          >
+                            <option value="" disabled>Select product...</option>
+                            {supplierInvData?.data?.map(p => (
+                              <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                          </select>
                         </td>
                         <td className="p-2"><input required type="number" min="1" value={item.quantity} onChange={e => handleItemChange(idx, 'quantity', e.target.value)} className="w-full bg-transparent border-none focus:ring-0 text-sm px-2 text-slate-900 dark:text-slate-200" /></td>
                         <td className="p-2"><input required type="number" min="0" step="0.01" value={item.unit_price} onChange={e => handleItemChange(idx, 'unit_price', e.target.value)} className="w-full bg-transparent border-none focus:ring-0 text-sm px-2 text-slate-900 dark:text-slate-200" /></td>
@@ -483,8 +501,8 @@ function CreateProcurementModal({ onClose, initialProduct = null }) {
             </div>
           </div>
           <div className="p-6 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] flex justify-end gap-3 mt-auto">
-            <button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all active:scale-[0.98]">Cancel</button>
-            <button type="submit" disabled={createMut.isPending} className="px-5 py-2.5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all active:scale-[0.98] disabled:opacity-50 shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+            <button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors">Cancel</button>
+            <button type="submit" disabled={createMut.isPending} className="px-5 py-2.5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-colors disabled:opacity-50 shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
               Submit PO Request
             </button>
           </div>
@@ -512,13 +530,13 @@ function ViewProcurementModal({ po, isAdmin, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white dark:bg-[#12141c] rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh]">
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh]">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-white/[0.02]">
           <div className="flex items-center gap-4">
             <h3 className="font-bold text-lg text-slate-900 dark:text-white font-mono">{po.po_number}</h3>
             <StatusBadge status={po.status} />
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-all active:scale-[0.98]"><XCircle size={20} /></button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><XCircle size={20} /></button>
         </div>
         
         <div className="p-6 overflow-y-auto flex-1 space-y-6">
@@ -586,15 +604,15 @@ function ViewProcurementModal({ po, isAdmin, onClose }) {
             {showCancelInput ? (
               <div className="flex-1 flex gap-2 w-full">
                 <input type="text" value={cancelReason} onChange={e => setCancelReason(e.target.value)} placeholder="Reason for cancellation..." className="flex-1 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/50" />
-                <button onClick={() => statusMut.mutate({ id: po.id, status: 'cancelled', reason: cancelReason })} disabled={!cancelReason.trim() || statusMut.isPending} className="px-4 py-2 text-sm font-semibold bg-rose-600 hover:bg-rose-500 text-white rounded-xl transition-all active:scale-[0.98] disabled:opacity-50">Confirm</button>
-                <button onClick={() => setShowCancelInput(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-all active:scale-[0.98]">Cancel</button>
+                <button onClick={() => statusMut.mutate({ id: po.id, status: 'cancelled', reason: cancelReason })} disabled={!cancelReason.trim() || statusMut.isPending} className="px-4 py-2 text-sm font-semibold bg-rose-600 hover:bg-rose-500 text-white rounded-xl transition-colors disabled:opacity-50">Confirm</button>
+                <button onClick={() => setShowCancelInput(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors">Cancel</button>
               </div>
             ) : (
               <div className="flex gap-2 ml-auto">
                 {po.status === 'pending_approval' && (
                   <>
-                    <button onClick={() => setShowCancelInput(true)} className="px-5 py-2.5 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all active:scale-[0.98]">Reject</button>
-                    <button onClick={() => statusMut.mutate({ id: po.id, status: 'approved' })} disabled={statusMut.isPending} className="px-5 py-2.5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all active:scale-[0.98] disabled:opacity-50 shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+                    <button onClick={() => setShowCancelInput(true)} className="px-5 py-2.5 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors">Reject</button>
+                    <button onClick={() => statusMut.mutate({ id: po.id, status: 'approved' })} disabled={statusMut.isPending} className="px-5 py-2.5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-colors disabled:opacity-50 shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
                       Approve Order
                     </button>
                   </>
@@ -606,7 +624,7 @@ function ViewProcurementModal({ po, isAdmin, onClose }) {
                   </div>
                 )}
                 {po.status === 'invoice_received' && (
-                  <button onClick={() => statusMut.mutate({ id: po.id, status: 'received' })} disabled={statusMut.isPending} className="px-5 py-2.5 text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-all active:scale-[0.98] disabled:opacity-50 shadow-[0_4px_14px_0_rgba(16,185,129,0.2)] dark:shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                  <button onClick={() => statusMut.mutate({ id: po.id, status: 'received' })} disabled={statusMut.isPending} className="px-5 py-2.5 text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-colors disabled:opacity-50 shadow-[0_4px_14px_0_rgba(16,185,129,0.2)] dark:shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                     Mark as Received (Restock)
                   </button>
                 )}

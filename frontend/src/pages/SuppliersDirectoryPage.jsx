@@ -110,22 +110,22 @@ export default function SuppliersDirectoryPage() {
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Suppliers Directory</h2>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Manage your supplier partners and contacts</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+        <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
           <Plus className="w-4 h-4" />
           Add Supplier
         </button>
       </div>
 
-      <div className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm dark:shadow-none transition-colors duration-300">
+      <div className="bg-white dark:bg-white/[0.02] dark:backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm dark:shadow-none">
         <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01]">
           <div className="relative w-72">
-            <Search className="w-5 h-5 text-slate-400 dark:text-slate-500 absolute left-3.5 top-2.5" />
+            <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-2.5" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search suppliers..."
-              className="w-full bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all shadow-sm dark:shadow-none"
+              className="w-full bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
             />
           </div>
         </div>
@@ -189,28 +189,19 @@ export default function SuppliersDirectoryPage() {
 
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm"
-              onClick={() => { setIsModalOpen(false); resetForm() }}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-              className="relative bg-white dark:bg-[#0d0f1a] rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-white/10 z-10"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-white/10"
             >
-              <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-white dark:bg-[#12141c]">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-white/[0.02]">
+                <h3 className="font-semibold text-slate-900 dark:text-white">
                   {editingSupplier ? 'Edit Supplier' : 'Add Supplier'}
                 </h3>
-                <button type="button" onClick={() => {setIsModalOpen(false); resetForm()}} className="w-8 h-8 flex items-center justify-center border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-                  <X size={14} />
+                <button onClick={() => {setIsModalOpen(false); resetForm()}} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                  <X size={20} />
                 </button>
               </div>
               <form onSubmit={handleSubmit} noValidate className="flex flex-col">
@@ -221,40 +212,40 @@ export default function SuppliersDirectoryPage() {
                     </div>
                   )}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Supplier Name <span className="text-red-500">*</span></label>
-                    <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className={`w-full px-3 py-2.5 bg-white dark:bg-white/[0.04] border ${hasAttemptedSubmit && !formData.name ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/30' : 'border-slate-200 dark:border-white/10 focus:border-indigo-500 focus:ring-indigo-500/30'} rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 transition-all`} />
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Supplier Name *</label>
+                    <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className={`w-full bg-slate-50 dark:bg-white/5 border ${hasAttemptedSubmit && !formData.name ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50`} />
                     {hasAttemptedSubmit && !formData.name && (
                       <p className="text-[11px] text-rose-500 mt-1.5 flex items-center gap-1">This field is required.</p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Representative Name <span className="text-red-500">*</span></label>
-                    <input required type="text" value={formData.contact_name} onChange={e => setFormData({...formData, contact_name: e.target.value})} className={`w-full px-3 py-2.5 bg-white dark:bg-white/[0.04] border ${hasAttemptedSubmit && !formData.contact_name ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/30' : 'border-slate-200 dark:border-white/10 focus:border-indigo-500 focus:ring-indigo-500/30'} rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 transition-all`} />
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Representative Name *</label>
+                    <input required type="text" value={formData.contact_name} onChange={e => setFormData({...formData, contact_name: e.target.value})} className={`w-full bg-slate-50 dark:bg-white/5 border ${hasAttemptedSubmit && !formData.contact_name ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50`} />
                     {hasAttemptedSubmit && !formData.contact_name && (
                       <p className="text-[11px] text-rose-500 mt-1.5 flex items-center gap-1">This field is required.</p>
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Email <span className="text-red-500">*</span></label>
-                      <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={`w-full px-3 py-2.5 bg-white dark:bg-white/[0.04] border ${hasAttemptedSubmit && !formData.email ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/30' : 'border-slate-200 dark:border-white/10 focus:border-indigo-500 focus:ring-indigo-500/30'} rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 transition-all`} />
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email *</label>
+                      <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={`w-full bg-slate-50 dark:bg-white/5 border ${hasAttemptedSubmit && !formData.email ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50`} />
                       {hasAttemptedSubmit && !formData.email && (
                         <p className="text-[11px] text-rose-500 mt-1.5 flex items-center gap-1">This field is required.</p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Phone <span className="font-normal text-slate-400 dark:text-slate-500">(optional)</span></label>
-                      <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2.5 bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Phone</label>
+                      <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Corporate Address <span className="font-normal text-slate-400 dark:text-slate-500">(optional)</span></label>
-                    <textarea rows={2} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full px-3 py-2.5 bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Corporate Address</label>
+                    <textarea rows={2} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
                   </div>
                 </div>
-                <div className="p-6 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] flex justify-end gap-2.5 mt-auto">
-                  <button type="button" onClick={() => {setIsModalOpen(false); resetForm()}} className="flex-1 sm:flex-none px-5 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors">Cancel</button>
-                  <button type="submit" disabled={createMut.isPending || updateMut.isPending} className="flex-1 sm:flex-none px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold text-white transition-colors disabled:opacity-60 shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+                <div className="p-6 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] flex justify-end gap-3 mt-auto">
+                  <button type="button" onClick={() => {setIsModalOpen(false); resetForm()}} className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors">Cancel</button>
+                  <button type="submit" disabled={createMut.isPending || updateMut.isPending} className="px-4 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-colors disabled:opacity-50 shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]">
                     {editingSupplier ? 'Save Changes' : 'Add Supplier'}
                   </button>
                 </div>
@@ -266,12 +257,11 @@ export default function SuppliersDirectoryPage() {
 
       <AnimatePresence>
         {supplierToDelete && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
               className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm"
               onClick={() => setSupplierToDelete(null)}
             />
@@ -279,8 +269,7 @@ export default function SuppliersDirectoryPage() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-              className="relative bg-white dark:bg-[#0d0f1a] border border-slate-200 dark:border-white/10 rounded-2xl w-full max-w-sm shadow-xl p-6 z-10"
+              className="relative bg-white dark:bg-[#12141c] border border-transparent dark:border-white/10 rounded-2xl w-full max-w-sm shadow-xl p-6 z-10"
             >
               <div className="w-11 h-11 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-xl flex items-center justify-center mb-4">
                 <Trash2 size={20} className="text-rose-500 dark:text-rose-400" />

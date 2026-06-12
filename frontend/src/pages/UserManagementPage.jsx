@@ -390,7 +390,7 @@ export default function UserManagementPage() {
             <div className="relative w-full sm:w-auto" ref={roleDropdownRef}>
               <button
                 onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-                className="flex items-center justify-between w-full sm:w-48 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-700 dark:text-slate-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all shadow-sm dark:shadow-none hover:bg-slate-50 dark:hover:bg-white/5 active:scale-[0.98]"
+                className="flex items-center justify-between w-full sm:w-48 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-700 dark:text-slate-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all shadow-sm dark:shadow-none hover:bg-slate-50 dark:hover:bg-white/5"
               >
                 <div className="flex items-center gap-2">
                   <Filter size={14} className="text-slate-400" />
@@ -409,7 +409,7 @@ export default function UserManagementPage() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.95 }}
                     transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="absolute right-0 top-full mt-2 w-full sm:w-48 bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
+                    className="absolute right-0 top-full mt-2 w-full sm:w-48 bg-white dark:bg-[#1a1f36] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
                   >
                     {roleOptions.map((option) => (
                       <button
@@ -437,7 +437,7 @@ export default function UserManagementPage() {
             <div className="relative w-full sm:w-auto" ref={statusDropdownRef}>
               <button
                 onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-                className="flex items-center justify-between w-full sm:w-40 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-700 dark:text-slate-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all shadow-sm dark:shadow-none hover:bg-slate-50 dark:hover:bg-white/5 active:scale-[0.98]"
+                className="flex items-center justify-between w-full sm:w-40 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-700 dark:text-slate-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all shadow-sm dark:shadow-none hover:bg-slate-50 dark:hover:bg-white/5"
               >
                 <div className="flex items-center gap-2">
                   <Filter size={14} className="text-slate-400" />
@@ -453,7 +453,7 @@ export default function UserManagementPage() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.95 }}
                     transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="absolute right-0 top-full mt-2 w-full sm:w-40 bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
+                    className="absolute right-0 top-full mt-2 w-full sm:w-40 bg-white dark:bg-[#1a1f36] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
                   >
                     {statusOptions.map((option) => (
                       <button
@@ -560,7 +560,7 @@ export default function UserManagementPage() {
                                   animate={{ opacity: 1, scale: 1, y: 0 }}
                                   exit={{ opacity: 0, scale: 0.95, y: -10 }}
                                   transition={{ duration: 0.15 }}
-                                  className="absolute right-0 mt-2 w-48 rounded-xl bg-white dark:bg-[#12141c] shadow-2xl border border-slate-200 dark:border-white/10 z-50 overflow-hidden"
+                                  className="absolute right-0 mt-2 w-48 rounded-xl bg-white dark:bg-[#1a1f36] shadow-2xl border border-slate-200 dark:border-white/10 z-50 overflow-hidden"
                                 >
                                   <div className="py-1">
                                     <button onClick={() => navigate('/users/' + u.id)} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
@@ -761,14 +761,14 @@ export default function UserManagementPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => { setTransferTarget(null); setTransferConfirmText(''); }}
-                  className="flex-1 px-4 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-xl font-semibold hover:bg-slate-50 dark:hover:bg-white/10 transition-all active:scale-[0.98]"
+                  className="flex-1 px-4 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-xl font-semibold hover:bg-slate-50 dark:hover:bg-white/10 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleTransferOwnership}
                   disabled={transferConfirmText !== 'TRANSFER'}
-                  className="flex-1 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-amber-500/20 active:scale-[0.98]"
+                  className="flex-1 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-amber-500/20"
                 >
                   Confirm Transfer
                 </button>
@@ -839,7 +839,7 @@ export default function UserManagementPage() {
                     <button
                       type="button"
                       onClick={() => setIsInviteRoleDropdownOpen(!isInviteRoleDropdownOpen)}
-                      className="flex items-center justify-between w-full px-4 py-2.5 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-sm dark:shadow-none active:scale-[0.98]"
+                      className="flex items-center justify-between w-full px-4 py-2.5 bg-white dark:bg-[#1a1f36] border border-slate-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-sm dark:shadow-none"
                     >
                       <span className={inviteForm.role ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}>
                         {inviteForm.role === 'staff' ? 'Staff' : inviteForm.role === 'admin' ? 'Admin' : 'Select role'}
@@ -854,7 +854,7 @@ export default function UserManagementPage() {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 8, scale: 0.95 }}
                           transition={{ duration: 0.15, ease: "easeOut" }}
-                          className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
+                          className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-[#1a1f36] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
                         >
                           <button
                             type="button"
@@ -885,14 +885,14 @@ export default function UserManagementPage() {
                   <button
                     type="button"
                     onClick={() => { setIsInviteModalOpen(false); setInviteForm({ email: '', name: '', role: '' }); }}
-                    className="px-5 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-all active:scale-[0.98]"
+                    className="px-5 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isInviting}
-                    className="px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-md shadow-indigo-500/20 disabled:opacity-50 flex items-center gap-2 active:scale-[0.98]"
+                    className="px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors shadow-md shadow-indigo-500/20 disabled:opacity-50 flex items-center gap-2"
                   >
                     {isInviting ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
                     Send Invite
