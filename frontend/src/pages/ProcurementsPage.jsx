@@ -80,6 +80,7 @@ export default function ProcurementsPage() {
       queryClient.invalidateQueries({ queryKey: ['inventory'] })
       queryClient.invalidateQueries({ queryKey: ['inventory-paginated'] })
       queryClient.invalidateQueries({ queryKey: ['notification-inventory'] })
+      queryClient.invalidateQueries({ queryKey: ['db-notifications'] })
     }
   })
 
