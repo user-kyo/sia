@@ -20,6 +20,7 @@ import AuthPage from './pages/AuthPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import SuppliersDirectoryPage from './pages/SuppliersDirectoryPage';
 import ProcurementsPage from './pages/ProcurementsPage';
+import SupplierPortalPage from './pages/SupplierPortalPage';
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
                 <Route path="/register" element={<AuthPage />} />
                 <Route path="/forgot-password" element={<AuthPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/supplier/po/:id" element={<SupplierPortalPage />} />
 
                 <Route element={<MainLayout />}>
                   <Route element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin', 'staff']} />}>

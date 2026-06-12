@@ -143,6 +143,8 @@ export default function ProductModal({ mode = 'add', product = null, categories 
       </div>
     </div>
   )
+  const inputCls = 'w-full px-3 py-2 bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all disabled:opacity-60 disabled:bg-slate-50 dark:disabled:bg-white/[0.02] disabled:cursor-not-allowed'
+  const labelCls = 'block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6">
@@ -318,6 +320,12 @@ export default function ProductModal({ mode = 'add', product = null, categories 
                     </div>
                   </div>
                 </Card>
+            <div>
+              <label className={labelCls}>
+                {mode === 'add' ? t('field_qty_initial') : t('field_qty')} {mode === 'add' && <span className="text-red-500">*</span>}
+              </label>
+              <input required={mode === 'add'} disabled={mode === 'edit'} title={mode === 'edit' ? "Update quantity via procurements or stock adjustments" : ""} type="number" min="0" value={form.quantity} onChange={set('quantity')} placeholder="0" className={inputCls} />
+            </div>
 
                 <Card title="Media" icon={ImgIcon} className="flex-1">
                   <div className="flex flex-col h-full min-h-[140px]">
