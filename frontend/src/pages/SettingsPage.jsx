@@ -62,6 +62,44 @@ export default function SettingsPage() {
     setTimeout(() => setBizSaved(false), 2000)
   }
 
+  // SMTP Settings
+  const [smtp, setSmtp] = useState({ email: '', password: '' })
+  const [smtpSaved, setSmtpSaved] = useState(false)
+  const [isSavingSmtp, setIsSavingSmtp] = useState(false)
+
+  React.useEffect(() => {
+    const fetchSmtpSettings = async () => {
+      try {
+        const api = (await import('../lib/axios')).default;
+        const res = await api.get('/companies/settings');
+        setSmtp({ email: res.data.smtp_email || '', password: res.data.smtp_password || '' });
+      } catch (err) {
+        console.error("Failed to load SMTP settings:", err);
+      }
+    };
+    if (user) {
+      fetchSmtpSettings();
+    }
+  }, [user]);
+
+  const saveSmtp = async () => {
+    setIsSavingSmtp(true);
+    try {
+      const api = (await import('../lib/axios')).default;
+      await api.put('/companies/settings', {
+        smtp_email: smtp.email,
+        smtp_password: smtp.password
+      });
+      setSmtpSaved(true);
+      toast("Email integration settings saved.", 'success');
+      setTimeout(() => setSmtpSaved(false), 2000);
+    } catch (err) {
+      toast("Failed to save email settings.", 'error');
+    } finally {
+      setIsSavingSmtp(false);
+    }
+  }
+
   // Security & Account states
   const [oldPassword, setOldPassword] = useState('')
   const [password, setPassword] = useState('')
@@ -250,6 +288,53 @@ export default function SettingsPage() {
             className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold text-white transition-colors shadow-[0_4px_14px_0_rgba(99,102,241,0.2)]"
           >
             {bizSaved ? t('set_saved') : t('set_save')}
+          </button>
+        </div>
+      </Section>
+
+      {/* ── 1.5 Email Integration ───────────────────────────── */}
+      <Section icon={Mail} title="Email Integration (Custom SMTP)" subtitle="Send Purchase Order emails using your company's actual email address.">
+        <div className="mb-4 flex items-start gap-2.5 p-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl">
+          <Mail size={16} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+          <div className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+            <p className="font-semibold mb-1">How to setup Gmail App Passwords:</p>
+            <ol className="list-decimal pl-4 space-y-1">
+              <li>Turn on <strong>2-Step Verification</strong> in your Google Account Security settings.</li>
+              <li>Search for <strong>App passwords</strong> and create one (Name it "SIA System").</li>
+              <li>Google will give you a 16-character password. Paste it below.</li>
+            </ol>
+            <p className="mt-1">Leave blank to use the default system email.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>Sender Email Address</label>
+            <input
+              className={inputCls}
+              type="email"
+              value={smtp.email}
+              onChange={e => setSmtp(s => ({ ...s, email: e.target.value }))}
+              placeholder="e.g. purchasing@yourcompany.com"
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Google App Password</label>
+            <input
+              className={inputCls}
+              type="password"
+              value={smtp.password}
+              onChange={e => setSmtp(s => ({ ...s, password: e.target.value }))}
+              placeholder="16-character App Password"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end mt-4">
+          <button
+            onClick={saveSmtp}
+            disabled={isSavingSmtp}
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl text-sm font-semibold text-white transition-colors shadow-[0_4px_14px_0_rgba(99,102,241,0.2)]"
+          >
+            {isSavingSmtp ? 'Saving...' : smtpSaved ? 'Saved!' : 'Save Email Settings'}
           </button>
         </div>
       </Section>

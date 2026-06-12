@@ -53,11 +53,24 @@ def send_security_email(to_email: str, event_type: str):
         print(f"Failed to send email: {e}")
         return False
 
-def send_po_approval_email(to_email: str, supplier_name: str, po_number: str, items: list, company_name: str, portal_link: str):
+def send_po_approval_email(
+    to_email: str, 
+    supplier_name: str, 
+    po_number: str, 
+    items: list, 
+    company_name: str, 
+    portal_link: str,
+    custom_smtp_user: str = None,
+    custom_smtp_password: str = None
+):
     """
     Sends an email to the supplier when a Purchase Order is approved.
+    Uses custom SMTP credentials if provided, otherwise falls back to system default.
     """
-    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+    smtp_user = custom_smtp_user or settings.SMTP_USER
+    smtp_password = custom_smtp_password or settings.SMTP_PASSWORD
+
+    if not smtp_user or not smtp_password:
         print("SMTP_USER or SMTP_PASSWORD not configured. Skipping PO email send.")
         return False
 
@@ -86,7 +99,10 @@ def send_po_approval_email(to_email: str, supplier_name: str, po_number: str, it
     # Create email message
     msg = MIMEMultipart("alternative")
     msg["Subject"] = f"New Purchase Order: #{po_number} from {company_name}"
-    msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_USER}>"
+    
+    # Use the company name as the From Name, and the custom email as the sender address
+    from_name = company_name if custom_smtp_user else settings.SMTP_FROM_NAME
+    msg["From"] = f"{from_name} <{smtp_user}>"
     msg["To"] = to_email
 
     # Attach HTML content
@@ -97,7 +113,7 @@ def send_po_approval_email(to_email: str, supplier_name: str, po_number: str, it
     try:
         server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT)
         server.starttls()
-        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        server.login(smtp_user, smtp_password)
         server.send_message(msg)
         server.quit()
         print(f"Successfully sent PO approval email to {to_email}")
