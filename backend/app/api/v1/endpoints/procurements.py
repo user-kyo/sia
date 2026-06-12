@@ -98,6 +98,46 @@ def submit_public_invoice(po_id: str, payload: SubmitInvoiceRequest):
 
     items = [item.model_dump() for item in payload.items]
 
+    # Process cost updates
+    try:
+        supplier_id = po.get("supplier_id")
+        supplier_name = "Supplier"
+        if supplier_id:
+            supplier_res = supabase_client.table("suppliers").select("name").eq("id", supplier_id).execute()
+            if supplier_res.data:
+                supplier_name = supplier_res.data[0]["name"]
+
+        company_id = po.get("company_id")
+        
+        for po_item in items:
+            product_id = po_item.get("product_id")
+            new_cost = float(po_item.get("unit_price", 0))
+            if product_id and new_cost is not None:
+                inv_res = supabase_client.table("inventory").select("cost, name").eq("id", product_id).execute()
+                if inv_res.data:
+                    old_cost = float(inv_res.data[0].get("cost") or 0)
+                    product_name = inv_res.data[0].get("name")
+                    if old_cost != new_cost:
+                        supabase_client.table("inventory").update({"cost": new_cost, "updated_at": "now()"}).eq("id", product_id).execute()
+                        
+                        notif_msg = f"Product cost updated: {product_name} changed from ₱{old_cost:.2f} to ₱{new_cost:.2f} based on {supplier_name}'s submitted invoice."
+                        metadata = {
+                            "product_id": product_id,
+                            "old_cost": old_cost,
+                            "new_cost": new_cost,
+                            "supplier_name": supplier_name
+                        }
+                        supabase_client.table("notifications").insert({
+                            "company_id": company_id,
+                            "type": "cost_updated",
+                            "title": "Cost Updated from Invoice",
+                            "message": notif_msg,
+                            "metadata": metadata
+                        }).execute()
+    except Exception as e:
+        print("Error processing cost updates:", e)
+
+
     update_payload = {
         "status": "invoice_received",
         "items": items,
@@ -149,14 +189,49 @@ def update_procurement_status(
     
     # Auto-Restock Logic
     if new_status == "received":
+        supplier_id = updated_po.get("supplier_id")
+        supplier_name = "Supplier"
+        if supplier_id:
+            supplier_res = supabase_client.table("suppliers").select("name").eq("id", supplier_id).execute()
+            if supplier_res.data:
+                supplier_name = supplier_res.data[0]["name"]
+                
         for item in updated_po["items"]:
             if item.get("product_id"):
                 # Fetch current stock
-                inv = supabase_client.table("inventory").select("quantity").eq("id", item["product_id"]).eq("company_id", current_user["company_id"]).execute()
+                inv = supabase_client.table("inventory").select("quantity, cost, name").eq("id", item["product_id"]).eq("company_id", current_user["company_id"]).execute()
                 if inv.data:
                     current_qty = inv.data[0]["quantity"]
                     new_qty = current_qty + item["quantity"]
-                    supabase_client.table("inventory").update({"quantity": new_qty, "updated_at": "now()"}).eq("id", item["product_id"]).execute()
+                    
+                    old_cost = float(inv.data[0].get("cost") or 0)
+                    new_cost = float(item.get("unit_price", 0))
+                    product_name = inv.data[0].get("name")
+                    
+                    update_data = {"quantity": new_qty, "updated_at": "now()"}
+                    if old_cost != new_cost and new_cost > 0:
+                        update_data["cost"] = new_cost
+                        
+                    supabase_client.table("inventory").update(update_data).eq("id", item["product_id"]).execute()
+                    
+                    if old_cost != new_cost and new_cost > 0:
+                        notif_msg = f"Product cost updated: {product_name} changed from ₱{old_cost:.2f} to ₱{new_cost:.2f} upon receiving PO."
+                        metadata = {
+                            "product_id": item["product_id"],
+                            "old_cost": old_cost,
+                            "new_cost": new_cost,
+                            "supplier_name": supplier_name
+                        }
+                        try:
+                            supabase_client.table("notifications").insert({
+                                "company_id": current_user["company_id"],
+                                "type": "cost_updated",
+                                "title": "Cost Updated from PO",
+                                "message": notif_msg,
+                                "metadata": metadata
+                            }).execute()
+                        except Exception as e:
+                            print("Error inserting notification:", e)
 
     # Email notification for approval
     if new_status == "approved":
