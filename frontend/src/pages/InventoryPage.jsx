@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Plus, SlidersHorizontal, Download, FolderPlus, Pencil, ChevronLeft, ChevronRight, Package, Folder, Tag, Truck } from 'lucide-react'
+import { Plus, SlidersHorizontal, Download, FolderPlus, Pencil, ChevronLeft, ChevronRight, Package, Folder, Tag, Truck, ExternalLink, MoreHorizontal } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, X } from 'lucide-react'
 import { useToast } from '../components/ui/Toast'
@@ -8,7 +8,7 @@ import { useCurrency } from '../contexts/CurrencyContext'
 import { useAppSettings } from '../contexts/AppSettingsContext'
 import {
   useInventoryPaginated, useCategories, useBrands,
-  useCreateProduct, useUpdateProduct, useDeleteProduct, useAdjustStock, useCreateCategory, useUpdateCategory, useDeleteCategory
+  useCreateProduct, useUpdateProduct, useDeleteProduct, useAdjustStock, useCreateCategory, useUpdateCategory, useDeleteCategory, useUpdateBrand, useDeleteBrand
 } from '../features/inventory/hooks/useInventory'
 import ProductTable from '../features/inventory/components/ProductTable'
 import FiltersPanel from '../features/inventory/components/FiltersPanel'
@@ -16,6 +16,7 @@ import BulkActionBar from '../features/inventory/components/BulkActionBar'
 import ProductModal from '../features/inventory/components/ProductModal'
 import CategoryModal from '../features/inventory/components/CategoryModal'
 import EditCategoryModal from '../features/inventory/components/EditCategoryModal'
+import EditBrandModal from '../features/inventory/components/EditBrandModal'
 import StockAdjustModal from '../features/inventory/components/StockAdjustModal'
 import DeleteConfirmModal from '../features/inventory/components/DeleteConfirmModal'
 import { useQuery } from '@tanstack/react-query'
@@ -41,7 +42,7 @@ function exportToCSV(items, filename, formatPrice) {
   URL.revokeObjectURL(url)
 }
 
-const StatCard = ({ title, value, icon: Icon, colorClass }) => {
+const StatCard = ({ title, value, icon: Icon, colorClass, onClick }) => {
   const colors = {
     indigo: {
       bg: 'bg-white dark:bg-[#0A0A0B]',
@@ -75,14 +76,25 @@ const StatCard = ({ title, value, icon: Icon, colorClass }) => {
   const theme = colors[colorClass] || colors.indigo
 
   return (
-    <div className={`relative h-full w-full rounded-2xl p-5 flex flex-col justify-end group hover:-translate-y-1 hover:shadow-xl dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.1)] transition-all duration-300 shadow-sm overflow-hidden border ${theme.bg} ${theme.border}`}>
+    <div 
+      onClick={onClick}
+      className={`relative h-full w-full rounded-2xl p-5 flex flex-col justify-end group transition-all duration-300 shadow-sm overflow-hidden border ${theme.bg} ${theme.border} ${onClick ? 'cursor-pointer hover:-translate-y-1 hover:shadow-xl dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.1)]' : ''}`}
+    >
       <div className={`absolute -inset-4 bg-gradient-to-br ${theme.glow} opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none blur-lg`} />
 
       <div className={`absolute -top-2 -right-2 p-4 opacity-10 transition-transform duration-500 group-hover:scale-[1.2] group-hover:-rotate-6 ${theme.iconText}`}>
         <Icon size={64} />
       </div>
 
-      <div className={`text-sm font-medium mb-1 relative z-10 ${theme.text}`}>{title}</div>
+      <div className={`text-sm font-medium mb-1 relative z-10 ${theme.text} flex items-center justify-between`}>
+        <span>{title}</span>
+        {onClick && (
+          <div className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-300`}>
+            <span className="hidden sm:block">Open</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </div>
+        )}
+      </div>
       <div className="text-2xl font-bold text-slate-900 dark:text-white relative z-10">{value}</div>
     </div>
   )
@@ -112,9 +124,15 @@ export default function InventoryPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false)
+  const [initialCategoryId, setInitialCategoryId] = useState('')
+  const [isEditBrandModalOpen, setIsEditBrandModalOpen] = useState(false)
+  const [initialBrandName, setInitialBrandName] = useState('')
   const [modal, setModal] = useState(null)
   const [showZeroSupplierModal, setShowZeroSupplierModal] = useState(false)
   const [showZeroCategoryModal, setShowZeroCategoryModal] = useState(false)
+  const [selectedKpi, setSelectedKpi] = useState(null)
+  const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false)
+  const moreActionsRef = useRef(null)
 
   const { data: suppliers = [], isLoading: suppliersLoading } = useQuery({
     queryKey: ['suppliers'],
@@ -125,6 +143,16 @@ export default function InventoryPage() {
     const t = setTimeout(() => setDebouncedSearch(search), 300)
     return () => clearTimeout(t)
   }, [search])
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (moreActionsRef.current && !moreActionsRef.current.contains(event.target)) {
+        setIsMoreActionsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   useEffect(() => { 
     setSelectedIds(new Set())
@@ -137,11 +165,7 @@ export default function InventoryPage() {
       return
     }
     
-    if (!suppliersLoading && suppliers.length === 0) {
-      setShowZeroSupplierModal(true)
-    } else {
-      setModal({ type: 'add' })
-    }
+    setModal({ type: 'add' })
   }
 
   const queryFilters = {
@@ -176,6 +200,8 @@ export default function InventoryPage() {
   const updateMutation = useUpdateProduct()
   const deleteMutation = useDeleteProduct()
   const adjustMutation = useAdjustStock()
+  const updateBrandMutation = useUpdateBrand()
+  const deleteBrandMutation = useDeleteBrand()
 
   const closeModal = () => setModal(null)
 
@@ -203,13 +229,18 @@ export default function InventoryPage() {
     closeModal()
 
     // Setup delayed delete
-    const timerId = setTimeout(() => {
-      Promise.all(ids.map(id => deleteMutation.mutateAsync(id))).catch(console.error)
-      setHiddenIds(prev => {
-        const next = new Set(prev)
-        ids.forEach(id => next.delete(id))
-        return next
-      })
+    const timerId = setTimeout(async () => {
+      try {
+        await Promise.all(ids.map(id => deleteMutation.mutateAsync(id)))
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setHiddenIds(prev => {
+          const next = new Set(prev)
+          ids.forEach(id => next.delete(id))
+          return next
+        })
+      }
     }, 5000)
 
     toast(
@@ -247,24 +278,62 @@ export default function InventoryPage() {
             {t('inv_filters')}
           </button>
           <button
-            onClick={() => setIsEditCategoryModalOpen(true)}
-            disabled={categories.length === 0}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all backdrop-blur-md shadow-sm dark:shadow-none ${
-              categories.length === 0 
-                ? 'bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/5 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60'
-                : 'bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200'
+            onClick={() => setIsMoreActionsOpen(!isMoreActionsOpen)}
+            className={`flex items-center justify-center w-10 h-10 border rounded-xl transition-all backdrop-blur-md shadow-sm dark:shadow-none ${
+              isMoreActionsOpen 
+                ? 'bg-slate-100 dark:bg-white/10 border-slate-300 dark:border-white/20 text-indigo-600 dark:text-indigo-400' 
+                : 'bg-white dark:bg-white/[0.03] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200'
             }`}
+            title="Toggle More Actions"
           >
-            <Pencil size={15} />
-            Edit Category
+            <MoreHorizontal size={18} className={`transition-transform duration-200 ${isMoreActionsOpen ? 'rotate-90' : ''}`} />
           </button>
-          <button
-            onClick={() => setIsCategoryModalOpen(true)}
-            className="flex items-center gap-2 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all backdrop-blur-md shadow-sm dark:shadow-none"
-          >
-            <FolderPlus size={15} />
-            Add Category
-          </button>
+          
+          <AnimatePresence>
+            {isMoreActionsOpen && (
+              <motion.div
+                initial={{ width: 0, opacity: 0, paddingRight: 0 }}
+                animate={{ width: 'auto', opacity: 1, paddingRight: 0 }}
+                exit={{ width: 0, opacity: 0, paddingRight: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="flex items-center gap-2.5 overflow-hidden origin-left"
+              >
+                <div className="flex items-center gap-2.5 whitespace-nowrap">
+                  <button
+                    onClick={() => setIsCategoryModalOpen(true)}
+                    className="flex items-center gap-2 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all backdrop-blur-md shadow-sm dark:shadow-none shrink-0"
+                  >
+                    <FolderPlus size={15} />
+                    Add Category
+                  </button>
+                  <button
+                    onClick={() => { setInitialCategoryId(''); setIsEditCategoryModalOpen(true); }}
+                    disabled={categories.length === 0}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all backdrop-blur-md shadow-sm dark:shadow-none shrink-0 ${
+                      categories.length === 0 
+                        ? 'bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/5 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60'
+                        : 'bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200'
+                    }`}
+                  >
+                    <Pencil size={15} />
+                    Edit Category
+                  </button>
+                  <button
+                    onClick={() => { setInitialBrandName(''); setIsEditBrandModalOpen(true); }}
+                    disabled={brands.length === 0}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all backdrop-blur-md shadow-sm dark:shadow-none shrink-0 ${
+                      brands.length === 0 
+                        ? 'bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/5 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60'
+                        : 'bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200'
+                    }`}
+                  >
+                    <Tag size={15} />
+                    Edit Brand
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <button
             onClick={handleAddProductClick}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.3)]"
@@ -283,10 +352,10 @@ export default function InventoryPage() {
           </motion.div>
         ) : (
           <motion.div key="kpi-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard title="Total Products" value={total} icon={Package} colorClass="indigo" />
-            <StatCard title="Categories" value={categories.length} icon={Folder} colorClass="emerald" />
-            <StatCard title="Brands" value={brands.length} icon={Tag} colorClass="amber" />
-            <StatCard title="Suppliers" value={suppliers.length} icon={Truck} colorClass="rose" />
+            <StatCard title="Total Products" value={total} icon={Package} colorClass="indigo" onClick={() => setSelectedKpi('products')} />
+            <StatCard title="Categories" value={categories.length} icon={Folder} colorClass="emerald" onClick={() => setSelectedKpi('categories')} />
+            <StatCard title="Brands" value={brands.length} icon={Tag} colorClass="amber" onClick={() => setSelectedKpi('brands')} />
+            <StatCard title="Suppliers" value={suppliers.length} icon={Truck} colorClass="rose" onClick={() => setSelectedKpi('suppliers')} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -314,25 +383,29 @@ export default function InventoryPage() {
         >
           {t('filter_all')} Products
         </motion.button>
-        {categories.slice(0, 5).map((cat, i) => (
-          <motion.button
-            key={cat.id || cat.name}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: 0.05 + (i + 1) * 0.05 }}
-            onClick={() => {
-              setFilters(prev => ({ ...prev, categories: [cat.name] }))
-              setCurrentPage(1)
-            }}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
-              filters.categories?.includes(cat.name) && filters.categories.length === 1
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                : 'bg-white dark:bg-[#0A0A0B] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10 hover:border-indigo-300 dark:hover:border-indigo-500/30'
-            }`}
-          >
-            {cat.name}
-          </motion.button>
-        ))}
+        <AnimatePresence>
+          {categories.slice(0, 5).map((cat, i) => (
+            <motion.button
+              layout
+              key={cat.id || cat.name}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5, width: 0, padding: 0, margin: 0 }}
+              transition={{ duration: 0.3, delay: 0.05 + (i + 1) * 0.05 }}
+              onClick={() => {
+                setFilters(prev => ({ ...prev, categories: [cat.name] }))
+                setCurrentPage(1)
+              }}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all overflow-hidden ${
+                filters.categories?.includes(cat.name) && filters.categories.length === 1
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                  : 'bg-white dark:bg-[#0A0A0B] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10 hover:border-indigo-300 dark:hover:border-indigo-500/30'
+              }`}
+            >
+              {cat.name}
+            </motion.button>
+          ))}
+        </AnimatePresence>
         {categories.length > 5 && (
           <motion.button
             initial={{ opacity: 0, scale: 0.9 }}
@@ -504,19 +577,44 @@ export default function InventoryPage() {
             
             {isEditCategoryModalOpen && (
               <EditCategoryModal
-                onClose={() => setIsEditCategoryModalOpen(false)}
+                initialCategoryId={initialCategoryId}
+                onClose={() => { setIsEditCategoryModalOpen(false); setInitialCategoryId(''); }}
                 isPending={updateCategoryMutation.isPending}
                 isDeletePending={deleteCategoryMutation.isPending}
                 existingCategories={categories}
                 onSubmit={async data => {
                   await updateCategoryMutation.mutateAsync(data)
                   setIsEditCategoryModalOpen(false)
+                  setInitialCategoryId('')
                   toast('Category updated successfully.')
                 }}
                 onDelete={async (id) => {
                   await deleteCategoryMutation.mutateAsync(id)
                   setIsEditCategoryModalOpen(false)
+                  setInitialCategoryId('')
                   toast('Category deleted successfully.')
+                }}
+              />
+            )}
+            
+            {isEditBrandModalOpen && (
+              <EditBrandModal
+                initialBrand={initialBrandName}
+                onClose={() => { setIsEditBrandModalOpen(false); setInitialBrandName(''); }}
+                isPending={updateBrandMutation.isPending}
+                isDeletePending={deleteBrandMutation.isPending}
+                existingBrands={brands}
+                onSubmit={async data => {
+                  await updateBrandMutation.mutateAsync(data)
+                  setIsEditBrandModalOpen(false)
+                  setInitialBrandName('')
+                  toast('Brand updated successfully.')
+                }}
+                onDelete={async (name) => {
+                  await deleteBrandMutation.mutateAsync(name)
+                  setIsEditBrandModalOpen(false)
+                  setInitialBrandName('')
+                  toast('Brand removed from all products.')
                 }}
               />
             )}
@@ -552,8 +650,8 @@ export default function InventoryPage() {
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No Suppliers Found</h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
                     {userRole === 'admin' || userRole === 'super_admin' 
-                      ? "You must set up at least one Supplier before adding inventory items."
-                      : "Please contact an Administrator to add a Supplier to the system before creating products."}
+                      ? "You haven't set up any suppliers yet. Adding a supplier is optional, but recommended for better inventory tracking."
+                      : "There are currently no suppliers in the system. Please contact an Administrator if you need to assign one."}
                   </p>
                   <div className="flex flex-col gap-3">
                     {(userRole === 'admin' || userRole === 'super_admin') && (
@@ -584,6 +682,7 @@ export default function InventoryPage() {
                   toast(`"${result.name}" added to inventory!`)
                 }}
                 isPending={createMutation.isPending}
+                onNoSuppliersClick={() => setShowZeroSupplierModal(true)}
               />
             )}
             {modal?.type === 'edit' && (
@@ -599,6 +698,7 @@ export default function InventoryPage() {
                   toast(`"${result.name}" updated successfully.`)
                 }}
                 isPending={updateMutation.isPending}
+                onNoSuppliersClick={() => setShowZeroSupplierModal(true)}
               />
             )}
             {modal?.type === 'view' && (
@@ -631,6 +731,94 @@ export default function InventoryPage() {
                 onConfirm={handleDeleteConfirm}
                 isPending={deleteMutation.isPending}
               />
+            )}
+            
+            {/* KPI Details Modal */}
+            {selectedKpi && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => setSelectedKpi(null)} />
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white dark:bg-[#0d0f1a] rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-white/10 flex flex-col max-h-[80vh]">
+                  <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-white/10">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white capitalize">
+                      {selectedKpi} Details
+                    </h3>
+                    <button onClick={() => setSelectedKpi(null)} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <div className="p-5 overflow-y-auto">
+                    {selectedKpi === 'products' && (
+                      <div className="space-y-3">
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          You have a total of <span className="font-semibold text-slate-900 dark:text-white">{total}</span> products in your inventory.
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          Scroll down to the table to view, filter, and search through all products.
+                        </p>
+                        <button onClick={() => setSelectedKpi(null)} className="mt-4 w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition-colors">
+                          Close & View Table
+                        </button>
+                      </div>
+                    )}
+                    {selectedKpi === 'categories' && (
+                      <div className="space-y-2">
+                        {categories.map(c => (
+                          <div key={c.id || c.name} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 group hover:border-slate-200 dark:hover:border-white/10 transition-colors">
+                            <span className="font-medium text-slate-800 dark:text-slate-200">{c.name}</span>
+                            <button
+                              onClick={() => {
+                                setSelectedKpi(null)
+                                setInitialCategoryId(c.id)
+                                setIsEditCategoryModalOpen(true)
+                              }}
+                              className="p-1.5 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-all"
+                              title="Edit Category"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                          </div>
+                        ))}
+                        {categories.length === 0 && <p className="text-sm text-slate-500">No categories found.</p>}
+                      </div>
+                    )}
+                    {selectedKpi === 'brands' && (
+                      <div className="space-y-2">
+                        {brands.map((b, i) => (
+                          <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 group hover:border-slate-200 dark:hover:border-white/10 transition-colors">
+                            <span className="font-medium text-slate-800 dark:text-slate-200">{b}</span>
+                            <button
+                              onClick={() => {
+                                setSelectedKpi(null)
+                                setInitialBrandName(b)
+                                setIsEditBrandModalOpen(true)
+                              }}
+                              className="p-1.5 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-all"
+                              title="Edit Brand"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                          </div>
+                        ))}
+                        {brands.length === 0 && <p className="text-sm text-slate-500">No brands found.</p>}
+                      </div>
+                    )}
+                    {selectedKpi === 'suppliers' && (
+                      <div className="space-y-2">
+                        {suppliers.map(s => (
+                          <div key={s.id} className="flex flex-col p-3 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5">
+                            <span className="font-medium text-slate-800 dark:text-slate-200">{s.name}</span>
+                            {s.email && <span className="text-xs text-slate-500 mt-1">{s.email}</span>}
+                          </div>
+                        ))}
+                        {suppliers.length === 0 && <p className="text-sm text-slate-500">No suppliers found.</p>}
+                        <button onClick={() => navigate('/suppliers')} className="mt-4 w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition-colors">
+                          Manage Suppliers
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </div>
             )}
           </AnimatePresence>
         </>,
