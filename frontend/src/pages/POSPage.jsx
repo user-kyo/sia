@@ -1,6 +1,6 @@
 import { Search, Plus, Minus, CreditCard, X, Image as ImageIcon, ShoppingCart, Trash2, SlidersHorizontal, Package, Monitor, Shirt, Coffee, Smartphone, Box, Scissors, Wrench, Book, Music, Camera, Car, ShoppingBag, Gift, Heart, Home } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useInventory, useInventorySubscription, useAdjustStock, useCategories, useBrands } from '../features/inventory/hooks/useInventory'
+import { useInventory, useAdjustStock, useCategories, useBrands } from '../features/inventory/hooks/useInventory'
 import { useAppSettings } from '../contexts/AppSettingsContext'
 import { useCurrency } from '../contexts/CurrencyContext'
 import FiltersPanel from '../features/inventory/components/FiltersPanel'
@@ -35,7 +35,7 @@ const POSPage = () => {
     return () => clearTimeout(timer)
   }, [searchTerm])
 
-  useInventorySubscription()
+
 
   const queryFilters = {
     search: debouncedSearch || undefined,
