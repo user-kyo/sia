@@ -107,14 +107,17 @@ export default function CategoryModal({ onClose, onSubmit, isPending, existingCa
                       key={iconName}
                       type="button"
                       onClick={() => setSelectedIcon(iconName)}
-                      className={`p-2 rounded-xl flex items-center justify-center transition-all ${
+                      className={`relative group p-2 rounded-xl flex items-center justify-center transition-all ${
                         isActive 
                           ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 ring-2 ring-inset ring-indigo-500' 
                           : 'bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:bg-white/5 dark:text-slate-500 dark:hover:bg-white/10 dark:hover:text-slate-300 border border-slate-200 dark:border-white/10'
                       }`}
-                      title={iconName}
                     >
                       <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-bold rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-lg">
+                        {iconName}
+                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 dark:bg-white rotate-45" />
+                      </div>
                     </button>
                   )
                 })}

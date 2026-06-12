@@ -83,3 +83,13 @@ export const fetchBrands = async () => {
   const { data } = await api.get('/brands')
   return data
 }
+
+export const updateBrand = async ({ oldName, newName }) => {
+  const { data } = await api.put(`/brands/${encodeURIComponent(oldName)}`, { new_name: newName })
+  return data
+}
+
+export const deleteBrand = async (brandName) => {
+  const { data } = await api.delete(`/brands/${encodeURIComponent(brandName)}`)
+  return data
+}

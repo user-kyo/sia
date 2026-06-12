@@ -5,9 +5,11 @@ import { motion } from 'framer-motion'
 import { useUploadProductImage } from '../hooks/useInventory'
 import { useCurrency } from '../../../contexts/CurrencyContext'
 import { useAppSettings } from '../../../contexts/AppSettingsContext'
+import { useAuth } from '../../../contexts/AuthContext'
+import { createSupplier } from '../../suppliers/api/suppliersApi'
 
 const EMPTY = {
-  name: '', sku: '', brand: '', category: '', supplier_id: '', cost: '', selling_price: '',
+  name: '', sku: '', brand: '', category: '', supplier_id: null, cost: '', selling_price: '',
   quantity: '', reorder_point: '10', description: '', image_url: '',
   currency: 'PHP',
 }
@@ -26,25 +28,31 @@ const Card = ({ title, icon: Icon, children, className = '' }) => (
   </div>
 )
 
-export default function ProductModal({ mode = 'add', product = null, categories = [], suppliers = [], onClose, onSubmit, isPending }) {
+export default function ProductModal({ mode = 'add', product = null, highlight = null, categories = [], suppliers = [], onClose, onSubmit, isPending, onNoSuppliersClick }) {
+
   const [form, setForm] = useState(EMPTY)
   const [initialForm, setInitialForm] = useState(null)
   const [localError, setLocalError] = useState(null)
   const [imageFile, setImageFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState('')
+  const [hasDraft, setHasDraft] = useState(false)
   const uploadMutation = useUploadProductImage()
 
   const { code } = useCurrency()
   const { settings, t } = useAppSettings()
+  const { session } = useAuth()
 
   useEffect(() => {
+    const inHouseSupplier = suppliers.find(s => s.name === 'In-House Production')
+    const inHouseValue = inHouseSupplier ? inHouseSupplier.id : '__in_house__'
+
     if ((mode === 'edit' || mode === 'view') && product) {
       const init = {
         name: product.name || '',
         sku: product.sku || '',
         brand: product.brand || '',
         category: product.category,
-        supplier_id: product.supplier_id || '',
+        supplier_id: product.supplier_id || inHouseValue,
         cost: String(product.cost ?? 0),
         selling_price: String(product.selling_price || product.price || 0),
         quantity: String(product.quantity),
@@ -57,13 +65,49 @@ export default function ProductModal({ mode = 'add', product = null, categories 
       setForm(init)
       setInitialForm(init)
       setPreviewUrl(product.image_url || '')
+      setHasDraft(false)
     } else {
-      setForm({ ...EMPTY, reorder_point: String(settings.defaultReorderPoint), currency: code })
+      let initForm = { ...EMPTY, supplier_id: null, reorder_point: String(settings.defaultReorderPoint), currency: code }
+      const draft = localStorage.getItem('sia_product_draft')
+      let draftExists = false
+      if (draft) {
+        try {
+          const parsed = JSON.parse(draft)
+          const hasData = Object.keys(parsed).some(k => ['currency', 'supplier_id', 'reorder_point'].includes(k) ? false : !!parsed[k]);
+          if (hasData) {
+            initForm = { ...initForm, ...parsed }
+            draftExists = true
+          }
+        } catch (e) {}
+      }
+      setForm(initForm)
       setInitialForm(null)
-      setPreviewUrl('')
+      setPreviewUrl(initForm.image_url || '')
+      setHasDraft(draftExists)
     }
     setImageFile(null)
-  }, [mode, product, settings.defaultReorderPoint, code])
+  }, [mode, product, settings.defaultReorderPoint, code, suppliers])
+
+  useEffect(() => {
+    if (mode === 'add' && form !== EMPTY) {
+      const hasData = Object.keys(form).some(k => ['currency', 'supplier_id', 'reorder_point'].includes(k) ? false : !!form[k]);
+      if (hasData) {
+        localStorage.setItem('sia_product_draft', JSON.stringify(form))
+        setHasDraft(true)
+      } else {
+        localStorage.removeItem('sia_product_draft')
+        setHasDraft(false)
+      }
+    }
+  }, [form, mode])
+
+  const handleClearDraft = () => {
+    localStorage.removeItem('sia_product_draft')
+    setHasDraft(false)
+    setForm({ ...EMPTY, supplier_id: null, reorder_point: String(settings.defaultReorderPoint), currency: code })
+    setImageFile(null)
+    setPreviewUrl('')
+  }
 
   const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }))
 
@@ -74,7 +118,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
   }
 
   const handleNumberKeyDown = (allowDecimal) => (e) => {
-    if (['Backspace', 'Tab', 'End', 'Home', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter'].includes(e.key)) return;
+    if (['Backspace', 'Tab', 'End', 'Home', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Delete', 'Enter'].includes(e.key)) return;
     if (/[0-9]/.test(e.key)) return;
     if (allowDecimal && e.key === '.' && !e.target.value.includes('.')) return;
     if (e.ctrlKey || e.metaKey) return;
@@ -118,13 +162,33 @@ export default function ProductModal({ mode = 'add', product = null, categories 
         finalImageUrl = uploadResult.image_url
       }
 
+      let finalSupplierId = form.supplier_id
+      if (finalSupplierId === '__in_house__') {
+        try {
+          const userEmail = session?.user?.email || '';
+          const userName = session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || 'In-House Production';
+
+          const newSupplier = await createSupplier({
+            name: 'In-House Production',
+            contact_name: userName,
+            email: userEmail,
+            phone: null,
+            address: null,
+            status: 'active'
+          })
+          finalSupplierId = newSupplier.id
+        } catch (err) {
+          throw new Error('Failed to create in-house supplier: ' + (err?.response?.data?.detail || err?.message))
+        }
+      }
+
       await onSubmit({
         ...(mode === 'edit' && { id: product.id }),
         name: (form.name || '').trim(),
         sku: (form.sku || '').trim() || undefined,
         brand: (form.brand || '').trim() || undefined,
         category: form.category.trim(),
-        supplier_id: form.supplier_id || null,
+        supplier_id: finalSupplierId || null,
         cost: parseFloat(form.cost) || 0,
         selling_price: parseFloat(form.selling_price) || 0,
         price: parseFloat(form.selling_price) || 0,
@@ -134,6 +198,11 @@ export default function ProductModal({ mode = 'add', product = null, categories 
         description: (form.description || '').trim() || undefined,
         image_url: finalImageUrl,
       })
+
+      if (mode === 'add') {
+        localStorage.removeItem('sia_product_draft')
+        setHasDraft(false)
+      }
     } catch (err) {
       const msg = err?.response?.data?.detail || err?.message || 'Something went wrong. Please try again.'
       setLocalError(msg)
@@ -165,9 +234,11 @@ export default function ProductModal({ mode = 'add', product = null, categories 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-white dark:bg-[#12141c] border-b border-slate-200 dark:border-white/10 shrink-0 z-10">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-              {mode === 'add' ? 'Add New Product' : mode === 'edit' ? 'Edit Product' : 'Product Details'}
-            </h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                {mode === 'add' ? 'Add New Product' : mode === 'edit' ? 'Edit Product' : 'Product Details'}
+              </h2>
+            </div>
             <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
               {mode === 'add' ? 'Create a new inventory item and set its details.' : mode === 'edit' ? 'Modify existing inventory details and pricing.' : 'View product configuration and status.'}
             </p>
@@ -235,7 +306,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
                       </label>
                       <div className="relative">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-[13px] font-bold">{form.currency}</span>
-                        <input required type="number" min="0" step="0.01" value={form.cost} onChange={set('cost')} onKeyDown={handleNumberKeyDown(true)} placeholder="0.00" className={`${numberInputCls} pl-12 font-semibold`} />
+                        <input required type="number" min="0" step="0.01" value={form.cost} onChange={set('cost')} onKeyDown={handleNumberKeyDown(true)} placeholder="0.00" className={`${numberInputCls} pl-12 font-semibold ${highlight === 'cost' ? 'border-indigo-500 ring-2 ring-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.5)] bg-indigo-50/50 dark:bg-indigo-500/10 transition-all duration-1000' : ''}`} />
                       </div>
                     </div>
                     
@@ -245,7 +316,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
                       </label>
                       <div className="relative">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-[13px] font-bold">{form.currency}</span>
-                        <input required type="number" min="0" step="0.01" value={form.selling_price} onChange={set('selling_price')} onKeyDown={handleNumberKeyDown(true)} placeholder="0.00" className={`${numberInputCls} pl-12 font-semibold`} />
+                        <input required type="number" min="0" step="0.01" value={form.selling_price} onChange={set('selling_price')} onKeyDown={handleNumberKeyDown(true)} placeholder="0.00" className={`${numberInputCls} pl-12 font-semibold ${highlight === 'cost' ? 'border-amber-500 ring-2 ring-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.5)] bg-amber-50/50 dark:bg-amber-500/10 transition-all duration-1000' : ''}`} />
                       </div>
                       <div className="h-4 mt-1.5 flex items-center absolute -bottom-5 left-0">
                         {(costVal > 0 || priceVal > 0) && (
@@ -311,22 +382,23 @@ export default function ProductModal({ mode = 'add', product = null, categories 
                         disabled={mode === 'view'}
                         value={form.supplier_id}
                         onChange={(val) => setForm(f => ({ ...f, supplier_id: val }))}
-                        placeholder="No preferred supplier..."
+                        placeholder="Select preferred supplier..."
                         options={[
                           { value: '', label: 'No preferred supplier' },
-                          ...suppliers.map(s => ({ value: s.id, label: s.name })),
+                          { value: suppliers.find(s => s.name === 'In-House Production')?.id || '__in_house__', label: 'In-House Production' },
+                          ...suppliers.filter(s => s.name !== 'In-House Production').map(s => ({ value: s.id, label: s.name })),
                         ]}
                         className={inputCls}
+                        onClick={() => {
+                          if (suppliers.length === 0 && onNoSuppliersClick) {
+                            onNoSuppliersClick()
+                          }
+                        }}
                       />
                     </div>
                   </div>
                 </Card>
-            <div>
-              <label className={labelCls}>
-                {mode === 'add' ? t('field_qty_initial') : t('field_qty')} {mode === 'add' && <span className="text-red-500">*</span>}
-              </label>
-              <input required={mode === 'add'} disabled={mode === 'edit'} title={mode === 'edit' ? "Update quantity via procurements or stock adjustments" : ""} type="number" min="0" value={form.quantity} onChange={set('quantity')} placeholder="0" className={inputCls} />
-            </div>
+
 
                 <Card title="Media" icon={ImgIcon} className="flex-1">
                   <div className="flex flex-col h-full min-h-[140px]">
@@ -378,6 +450,11 @@ export default function ProductModal({ mode = 'add', product = null, categories 
 
         {/* Footer */}
         <div className="flex justify-end gap-3 px-6 py-4 bg-white dark:bg-[#12141c] border-t border-slate-200 dark:border-white/10 shrink-0 z-10">
+          {mode === 'add' && hasDraft && (
+            <button type="button" onClick={handleClearDraft} className="mr-auto px-6 py-2.5 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors text-sm font-semibold">
+              Clear Draft
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}

@@ -1,8 +1,8 @@
-import { Download, Trash2 } from 'lucide-react'
+import { PackagePlus, Trash2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppSettings } from '../../../contexts/AppSettingsContext'
 
-export default function BulkActionBar({ count, onExport, onDelete }) {
+export default function BulkActionBar({ count, onBulkRestock, onDelete }) {
   const { t } = useAppSettings()
 
   return (
@@ -24,11 +24,11 @@ export default function BulkActionBar({ count, onExport, onDelete }) {
         </span>
         <div className="ml-auto flex items-center gap-2">
           <button
-            onClick={onExport}
-            className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-500/30 rounded-lg text-xs font-semibold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/20 transition-all shadow-sm active:scale-95"
+            onClick={onBulkRestock}
+            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 border border-indigo-500 rounded-lg text-xs font-semibold text-white hover:bg-indigo-500 transition-all shadow-sm active:scale-95"
           >
-            <Download size={14} />
-            {t('bulk_export')}
+            <PackagePlus size={14} />
+            Bulk Restock (PO)
           </button>
           <button
             onClick={onDelete}

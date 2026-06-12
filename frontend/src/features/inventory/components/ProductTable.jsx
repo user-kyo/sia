@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronUp, ChevronDown, ChevronsUpDown, MoreVertical, Edit, Trash2, Package, Eye, Search } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronsUpDown, MoreVertical, Edit, Trash2, Package, Eye, Search, Truck, ArrowUpDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCurrency } from '../../../contexts/CurrencyContext'
 import { useAppSettings } from '../../../contexts/AppSettingsContext'
@@ -37,10 +37,13 @@ function stockStatus(qty, reorder, t) {
 }
 
 function SortIcon({ colKey, sort }) {
-  if (sort.by !== colKey) return <ChevronsUpDown size={11} className="text-slate-400 dark:text-slate-500" />
-  return sort.order === 'asc'
-    ? <ChevronUp size={11} className="text-indigo-600 dark:text-indigo-400" />
-    : <ChevronDown size={11} className="text-indigo-600 dark:text-indigo-400" />
+  const isActive = sort.by === colKey
+  return (
+    <ArrowUpDown 
+      size={14} 
+      className={`transition-colors ${isActive ? 'text-indigo-500' : 'text-slate-300 dark:text-slate-600 group-hover:text-slate-400'}`} 
+    />
+  )
 }
 
 export default function ProductTable({
@@ -55,6 +58,7 @@ export default function ProductTable({
   onView,
   onAdjustStock,
   onDelete,
+  onRestockPO,
   itemsPerPage = 10,
 }) {
   const { formatPrice, formatAs, code } = useCurrency()
@@ -91,12 +95,12 @@ export default function ProductTable({
               <th
                 key={col.key}
                 onClick={() => handleSort(col.key)}
-                className={`px-6 py-4 font-semibold cursor-pointer hover:text-slate-900 dark:hover:text-white select-none whitespace-nowrap transition-colors ${col.width || ''}`}
+                className={`px-6 py-4 font-semibold cursor-pointer select-none group transition-colors hover:bg-slate-100 dark:hover:bg-white/5 ${col.width || ''}`}
               >
-                <span className="flex items-center gap-1">
+                <div className="flex items-center gap-1">
                   {t(col.tKey)}
                   <SortIcon colKey={col.key} sort={sort} />
-                </span>
+                </div>
               </th>
             ))}
             <th className="px-6 py-4 font-semibold text-center transition-colors w-[12%] min-w-[120px]">
@@ -126,6 +130,7 @@ export default function ProductTable({
               </motion.tr>
             ) : (
               <motion.tr key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="contents">
+                <AnimatePresence>
                 {items.map((item, index) => {
               const { dot, text, label } = stockStatus(item.quantity, item.reorder_point, t)
               const isSelected = selectedIds.has(item.id)
@@ -136,7 +141,7 @@ export default function ProductTable({
                   key={item.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
                   transition={{ delay: index * 0.05, type: 'spring', stiffness: 380, damping: 30 }}
                   className={`transition-colors group relative ${isSelected ? 'bg-indigo-50 dark:bg-indigo-500/10' : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'}`}
                 >
@@ -230,6 +235,11 @@ export default function ProductTable({
                                   <Package size={14} /> {t('act_adjust')}
                                 </button>
                               )}
+                              {item.supplier_id && item.quantity <= item.reorder_point && onRestockPO && (
+                                <button onClick={() => { onRestockPO(item); setActiveMenuId(null); }} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-white/5 transition-colors font-medium">
+                                  <Truck size={14} /> Restock PO
+                                </button>
+                              )}
                               <div className="h-px bg-slate-100 dark:bg-white/10 my-1"></div>
                               <button onClick={() => { onDelete(item); setActiveMenuId(null); }} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-rose-600 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                 <Trash2 size={14} /> {t('act_delete')}
@@ -256,6 +266,7 @@ export default function ProductTable({
                 <td className="px-6 py-4"></td>
               </tr>
             ))}
+                </AnimatePresence>
               </motion.tr>
             )}
           </AnimatePresence>

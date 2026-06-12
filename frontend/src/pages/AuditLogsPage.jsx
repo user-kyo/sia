@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { ShieldAlert, Download, Filter, Search, Trash2, Loader2, AlertTriangle, Lock, Eye, EyeOff, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ShieldAlert, Download, Filter, Search, ArrowUpDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { useAppSettings } from '../contexts/AppSettingsContext'
@@ -89,6 +91,35 @@ const AuditLogsPage = () => {
   const [logToDelete, setLogToDelete] = useState(null)
   const [showClearModal, setShowClearModal] = useState(false)
   const filtersRef = useRef(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [sortConfig, setSortConfig] = useState({ key: 'timestamp', direction: 'desc' })
+
+  // Dummy data refactored into state
+  const rawLogs = [
+    { id: 1, timestamp: '2026-06-04 14:32:01', user: 'john.admin', action: 'DELETE', module: 'Inventory', desc: 'Deleted product PRD-2023 (MacBook Pro 16")' },
+    { id: 2, timestamp: '2026-06-04 14:28:15', user: 'sarah.staff', action: 'CREATE', module: 'Sales', desc: 'Processed transaction TRX-99382 ($5,395.68)' },
+    { id: 3, timestamp: '2026-06-04 09:12:00', user: 'system', action: 'AUTH', module: 'Authentication', desc: 'User john.admin logged in successfully from IP 192.168.1.45' },
+  ]
+
+  const handleSort = (key) => {
+    let direction = 'asc'
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc'
+    }
+    setSortConfig({ key, direction })
+  }
+
+  const sortedLogs = [...rawLogs].sort((a, b) => {
+    let aVal = a[sortConfig.key] || ''
+    let bVal = b[sortConfig.key] || ''
+    
+    if (typeof aVal === 'string') aVal = aVal.toLowerCase()
+    if (typeof bVal === 'string') bVal = bVal.toLowerCase()
+    
+    if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1
+    if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1
+    return 0
+  })
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -274,10 +305,42 @@ const AuditLogsPage = () => {
           <table className="w-full text-sm text-left">
             <thead className="text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold bg-slate-50 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/10 transition-colors">
               <tr>
-                <th className="px-6 py-4">{t('audit_col_ts')}</th>
-                <th className="px-6 py-4">{t('audit_col_user')}</th>
-                <th className="px-6 py-4">{t('audit_col_action')}</th>
-                <th className="px-6 py-4">{t('audit_col_module')}</th>
+                <th 
+                  className="px-6 py-4 cursor-pointer select-none group transition-colors hover:bg-slate-100 dark:hover:bg-white/5"
+                  onClick={() => handleSort('timestamp')}
+                >
+                  <div className="flex items-center gap-1">
+                    {t('audit_col_ts')}
+                    <ArrowUpDown size={14} className={`transition-colors ${sortConfig.key === 'timestamp' ? 'text-indigo-500' : 'text-slate-300 dark:text-slate-600 group-hover:text-slate-400'}`} />
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-4 cursor-pointer select-none group transition-colors hover:bg-slate-100 dark:hover:bg-white/5"
+                  onClick={() => handleSort('user')}
+                >
+                  <div className="flex items-center gap-1">
+                    {t('audit_col_user')}
+                    <ArrowUpDown size={14} className={`transition-colors ${sortConfig.key === 'user' ? 'text-indigo-500' : 'text-slate-300 dark:text-slate-600 group-hover:text-slate-400'}`} />
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-4 cursor-pointer select-none group transition-colors hover:bg-slate-100 dark:hover:bg-white/5"
+                  onClick={() => handleSort('action')}
+                >
+                  <div className="flex items-center gap-1">
+                    {t('audit_col_action')}
+                    <ArrowUpDown size={14} className={`transition-colors ${sortConfig.key === 'action' ? 'text-indigo-500' : 'text-slate-300 dark:text-slate-600 group-hover:text-slate-400'}`} />
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-4 cursor-pointer select-none group transition-colors hover:bg-slate-100 dark:hover:bg-white/5"
+                  onClick={() => handleSort('module')}
+                >
+                  <div className="flex items-center gap-1">
+                    {t('audit_col_module')}
+                    <ArrowUpDown size={14} className={`transition-colors ${sortConfig.key === 'module' ? 'text-indigo-500' : 'text-slate-300 dark:text-slate-600 group-hover:text-slate-400'}`} />
+                  </div>
+                </th>
                 <th className="px-6 py-4">{t('audit_col_desc')}</th>
                 <th className="px-6 py-4">Changes</th>
                 {isSuperAdmin && <th className="px-6 py-4 text-right">Actions</th>}
@@ -344,6 +407,30 @@ const AuditLogsPage = () => {
                     </td>
                   </tr>
                 )}
+                {sortedLogs.map((log, index) => (
+                  <motion.tr 
+                    key={log.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ delay: index * 0.05, type: 'spring', stiffness: 380, damping: 30 }}
+                    className="hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400 font-mono text-xs">{log.timestamp}</td>
+                    <td className="px-6 py-4 font-semibold text-slate-900 dark:text-slate-200">{log.user}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold tracking-wider ${
+                        log.action === 'DELETE' ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20' :
+                        log.action === 'CREATE' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20' :
+                        'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20'
+                      }`}>
+                        {log.action}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium">{log.module}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{log.desc}</td>
+                  </motion.tr>
+                ))}
               </AnimatePresence>
             </tbody>
           </table>

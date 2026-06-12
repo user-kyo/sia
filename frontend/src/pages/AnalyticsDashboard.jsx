@@ -1,7 +1,8 @@
 import React from 'react'
-import { TrendingUp, Package, DollarSign, AlertCircle, ChevronDown, Download, ShoppingCart, Maximize2, X, Sparkles, Loader2, Calendar, Check, FileText, ChevronRight } from 'lucide-react'
+import { TrendingUp, Package, DollarSign, AlertCircle, ChevronDown, Download, ShoppingCart, Maximize2, X, Sparkles, Loader2, Calendar, Check, FileText, ChevronRight, ExternalLink } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
   PieChart, Pie, Cell,
@@ -985,6 +986,7 @@ const InsightSidebar = ({ activeModal, formatPrice, code, lowStockItems = [], re
 };
 
 const AnalyticsDashboard = () => {
+  const navigate = useNavigate()
   const [loadingStates, setLoadingStates] = React.useState({
     kpiRev: true,
     kpiSales: true,
@@ -2071,7 +2073,7 @@ const AnalyticsDashboard = () => {
               </motion.div>
             ) : (
               <motion.div key="kpi-rev-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="h-full w-full">
-                <Card onClick={() => setActiveModal('kpi_revenue')} title={t('dash_revenue')} value={salesTransactionsData ? formatPrice(totalRevenue) : '—'} icon={DollarSign} trend={salesTransactionCount && salesTransactionCount > 0 ? 'Recorded' : 'No sales yet'} trendUp={salesTransactionCount && salesTransactionCount > 0} attention={t('dash_attention')} />
+                <Card onClick={() => setActiveModal('kpi_revenue')} linkTo="/reports" navigate={navigate} title={t('dash_revenue')} value={salesTransactionsData ? formatPrice(totalRevenue) : '—'} icon={DollarSign} trend={salesTransactionCount && salesTransactionCount > 0 ? 'Recorded' : 'No sales yet'} trendUp={salesTransactionCount && salesTransactionCount > 0} attention={t('dash_attention')} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -2083,7 +2085,7 @@ const AnalyticsDashboard = () => {
               </motion.div>
             ) : (
               <motion.div key="kpi-sales-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="h-full w-full">
-                <Card onClick={() => setActiveModal('kpi_sales')} title={t('dash_sales_txn')} value={salesTransactionCount !== null ? salesTransactionCount.toLocaleString() : '—'} icon={TrendingUp} trend="Recorded" trendUp={true} attention={t('dash_attention')} />
+                <Card onClick={() => setActiveModal('kpi_sales')} linkTo="/reports" navigate={navigate} title={t('dash_sales_txn')} value={salesTransactionCount !== null ? salesTransactionCount.toLocaleString() : '—'} icon={TrendingUp} trend="Recorded" trendUp={true} attention={t('dash_attention')} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -2095,7 +2097,7 @@ const AnalyticsDashboard = () => {
               </motion.div>
             ) : (
               <motion.div key="kpi-inv-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="h-full w-full">
-                <Card onClick={() => setActiveModal('kpi_inventory')} title={t('dash_inv_items')} value={totalInventoryItems !== null ? totalInventoryItems.toLocaleString() : '—'} icon={Package} trend={inventoryTrend.label} trendUp={inventoryTrend.up} trendTone={inventoryTrend.tone} attention={t('dash_attention')} />
+                <Card onClick={() => setActiveModal('kpi_inventory')} linkTo="/inventory" navigate={navigate} title={t('dash_inv_items')} value={totalInventoryItems !== null ? totalInventoryItems.toLocaleString() : '—'} icon={Package} trend={inventoryTrend.label} trendUp={inventoryTrend.up} trendTone={inventoryTrend.tone} attention={t('dash_attention')} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -2107,7 +2109,7 @@ const AnalyticsDashboard = () => {
               </motion.div>
             ) : (
               <motion.div key="kpi-alerts-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="h-full w-full">
-                <Card onClick={() => setActiveModal('kpi_alerts')} title={t('dash_low_alerts')} value={lowStockCount !== null ? lowStockCount.toString() : '—'} icon={AlertCircle} trend={t('dash_attention')} alert={true} attention={t('dash_attention')} />
+                <Card onClick={() => setActiveModal('kpi_alerts')} linkTo="/inventory" navigate={navigate} title={t('dash_low_alerts')} value={lowStockCount !== null ? lowStockCount.toString() : '—'} icon={AlertCircle} trend={t('dash_attention')} alert={true} attention={t('dash_attention')} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -2132,9 +2134,15 @@ const AnalyticsDashboard = () => {
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                       {t('dash_trends_title')}
                     </h3>
-                    <div className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
-                      <Maximize2 className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-3">
+                      <button onClick={(e) => { e.stopPropagation(); navigate('/reports'); }} className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:text-indigo-600 dark:hover:text-indigo-300" title="Go to Reports">
+                        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Open</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                      <button className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
+                        <Maximize2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </motion.div>
                   <motion.div
@@ -2165,9 +2173,15 @@ const AnalyticsDashboard = () => {
                     className="flex items-center justify-between mb-6"
                   >
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('dash_cat_title')}</h3>
-                    <div className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
-                      <Maximize2 className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-3">
+                      <button onClick={(e) => { e.stopPropagation(); navigate('/inventory'); }} className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:text-indigo-600 dark:hover:text-indigo-300" title="Go to Inventory">
+                        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Open</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                      <button className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
+                        <Maximize2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </motion.div>
                   <motion.div
@@ -2214,9 +2228,15 @@ const AnalyticsDashboard = () => {
                     className="flex items-center justify-between mb-6"
                   >
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('dash_top_title')}</h3>
-                    <div className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
-                      <Maximize2 className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-3">
+                      <button onClick={(e) => { e.stopPropagation(); navigate('/reports'); }} className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:text-indigo-600 dark:hover:text-indigo-300" title="Go to Reports">
+                        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Open</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                      <button className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
+                        <Maximize2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </motion.div>
                   <motion.div
@@ -2252,9 +2272,15 @@ const AnalyticsDashboard = () => {
                         Recent Orders
                       </h3>
                     </div>
-                    <div className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
-                      <Maximize2 className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-3">
+                      <button onClick={(e) => { e.stopPropagation(); navigate('/reports'); }} className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:text-indigo-600 dark:hover:text-indigo-300" title="Go to Reports">
+                        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Open</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                      <button className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
+                        <Maximize2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </motion.div>
                   <motion.div
@@ -2290,9 +2316,15 @@ const AnalyticsDashboard = () => {
                         {t('dash_warn_title')}
                       </h3>
                     </div>
-                    <div className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
-                      <Maximize2 className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-3">
+                      <button onClick={(e) => { e.stopPropagation(); navigate('/inventory'); }} className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:text-indigo-600 dark:hover:text-indigo-300" title="Go to Inventory">
+                        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Open</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                      <button className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
+                        <Maximize2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </motion.div>
                   <motion.div
@@ -2324,9 +2356,15 @@ const AnalyticsDashboard = () => {
                         Recent Procurements
                       </h3>
                     </div>
-                    <div className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
-                      <Maximize2 className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-3">
+                      <button onClick={(e) => { e.stopPropagation(); navigate('/procurements'); }} className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:text-indigo-600 dark:hover:text-indigo-300" title="Go to Procurements">
+                        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Open</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                      <button className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
+                        <Maximize2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                   <div className="p-6 flex-1 overflow-y-auto">
@@ -2368,9 +2406,15 @@ const AnalyticsDashboard = () => {
                       System Activity Feed
                     </h3>
                   </div>
-                  <div className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
-                    <Maximize2 className="w-3.5 h-3.5" />
+                  <div className="flex items-center gap-3">
+                    <button onClick={(e) => { e.stopPropagation(); navigate('/settings'); }} className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:text-indigo-600 dark:hover:text-indigo-300" title="Go to Settings">
+                      <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Open</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
+                    <button className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
+                      <Maximize2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
                 <div className="p-6 flex-1 overflow-y-auto">
@@ -2422,7 +2466,7 @@ const getTrendClass = (trendTone, trendUp) => {
   return 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10'
 }
 
-const Card = ({ title, value, icon: Icon, trend, trendUp, trendTone, alert, attention, onClick }) => (
+const Card = ({ title, value, icon: Icon, trend, trendUp, trendTone, alert, attention, onClick, linkTo, navigate }) => (
   <div onClick={onClick} className={`relative h-full w-full bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col justify-between group hover:-translate-y-1 hover:shadow-xl dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.1)] hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all duration-300 shadow-sm overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}>
     {/* Subtle Background Glow on Hover */}
     <div className="absolute -inset-4 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none blur-lg" />
@@ -2477,18 +2521,34 @@ const Card = ({ title, value, icon: Icon, trend, trendUp, trendTone, alert, atte
         className="flex items-center justify-between mt-2"
       >
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
-        {onClick && (
-          <div className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
-            <Maximize2 className="w-3.5 h-3.5" />
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {linkTo && navigate && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); navigate(linkTo); }}
+              className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:text-indigo-600 dark:hover:text-indigo-300"
+              title={`Go to ${title}`}
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Open</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {onClick && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onClick(e); }}
+              className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:text-indigo-600 dark:hover:text-indigo-300"
+              title="View Insights"
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Insights</span>
+              <Maximize2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </motion.div>
     </div>
   </div>
 )
 
-const ChartCard = ({ children, className = '', onClick }) => (
+const ChartCard = ({ children, className = '', onClick, linkTo, navigate }) => (
   <div onClick={onClick} className={`relative h-full w-full bg-white dark:bg-[#1b2035] rounded-2xl border border-slate-200 dark:border-white/10 flex flex-col group hover:-translate-y-1 hover:shadow-xl dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.1)] hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all duration-300 shadow-sm overflow-hidden ${onClick ? 'cursor-pointer' : ''} ${className}`}>
     <div className="absolute -inset-4 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none blur-lg" />
     <div className="relative z-10 flex flex-col h-full w-full">

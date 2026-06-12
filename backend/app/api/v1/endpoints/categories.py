@@ -96,12 +96,13 @@ def delete_category(category_id: str, current_user: dict = Depends(get_current_u
     
     cat_name = cat_result.data[0]["name"]
 
-    # 2. Check if products use it
-    inv_result = supabase_client.table("inventory").select("id", count="exact").eq("category", cat_name).eq("company_id", current_user["company_id"]).execute()
-    if inv_result.count and inv_result.count > 0:
-        raise HTTPException(status_code=400, detail=f"Cannot delete category because {inv_result.count} product(s) are using it.")
+    # 2. Delete all products linked to this category
+    inv_delete_result = supabase_client.table("inventory").delete().eq("category", cat_name).eq("company_id", current_user["company_id"]).execute()
+    
+    if hasattr(inv_delete_result, "error") and inv_delete_result.error:
+        raise HTTPException(status_code=400, detail=f"Failed to delete linked products: {str(inv_delete_result.error)}")
 
-    # 3. Delete
+    # 3. Delete the category
     delete_result = supabase_client.table("categories").delete().eq("id", category_id).eq("company_id", current_user["company_id"]).execute()
     
     if hasattr(delete_result, "error") and delete_result.error:

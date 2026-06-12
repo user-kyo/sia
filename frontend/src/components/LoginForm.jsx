@@ -14,10 +14,6 @@ export default function LoginForm({ onToggle }) {
   const [loading, setLoading] = useState(false);
   const [errorField, setErrorField] = useState(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
-  const [showModal, setShowModal] = useState(false);
-  const [modalStatus, setModalStatus] = useState(null); // 'Pending' | 'Revoked'
-  const [notifying, setNotifying] = useState(false);
-  const [adminNotified, setAdminNotified] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
@@ -28,22 +24,7 @@ export default function LoginForm({ onToggle }) {
     }
   }, []);
 
-  const handleNotifyAdmin = () => {
-    setNotifying(true);
-    setTimeout(() => {
-      setNotifying(false);
-      setAdminNotified(true);
-      toast(<div className="font-medium text-emerald-500">Administrator has been notified. We will review your account status shortly.</div>);
-    }, 1500);
-  };
 
-  const closeModal = () => {
-    setShowModal(false);
-    // Reset states after animation
-    setTimeout(() => {
-      setAdminNotified(false);
-    }, 500);
-  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -82,14 +63,10 @@ export default function LoginForm({ onToggle }) {
         }
 
         // Mock statuses
-        if (email.toLowerCase() === 'eve@stocknroll.com') {
-          setModalStatus('Revoked');
-          setShowModal(true);
-          return;
-        }
-        if (email.toLowerCase() === 'charlie@stocknroll.com') {
-          setModalStatus('Pending');
-          setShowModal(true);
+        if (email.toLowerCase() === 'eve@stocknroll.com' || email.toLowerCase() === 'charlie@stocknroll.com') {
+          // Just return, the parent AuthPage will handle showing the modal if we were really updating global state
+          // For mock mode, we'll just simulate a failed login to prevent dashboard access if no global state is managed
+          toast(<div className="font-medium text-amber-500">Account is pending or disabled.</div>, 'error');
           return;
         }
 
@@ -100,7 +77,7 @@ export default function LoginForm({ onToggle }) {
     }
 
     // Supabase logic
-    const { data, error: authError } = await supabase.auth.signInWithPassword({
+    const { error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -149,9 +126,10 @@ export default function LoginForm({ onToggle }) {
         return;
       }
 
+      // AuthContext will handle the profile check and AuthPage will handle the redirect
       setFailedAttempts(0);
-      setLoading(false);
-      navigate('/dashboard');
+      // Do not setLoading(false) yet, because AuthContext might still be loading the profile
+      // AuthPage will either show the modal or redirect to /dashboard
     }
   };
 
@@ -275,95 +253,7 @@ export default function LoginForm({ onToggle }) {
       </div>
     </div>
 
-    {/* Account Status Modal */}
-    <AnimatePresence>
-      {showModal && (
-        <motion.div 
-          initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-          animate={{ opacity: 1, backdropFilter: "blur(24px)" }}
-          exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-          transition={{ duration: 0.4 }}
-          className="absolute -inset-6 z-50 flex items-center justify-center p-6 bg-slate-900/90 dark:bg-[#050505]/95 rounded-[2rem] border border-white/10 shadow-2xl"
-        >
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ duration: 0.5, type: "spring", bounce: 0.4 }}
-            className="relative w-full h-full flex flex-col items-center justify-center text-center z-10 px-8 sm:px-12"
-          >
-
-            {/* Subtle background glow attached to the content */}
-            <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] opacity-30 dark:opacity-40 blur-[60px] pointer-events-none ${modalStatus === 'Revoked' ? 'bg-rose-500' : 'bg-amber-500'
-              }`} />
-
-            {/* Icon Container with multi-layered glow */}
-            <div className="relative mb-6">
-              <div className={`absolute inset-0 rounded-full blur-xl opacity-50 ${modalStatus === 'Revoked' ? 'bg-rose-500' : 'bg-amber-500'
-                }`} />
-              <div className={`relative h-20 w-20 rounded-full flex items-center justify-center border-4 border-white dark:border-[#0A0A0B] shadow-xl ${modalStatus === 'Revoked'
-                ? 'bg-gradient-to-br from-rose-400 to-rose-600 text-white'
-                : 'bg-gradient-to-br from-amber-400 to-amber-600 text-white'
-                }`}>
-                {modalStatus === 'Revoked' ? <ShieldAlert size={36} strokeWidth={2.5} /> : <Clock size={36} strokeWidth={2.5} />}
-              </div>
-            </div>
-
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">
-              {modalStatus === 'Revoked' ? 'Account Disabled' : 'Account Pending'}
-            </h3>
-
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-6">
-              {modalStatus === 'Revoked'
-                ? "Your access to Stock & Roll has been temporarily revoked."
-                : "Your account is awaiting administrator approval."}
-            </p>
-
-            <div className="bg-slate-50 dark:bg-white/[0.03] rounded-2xl p-4 w-full border border-slate-100 dark:border-white/5 mb-8">
-              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                {modalStatus === 'Revoked'
-                  ? "This usually happens due to security concerns or a violation of our terms of service. Please contact your system administrator to restore access."
-                  : "You will receive an email notification as soon as your account is fully activated. Thank you for your patience."
-                }
-              </p>
-            </div>
-
-            <div className="w-full flex flex-col gap-3 mt-auto pt-6">
-              <button
-                onClick={handleNotifyAdmin}
-                disabled={notifying || adminNotified}
-                className={`group relative w-full flex justify-center items-center rounded-xl overflow-hidden px-4 py-3.5 text-sm font-semibold shadow-lg transition-all duration-300 border-none ${adminNotified
-                  ? 'bg-emerald-500 text-white cursor-default'
-                  : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] cursor-pointer'
-                  }`}
-              >
-                {!adminNotified && (
-                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 dark:via-black/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-                )}
-
-                {notifying ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin mr-2" />
-                    Notifying...
-                  </>
-                ) : adminNotified ? (
-                  "Administrator Notified"
-                ) : (
-                  <span className="relative z-10">Notify Administrator</span>
-                )}
-              </button>
-
-              <button
-                onClick={closeModal}
-                className="w-full flex justify-center items-center rounded-xl bg-transparent border border-slate-300 dark:border-white/20 px-4 py-3.5 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:border-slate-400 dark:hover:border-white/30 transition-all duration-300 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <span className="relative z-10">Return to Login</span>
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    </div>
     </>
   );
 }
