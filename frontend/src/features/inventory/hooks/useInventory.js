@@ -3,7 +3,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { supabase } from '../../../lib/supabase'
 import {
   fetchInventory, createProduct, updateProduct,
-  deleteProduct, adjustStock, fetchCategories, createCategory, updateCategory, uploadProductImage, fetchBrands
+  deleteProduct, adjustStock, fetchCategories, createCategory, updateCategory, deleteCategory, uploadProductImage, fetchBrands
 } from '../api/inventoryApi'
 
 const LIMIT = 20
@@ -43,6 +43,13 @@ export const useInventory = (filters = {}, options = {}) =>
     ...options,
   })
 
+export const useInventoryPaginated = (filters = {}, page = 1, limit = 10, options = {}) =>
+  useQuery({
+    queryKey: ['inventory-paginated', filters, page, limit],
+    queryFn: () => fetchInventory({ ...filters, offset: (page - 1) * limit, limit }),
+    ...options,
+  })
+
 export const useCategories = () =>
   useQuery({
     queryKey: ['categories'],
@@ -64,6 +71,17 @@ export const useUpdateCategory = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: updateCategory,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categories'] })
+      qc.invalidateQueries({ queryKey: ['inventory'] })
+    },
+  })
+}
+
+export const useDeleteCategory = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: deleteCategory,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['categories'] })
       qc.invalidateQueries({ queryKey: ['inventory'] })

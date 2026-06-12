@@ -74,6 +74,11 @@ export const updateCategory = async ({ id, ...categoryData }) => {
   return data
 }
 
+export const deleteCategory = async (id) => {
+  const { data } = await api.delete(`/categories/${id}`)
+  return data
+}
+
 export const fetchBrands = async () => {
   const { data } = await api.get('/brands')
   return data

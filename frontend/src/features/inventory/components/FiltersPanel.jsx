@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Filter, Check, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react'
+import { X, Filter, Check, RotateCcw, ChevronDown, ChevronUp, Plus, Minus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAppSettings } from '../../../contexts/AppSettingsContext'
+import { useCurrency } from '../../../contexts/CurrencyContext'
 
 const STOCK_KEYS = [
   { value: '',            tKey: 'filter_all'       },
@@ -104,6 +105,7 @@ export default function FiltersPanel({ isOpen, onClose, categories = [], brands 
   })
   const [activeThumb, setActiveThumb] = useState(null)
   const { t } = useAppSettings()
+  const { symbol } = useCurrency()
 
   const handleReset = () => {
     const reset = { 
@@ -281,22 +283,52 @@ export default function FiltersPanel({ isOpen, onClose, categories = [], brands 
               </div>
 
               {/* Exact Inputs */}
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  placeholder={`${t('filter_min')} $`}
-                  value={local.minPrice}
-                  onChange={e => setLocal(l => ({ ...l, minPrice: e.target.value }))}
-                  className={inputCls}
-                />
+              <div className="flex items-center gap-2">
+                <div className="relative flex items-center w-full">
+                  <button
+                    onClick={() => setLocal(l => ({ ...l, minPrice: String(Math.max(0, (Number(l.minPrice) || 0) - 10)) }))}
+                    className="absolute left-1.5 p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-md transition-colors"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <input
+                    type="number"
+                    placeholder={`${t('filter_min')} ${symbol}`}
+                    value={local.minPrice}
+                    onChange={e => setLocal(l => ({ ...l, minPrice: e.target.value }))}
+                    className={`${inputCls} px-8 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                  />
+                  <button
+                    onClick={() => setLocal(l => ({ ...l, minPrice: String(Math.min((Number(l.minPrice) || 0) + 10, Number(l.maxPrice) || 10000)) }))}
+                    className="absolute right-1.5 p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-md transition-colors"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+                
                 <span className="text-slate-300 dark:text-slate-600 text-sm font-medium">—</span>
-                <input
-                  type="number"
-                  placeholder={`${t('filter_max')} $`}
-                  value={local.maxPrice}
-                  onChange={e => setLocal(l => ({ ...l, maxPrice: e.target.value }))}
-                  className={inputCls}
-                />
+                
+                <div className="relative flex items-center w-full">
+                  <button
+                    onClick={() => setLocal(l => ({ ...l, maxPrice: String(Math.max(Number(l.minPrice) || 0, (Number(l.maxPrice) || 0) - 10)) }))}
+                    className="absolute left-1.5 p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-md transition-colors"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <input
+                    type="number"
+                    placeholder={`${t('filter_max')} ${symbol}`}
+                    value={local.maxPrice}
+                    onChange={e => setLocal(l => ({ ...l, maxPrice: e.target.value }))}
+                    className={`${inputCls} px-8 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                  />
+                  <button
+                    onClick={() => setLocal(l => ({ ...l, maxPrice: String((Number(l.maxPrice) || 0) + 10) }))}
+                    className="absolute right-1.5 p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-md transition-colors"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
               </div>
             </div>
           </FilterSection>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { X, Upload, Image as ImageIcon } from 'lucide-react'
+import { X, Upload, Image as ImageIcon, Wand2, Info, Package, DollarSign, Folder, ImageIcon as ImgIcon, Box } from 'lucide-react'
+import CustomSelect from '../../../components/ui/CustomSelect'
 import { motion } from 'framer-motion'
 import { useUploadProductImage } from '../hooks/useInventory'
 import { useCurrency } from '../../../contexts/CurrencyContext'
@@ -8,11 +9,12 @@ import { useAppSettings } from '../../../contexts/AppSettingsContext'
 const EMPTY = {
   name: '', sku: '', brand: '', category: '', supplier_id: '', cost: '', selling_price: '',
   quantity: '', reorder_point: '10', description: '', image_url: '',
-  currency: 'PHP', // overwritten by useEffect based on display currency
+  currency: 'PHP',
 }
 
 export default function ProductModal({ mode = 'add', product = null, categories = [], suppliers = [], onClose, onSubmit, isPending }) {
   const [form, setForm] = useState(EMPTY)
+  const [initialForm, setInitialForm] = useState(null)
   const [localError, setLocalError] = useState(null)
   const [imageFile, setImageFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState('')
@@ -23,8 +25,8 @@ export default function ProductModal({ mode = 'add', product = null, categories 
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (mode === 'edit' && product) {
-      setForm({
+    if ((mode === 'edit' || mode === 'view') && product) {
+      const init = {
         name: product.name || '',
         sku: product.sku || '',
         brand: product.brand || '',
@@ -37,16 +39,33 @@ export default function ProductModal({ mode = 'add', product = null, categories 
         description: product.description || '',
         image_url: product.image_url || '',
         currency: product.currency || 'PHP',
-      })
+      }
+      setForm(init)
+      setInitialForm(init)
       setPreviewUrl(product.image_url || '')
     } else {
       setForm({ ...EMPTY, reorder_point: String(settings.defaultReorderPoint), currency: code })
+      setInitialForm(null)
       setPreviewUrl('')
     }
     setImageFile(null)
-  }, [mode, product]) // intentionally omit `code` — currency is locked at open time
+  }, [mode, product])
 
   const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }))
+
+  const setCapitalized = (field) => (e) => {
+    const val = e.target.value
+    const capitalized = val.replace(/\b[a-z]/g, c => c.toUpperCase())
+    setForm(f => ({ ...f, [field]: capitalized }))
+  }
+
+  const handleNumberKeyDown = (allowDecimal) => (e) => {
+    if (['Backspace', 'Tab', 'End', 'Home', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter'].includes(e.key)) return;
+    if (/[0-9]/.test(e.key)) return;
+    if (allowDecimal && e.key === '.' && !e.target.value.includes('.')) return;
+    if (e.ctrlKey || e.metaKey) return;
+    e.preventDefault();
+  }
 
   const handleImageChange = (e) => {
     const file = e.target.files[0]
@@ -55,6 +74,24 @@ export default function ProductModal({ mode = 'add', product = null, categories 
       setPreviewUrl(URL.createObjectURL(file))
     }
   }
+
+  const generateSKU = () => {
+    const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase()
+    setForm(f => ({ ...f, sku: `PRD-${randomStr}` }))
+  }
+
+  const costVal = parseFloat(form.cost) || 0
+  const priceVal = parseFloat(form.selling_price) || 0
+  const profit = priceVal - costVal
+  const margin = priceVal > 0 ? (profit / priceVal) * 100 : 0
+  
+  const profitColor = profit > 0 
+    ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20' 
+    : profit < 0 
+      ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20'
+      : 'text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-500/10 border-slate-200 dark:border-slate-500/20'
+
+  const hasChanges = mode === 'add' || imageFile !== null || (initialForm && JSON.stringify(form) !== JSON.stringify(initialForm))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -89,11 +126,26 @@ export default function ProductModal({ mode = 'add', product = null, categories 
     }
   }
 
-  const inputCls = 'w-full px-3 py-2 bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all'
-  const labelCls = 'block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5'
+  const inputCls = 'w-full px-3 py-2 bg-slate-50 dark:bg-[#0A0A0B] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:bg-white dark:focus:bg-[#12141c] focus:ring-2 focus:ring-inset focus:ring-indigo-500/30 focus:border-indigo-500 transition-all shadow-sm focus:shadow-md'
+  const numberInputCls = `${inputCls} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`
+  const labelCls = 'block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-1'
+
+  const Card = ({ title, icon: Icon, children, className = '' }) => (
+    <div className={`bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm transition-all duration-300 hover:shadow-md flex flex-col ${className}`}>
+      <div className="flex items-center gap-2 mb-3 shrink-0">
+        <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+          <Icon size={16} />
+        </div>
+        <h3 className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight">{title}</h3>
+      </div>
+      <div className="space-y-4 flex-1 flex flex-col">
+        {children}
+      </div>
+    </div>
+  )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -107,159 +159,235 @@ export default function ProductModal({ mode = 'add', product = null, categories 
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
         transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-        className="relative bg-white dark:bg-[#0d0f1a] dark:backdrop-blur-xl border border-transparent dark:border-white/10 rounded-2xl w-full max-w-md shadow-2xl dark:shadow-none z-10"
+        className="relative bg-slate-50 dark:bg-[#0A0A0B] border border-transparent dark:border-white/10 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] lg:max-h-[85vh]"
       >
 
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100 dark:border-white/10">
-          <h2 className="text-base font-semibold text-slate-900 dark:text-white tracking-tight">
-            {mode === 'add' ? t('modal_add_title') : t('modal_edit_title')}
-          </h2>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 bg-white dark:bg-[#12141c] border-b border-slate-200 dark:border-white/10 shrink-0 z-10">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+              {mode === 'add' ? 'Add New Product' : mode === 'edit' ? 'Edit Product' : 'Product Details'}
+            </h2>
+            <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+              {mode === 'add' ? 'Create a new inventory item and set its details.' : mode === 'edit' ? 'Modify existing inventory details and pricing.' : 'View product configuration and status.'}
+            </p>
+          </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            className="w-8 h-8 flex items-center justify-center border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
           >
-            <X size={13} />
+            <X size={14} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6">
-          <div className="grid grid-cols-2 gap-3.5">
-            <div className="col-span-2">
-              <label className={labelCls}>{t('field_name')} <span className="text-red-500">*</span></label>
-              <input required value={form.name} onChange={set('name')} placeholder='e.g. MacBook Pro 16"' className={inputCls} />
-            </div>
+        {/* Scrollable Body */}
+        <div className="overflow-y-auto p-4 md:p-5 custom-scrollbar relative flex-1">
+          <form id="product-form" onSubmit={handleSubmit} className="h-full">
+            <fieldset disabled={mode === 'view'} className="contents">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 h-full">
+              
+              {/* Left Column (2/3 width) */}
+              <div className="lg:col-span-2 flex flex-col gap-4">
+                
+                <Card title="Basic Details" icon={Package}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <label className={labelCls}>{t('field_name')} <span className="text-red-500">*</span></label>
+                      <input required value={form.name} onChange={setCapitalized('name')} placeholder='e.g. MacBook Pro 16"' className={inputCls} />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className={labelCls}>
+                        {t('field_brand')} <span className="font-normal text-slate-400 dark:text-slate-500">{t('field_optional')}</span>
+                      </label>
+                      <input value={form.brand} onChange={setCapitalized('brand')} placeholder="e.g. Apple" className={inputCls} />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className={labelCls}>{t('field_sku')}</label>
+                      <div className="relative group/sku">
+                        <input value={form.sku} onChange={set('sku')} placeholder="Auto-generated" className={`${inputCls} pr-10`} />
+                        {mode !== 'view' && (
+                          <button 
+                            type="button" 
+                            onClick={generateSKU} 
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-colors" 
+                            title="Generate random SKU"
+                          >
+                            <Wand2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="col-span-2">
+                      <label className={labelCls}>
+                        {t('field_description')} <span className="font-normal text-slate-400 dark:text-slate-500">{t('field_optional')}</span>
+                      </label>
+                      <textarea value={form.description} onChange={set('description')} placeholder="Short product description…" rows={2} className={`${inputCls} resize-none`} />
+                    </div>
+                  </div>
+                </Card>
 
-            <div>
-              <label className={labelCls}>{t('field_sku')}</label>
-              <input value={form.sku} onChange={set('sku')} placeholder="Auto-generated" className={inputCls} />
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">{t('field_sku_hint')}</p>
-            </div>
+                <Card title="Pricing & Inventory" icon={DollarSign} className="flex-1">
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Pricing */}
+                    <div>
+                      <label className={labelCls}>
+                        {t('field_cost')} <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-[13px] font-bold">{form.currency}</span>
+                        <input required type="number" min="0" step="0.01" value={form.cost} onChange={set('cost')} onKeyDown={handleNumberKeyDown(true)} placeholder="0.00" className={`${numberInputCls} pl-12 font-semibold`} />
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col relative">
+                      <label className={labelCls}>
+                        {t('field_selling_price')} <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-[13px] font-bold">{form.currency}</span>
+                        <input required type="number" min="0" step="0.01" value={form.selling_price} onChange={set('selling_price')} onKeyDown={handleNumberKeyDown(true)} placeholder="0.00" className={`${numberInputCls} pl-12 font-semibold`} />
+                      </div>
+                      <div className="h-4 mt-1.5 flex items-center absolute -bottom-5 left-0">
+                        {(costVal > 0 || priceVal > 0) && (
+                          <div className="flex items-center gap-1 text-[10px] font-bold tracking-wide">
+                            <span className={`px-1.5 py-0.5 rounded border ${profitColor}`}>
+                              {profit > 0 ? '+' : ''}{margin.toFixed(1)}%
+                            </span>
+                            <span className="text-slate-500 dark:text-slate-400">
+                              {profit > 0 ? '+' : ''}{form.currency} {profit.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-            <div>
-              <label className={labelCls}>
-                {t('field_brand')} <span className="font-normal text-slate-400 dark:text-slate-500">{t('field_optional')}</span>
-              </label>
-              <input value={form.brand} onChange={set('brand')} placeholder="e.g. Apple" className={inputCls} />
-            </div>
+                    {/* Inventory */}
+                    <div className="mt-4">
+                      <label className={labelCls}>
+                        {mode === 'add' ? t('field_qty_initial') : t('field_qty')} <span className="text-red-500">*</span>
+                      </label>
+                      <input required type="number" min="0" value={form.quantity} onChange={set('quantity')} onKeyDown={handleNumberKeyDown(false)} placeholder="0" className={numberInputCls} />
+                    </div>
+                    
+                    <div className="mt-4">
+                      <label className={`${labelCls} flex items-center gap-1.5 group relative w-fit`}>
+                        <span>{t('field_reorder')}</span>
+                        <Info size={13} className="text-slate-400 cursor-help" />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 p-3 bg-slate-800 dark:bg-white text-white dark:text-slate-900 text-[11px] font-medium leading-relaxed rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-xl z-20 pointer-events-none text-center">
+                          You will be alerted when stock falls below this number.
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-slate-800 dark:border-t-white"></div>
+                        </div>
+                      </label>
+                      <input required type="number" min="0" value={form.reorder_point} onChange={set('reorder_point')} onKeyDown={handleNumberKeyDown(false)} placeholder="10" className={numberInputCls} />
+                    </div>
 
-            <div>
-              <label className={labelCls}>{t('field_category')} <span className="text-red-500">*</span></label>
-              <select
-                required
-                value={form.category}
-                onChange={set('category')}
-                className={inputCls}
-              >
-                <option value="" disabled className="bg-white dark:bg-[#0d0f1a]">Select a category</option>
-                {categories.map(c => (
-                  <option key={c.id || c.name} value={c.name} className="bg-white dark:bg-[#0d0f1a]">{c.name}</option>
-                ))}
-              </select>
-            </div>
+                  </div>
+                </Card>
 
-            <div className="col-span-2">
-              <label className={labelCls}>
-                Preferred Supplier <span className="font-normal text-slate-400 dark:text-slate-500">{t('field_optional')}</span>
-              </label>
-              <select
-                value={form.supplier_id}
-                onChange={set('supplier_id')}
-                className={inputCls}
-              >
-                <option value="" className="bg-white dark:bg-[#0d0f1a]">Self-Made (Internal Production)</option>
-                {suppliers.map(s => (
-                  <option key={s.id} value={s.id} className="bg-white dark:bg-[#0d0f1a]">{s.name}</option>
-                ))}
-              </select>
-            </div>
+              </div>
 
-            <div>
-              <label className={labelCls}>
-                {t('field_cost')} ({form.currency}) <span className="text-red-500">*</span>
-              </label>
-              <input required type="number" min="0" step="0.01" value={form.cost} onChange={set('cost')} placeholder="0.00" className={inputCls} />
-            </div>
+              {/* Right Column (1/3 width) */}
+              <div className="lg:col-span-1 flex flex-col gap-4">
+                
+                <Card title="Organization" icon={Folder}>
+                  <div className="flex flex-col gap-4">
+                    <div className="z-20">
+                      <label className={labelCls}>{t('field_category')} <span className="text-red-500">*</span></label>
+                      <CustomSelect
+                        required
+                        disabled={mode === 'view'}
+                        value={form.category}
+                        onChange={(val) => setForm(f => ({ ...f, category: val }))}
+                        placeholder="Choose a category..."
+                        options={categories.map(c => ({ value: c.name, label: c.name }))}
+                        className={inputCls}
+                      />
+                    </div>
+                    <div className="z-10">
+                      <label className={labelCls}>
+                        Preferred Supplier <span className="font-normal text-slate-400 dark:text-slate-500">{t('field_optional')}</span>
+                      </label>
+                      <CustomSelect
+                        disabled={mode === 'view'}
+                        value={form.supplier_id}
+                        onChange={(val) => setForm(f => ({ ...f, supplier_id: val }))}
+                        placeholder="No preferred supplier..."
+                        options={suppliers.map(s => ({ value: s.id, label: s.name }))}
+                        className={inputCls}
+                      />
+                    </div>
+                  </div>
+                </Card>
 
-            <div>
-              <label className={labelCls}>
-                {t('field_selling_price')} ({form.currency}) <span className="text-red-500">*</span>
-              </label>
-              <input required type="number" min="0" step="0.01" value={form.selling_price} onChange={set('selling_price')} placeholder="0.00" className={inputCls} />
-            </div>
+                <Card title="Media" icon={ImgIcon} className="flex-1">
+                  <div className="flex flex-col h-full min-h-[140px]">
+                    <label className={labelCls}>
+                      Product Image <span className="font-normal text-slate-400 dark:text-slate-500">(optional)</span>
+                    </label>
+                    <label className={`flex-1 mt-1 relative rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center transition-all group overflow-hidden bg-slate-50 dark:bg-[#0A0A0B] ${mode === 'view' ? 'cursor-default' : 'hover:border-indigo-400 dark:hover:border-indigo-500/50 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10 cursor-pointer'}`}>
+                      {previewUrl ? (
+                        <>
+                          <img src={previewUrl} alt="Preview" className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 ${mode !== 'view' && 'group-hover:scale-110'}`} />
+                          {mode !== 'view' && (
+                            <button type="button" onClick={(e) => { e.preventDefault(); setImageFile(null); setPreviewUrl(''); setForm(f => ({...f, image_url: ''})) }} className="absolute top-2 right-2 bg-slate-900/60 hover:bg-rose-500 text-white rounded-full p-1.5 backdrop-blur-md transition-colors z-10">
+                              <X size={14} strokeWidth={2.5} />
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2 p-4 text-center">
+                          {mode === 'view' ? (
+                            <>
+                              <ImageIcon size={28} className="text-slate-300 dark:text-slate-600 mb-1" />
+                              <span className="font-bold text-[13px] text-slate-400 dark:text-slate-500">No Image</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload size={22} className="text-indigo-500 mb-1" />
+                              <span className="font-bold text-[13px] text-indigo-500">Click to upload</span>
+                              <span className="text-[12px] font-medium text-slate-400 dark:text-slate-500 max-w-[120px]">PNG, JPG, WEBP (Max 5MB)</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                      {mode !== 'view' && <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />}
+                    </label>
+                  </div>
+                </Card>
 
-
-            <div>
-              <label className={labelCls}>
-                {mode === 'add' ? t('field_qty_initial') : t('field_qty')} <span className="text-red-500">*</span>
-              </label>
-              <input required type="number" min="0" value={form.quantity} onChange={set('quantity')} placeholder="0" className={inputCls} />
-            </div>
-
-            <div>
-              <label className={labelCls}>{t('field_reorder')}</label>
-              <input required type="number" min="0" value={form.reorder_point} onChange={set('reorder_point')} placeholder="e.g. 10" className={inputCls} />
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">{t('field_reorder_hint')}</p>
-            </div>
-
-            <div className="col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Product Image <span className="font-normal text-slate-400">(optional)</span>
-              </label>
-              <div className="flex items-center gap-4">
-                <div className="relative w-20 h-20 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
-                  {previewUrl ? (
-                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <ImageIcon className="w-6 h-6 text-slate-300" />
-                  )}
-                  {previewUrl && (
-                    <button type="button" onClick={() => { setImageFile(null); setPreviewUrl(''); setForm(f => ({...f, image_url: ''})) }} className="absolute top-1 right-1 bg-black/50 hover:bg-black/70 text-white rounded-full p-0.5">
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <label className="flex items-center justify-center gap-2 w-full px-3 py-2 border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 rounded-xl cursor-pointer transition-colors text-sm font-medium text-slate-600">
-                    <Upload size={16} className="text-indigo-500" />
-                    <span>Upload File</span>
-                    <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                  </label>
-                  <p className="text-[10px] text-slate-400 mt-1.5 text-center">PNG, JPG, WEBP up to 5MB</p>
-                </div>
               </div>
             </div>
 
-            <div className="col-span-2">
-              <label className={labelCls}>
-                {t('field_description')} <span className="font-normal text-slate-400 dark:text-slate-500">{t('field_optional')}</span>
-              </label>
-              <textarea value={form.description} onChange={set('description')} placeholder="Short product description…" rows={2} className={`${inputCls} resize-none`} />
-            </div>
-          </div>
+            {localError && mode !== 'view' && (
+              <div className="mt-6 px-4 py-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl text-[13px] font-medium text-red-600 dark:text-red-400 leading-relaxed flex items-center justify-center shadow-sm">
+                {localError}
+              </div>
+            )}
+            </fieldset>
+          </form>
+        </div>
 
-          {localError && (
-            <div className="mt-4 px-3 py-2.5 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl text-xs text-red-600 dark:text-red-400 leading-relaxed">
-              {localError}
-            </div>
-          )}
-
-          <div className="flex gap-2.5 mt-5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors"
-            >
-              {t('modal_cancel')}
-            </button>
+        {/* Footer */}
+        <div className="flex justify-end gap-3 px-6 py-4 bg-white dark:bg-[#12141c] border-t border-slate-200 dark:border-white/10 shrink-0 z-10">
+          <button
+            type="button"
+            onClick={onClose}
+            className={`px-6 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold transition-colors ${mode === 'view' ? 'bg-indigo-600 hover:bg-indigo-500 text-white border-transparent' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04]'}`}
+          >
+            {mode === 'view' ? 'Close' : t('modal_cancel')}
+          </button>
+          {mode !== 'view' && (
             <button
               type="submit"
-              disabled={isPending || uploadMutation.isPending}
-              className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold text-white disabled:opacity-60 transition-colors shadow-[0_4px_14px_0_rgba(99,102,241,0.2)]"
+              form="product-form"
+              disabled={isPending || uploadMutation.isPending || !hasChanges}
+              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-bold text-white disabled:opacity-60 transition-colors shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(99,102,241,0.2)] flex items-center gap-2"
             >
               {isPending || uploadMutation.isPending ? t('modal_saving') : mode === 'add' ? t('modal_add_btn') : t('modal_save')}
             </button>
-          </div>
-        </form>
+          )}
+        </div>
+
       </motion.div>
     </div>
   )

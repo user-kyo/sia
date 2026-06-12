@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
+import CustomSelect from '../../../components/ui/CustomSelect'
 import { motion } from 'framer-motion'
 import { useAppSettings } from '../../../contexts/AppSettingsContext'
 
@@ -13,7 +14,16 @@ export default function StockAdjustModal({ product, onClose, onSubmit, isPending
     onSubmit({ id: product.id, adjustment_type: form.adjustment_type, quantity: parseInt(form.quantity, 10), note: form.note.trim() || undefined })
   }
 
-  const inputCls = 'w-full px-3 py-2 bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all'
+  const handleNumberKeyDown = (allowDecimal) => (e) => {
+    if (['Backspace', 'Tab', 'End', 'Home', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter'].includes(e.key)) return;
+    if (/[0-9]/.test(e.key)) return;
+    if (allowDecimal && e.key === '.' && !e.target.value.includes('.')) return;
+    if (e.ctrlKey || e.metaKey) return;
+    e.preventDefault();
+  }
+
+  const inputCls = 'w-full px-3 py-2 bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/30 focus:border-indigo-500 transition-all'
+  const numberInputCls = `${inputCls} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`
   const labelCls = 'block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5'
 
   return (
@@ -53,15 +63,20 @@ export default function StockAdjustModal({ product, onClose, onSubmit, isPending
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
           <div>
             <label className={labelCls}>{t('adj_type')}</label>
-            <select value={form.adjustment_type} onChange={set('adjustment_type')} className={inputCls}>
-              <option value="add"    className="bg-white dark:bg-[#0d0f1a]">{t('adj_add_stock')}</option>
-              <option value="remove" className="bg-white dark:bg-[#0d0f1a]">{t('adj_remove_stock')}</option>
-              <option value="set"    className="bg-white dark:bg-[#0d0f1a]">{t('adj_set_qty')}</option>
-            </select>
+            <CustomSelect
+              value={form.adjustment_type}
+              onChange={(val) => setForm(f => ({ ...f, adjustment_type: val }))}
+              options={[
+                { value: 'add', label: t('adj_add_stock') },
+                { value: 'remove', label: t('adj_remove_stock') },
+                { value: 'set', label: t('adj_set_qty') }
+              ]}
+              className={inputCls}
+            />
           </div>
           <div>
             <label className={labelCls}>{t('field_qty')}</label>
-            <input required type="number" min="0" value={form.quantity} onChange={set('quantity')} placeholder="0" className={inputCls} />
+            <input required type="number" min="0" value={form.quantity} onChange={set('quantity')} onKeyDown={handleNumberKeyDown(false)} placeholder="0" className={numberInputCls} />
           </div>
           <div>
             <label className={labelCls}>
