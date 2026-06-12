@@ -68,7 +68,7 @@ const translations = {
     del_bulk_title: 'Delete {n} Products?',
     del_single_body: 'This will permanently delete {name}. This action cannot be undone.',
     del_bulk_body: 'This will permanently delete {n} products. This action cannot be undone.',
-    del_confirm: 'Yes, Delete',
+    del_confirm: 'Confirm Delete',
     del_deleting: 'Deleting…',
 
     // Adjust stock
@@ -326,7 +326,7 @@ const translations = {
     del_bulk_title: 'Burahin ang {n} na Produkto?',
     del_single_body: 'Permanenteng mabubura ang {name}. Hindi na ito mababawi.',
     del_bulk_body: 'Permanenteng mabubura ang {n} na produkto. Hindi na ito mababawi.',
-    del_confirm: 'Oo, Burahin',
+    del_confirm: 'Kumpirmahin',
     del_deleting: 'Binubura…',
 
     // Adjust stock
