@@ -1,9 +1,18 @@
-from fastapi import APIRouter, HTTPException, status, Query, Depends
+# pyright: ignore[reportMissingImports]
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Query,
+    status,
+)
 from typing import Optional, List
-from app.schemas.procurements import ProcurementCreate, ProcurementUpdate, ProcurementResponse
+from app.schemas.procurements import ProcurementCreate, ProcurementResponse, SubmitInvoiceRequest
 from app.db.supabase import supabase_client
 from app.api.deps import get_current_user
 from app.core.audit import log_audit_event
+from app.core.mailer import send_po_approval_email
 import uuid
 
 router = APIRouter()
@@ -65,10 +74,48 @@ def create_procurement(procurement: ProcurementCreate, current_user: dict = Depe
     
     return created_po
 
+@router.get("/public/{po_id}", response_model=ProcurementResponse)
+def get_public_procurement(po_id: str):
+    if not supabase_client:
+        raise HTTPException(status_code=500, detail="Supabase client not initialized")
+    result = supabase_client.table("procurements").select("*").eq("id", po_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Purchase Order not found")
+    return result.data[0]
+
+@router.put("/public/{po_id}/submit-invoice", response_model=ProcurementResponse)
+def submit_public_invoice(po_id: str, payload: SubmitInvoiceRequest):
+    if not supabase_client:
+        raise HTTPException(status_code=500, detail="Supabase client not initialized")
+    
+    existing = supabase_client.table("procurements").select("*").eq("id", po_id).execute()
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Purchase Order not found")
+        
+    po = existing.data[0]
+    if po["status"] not in ["approved", "invoice_received"]:
+        raise HTTPException(status_code=400, detail="Can only submit invoice for approved POs")
+
+    items = [item.model_dump() for item in payload.items]
+
+    update_payload = {
+        "status": "invoice_received",
+        "items": items,
+        "invoice_url": payload.invoice_url,
+        "updated_at": "now()"
+    }
+
+    result = supabase_client.table("procurements").update(update_payload).eq("id", po_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Failed to submit invoice")
+        
+    return result.data[0]
+
 @router.put("/{po_id}/status", response_model=ProcurementResponse)
 def update_procurement_status(
     po_id: str, 
-    new_status: str = Query(..., regex="^(approved|received|cancelled)$"),
+    background_tasks: BackgroundTasks,
+    new_status: str = Query(..., pattern="^(approved|received|cancelled|invoice_received)$"),
     reason: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user)
 ):
@@ -86,8 +133,8 @@ def update_procurement_status(
     if po["status"] in ["cancelled", "received"]:
         raise HTTPException(status_code=400, detail=f"Cannot change status of a {po['status']} PO")
         
-    if new_status == "received" and po["status"] != "approved":
-        raise HTTPException(status_code=400, detail="Can only receive an approved PO")
+    if new_status == "received" and po["status"] not in ["approved", "invoice_received"]:
+        raise HTTPException(status_code=400, detail="Can only receive an approved or invoiced PO")
 
     update_payload = {"status": new_status, "updated_at": "now()"}
     if new_status == "cancelled" and reason:
@@ -110,6 +157,23 @@ def update_procurement_status(
                     current_qty = inv.data[0]["quantity"]
                     new_qty = current_qty + item["quantity"]
                     supabase_client.table("inventory").update({"quantity": new_qty, "updated_at": "now()"}).eq("id", item["product_id"]).execute()
+
+    # Email notification for approval
+    if new_status == "approved":
+        supplier = supabase_client.table("suppliers").select("name, email").eq("id", updated_po["supplier_id"]).eq("company_id", current_user["company_id"]).execute()
+        if supplier.data and supplier.data[0].get("email"):
+            company = supabase_client.table("companies").select("name").eq("id", current_user["company_id"]).execute()
+            company_name = company.data[0]["name"] if company.data else "Your Company"
+            portal_link = f"http://localhost:5173/supplier/po/{updated_po['id']}"
+            background_tasks.add_task(
+                send_po_approval_email,
+                to_email=supplier.data[0]["email"],
+                supplier_name=supplier.data[0]["name"],
+                po_number=updated_po["po_number"],
+                items=updated_po["items"],
+                company_name=company_name,
+                portal_link=portal_link
+            )
 
     log_audit_event(
         company_id=current_user["company_id"],

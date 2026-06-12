@@ -1,3 +1,4 @@
+# pyright: ignore[reportMissingImports]
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
@@ -21,6 +22,10 @@ class ProcurementBase(BaseModel):
 class ProcurementCreate(ProcurementBase):
     pass
 
+class SubmitInvoiceRequest(BaseModel):
+    items: List[ProcurementItem]
+    invoice_url: str
+
 class ProcurementUpdate(BaseModel):
     supplier_id: Optional[str] = None
     total_amount: Optional[float] = None
@@ -35,6 +40,7 @@ class ProcurementResponse(ProcurementBase):
     po_number: str
     requested_by: str
     cancel_reason: Optional[str] = None
+    invoice_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

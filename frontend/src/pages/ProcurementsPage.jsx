@@ -71,6 +71,7 @@ export default function ProcurementsPage() {
           const supplierName = supplierMap[po.supplier_id] || 'Unknown Supplier'
           const isPending = po.status === 'pending_approval'
           const isApproved = po.status === 'approved'
+          const isInvoiceReceived = po.status === 'invoice_received'
           const isReceived = po.status === 'received'
           
           return (
@@ -116,13 +117,25 @@ export default function ProcurementsPage() {
                     </div>
                   )}
                   {isApproved && isAdmin && (
+                    <div className="flex items-center gap-1.5 text-slate-500 font-semibold text-sm mr-2">
+                      <Clock size={16} />
+                      Waiting for Supplier
+                    </div>
+                  )}
+                  {isInvoiceReceived && isAdmin && (
                     <>
+                      {po.invoice_url && (
+                        <a href={po.invoice_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-700 font-semibold text-sm mr-2 bg-indigo-50 px-3 py-1.5 rounded-lg">
+                          <FileText size={16} />
+                          View Invoice
+                        </a>
+                      )}
                       <button 
                         onClick={() => updateStatusMut.mutate({ id: po.id, status: 'received' })}
                         disabled={updateStatusMut.isPending}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 shadow-[0_4px_14px_0_rgba(16,185,129,0.2)]"
                       >
-                        Receive Stock
+                        Stock Received
                       </button>
                       <button 
                         onClick={() => updateStatusMut.mutate({ id: po.id, status: 'cancelled' })}
@@ -171,6 +184,7 @@ function StatusBadge({ status }) {
     draft: { color: 'text-slate-500 border-slate-200 dark:text-slate-400 dark:border-slate-700' },
     pending_approval: { label: 'PENDING', color: 'text-amber-500 border-amber-200 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/10' },
     approved: { label: 'APPROVED', color: 'text-indigo-500 border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/50 dark:bg-indigo-500/10' },
+    invoice_received: { label: 'INVOICED', color: 'text-blue-500 border-blue-200 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/10' },
     received: { label: 'COMPLETED', color: 'text-emerald-500 border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/10' },
     cancelled: { label: 'CANCELLED', color: 'text-rose-500 border-rose-200 dark:border-rose-500/30 bg-rose-50/50 dark:bg-rose-500/10' }
   }
@@ -412,6 +426,15 @@ function ViewProcurementModal({ po, isAdmin, onClose }) {
               <p className="text-slate-500 dark:text-slate-400 mb-1">Date Created</p>
               <p className="font-semibold text-slate-900 dark:text-slate-200">{new Date(po.created_at).toLocaleString()}</p>
             </div>
+            {po.invoice_url && (
+              <div className="col-span-2">
+                <p className="text-slate-500 dark:text-slate-400 mb-1">Invoice Document</p>
+                <a href={po.invoice_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-indigo-600 hover:text-indigo-700 font-semibold bg-indigo-50 px-3 py-1.5 rounded-lg">
+                  <FileText size={16} />
+                  Open Invoice Link
+                </a>
+              </div>
+            )}
           </div>
           
           <div>
@@ -466,6 +489,12 @@ function ViewProcurementModal({ po, isAdmin, onClose }) {
                   </>
                 )}
                 {po.status === 'approved' && (
+                  <div className="flex items-center gap-1.5 text-slate-500 font-semibold text-sm">
+                    <Clock size={16} />
+                    Waiting for Supplier Invoice
+                  </div>
+                )}
+                {po.status === 'invoice_received' && (
                   <button onClick={() => statusMut.mutate({ id: po.id, status: 'received' })} disabled={statusMut.isPending} className="px-5 py-2.5 text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-colors disabled:opacity-50 shadow-[0_4px_14px_0_rgba(16,185,129,0.2)] dark:shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                     Mark as Received (Restock)
                   </button>
