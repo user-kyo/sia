@@ -14,6 +14,7 @@ def _check_admin(user: dict):
 def list_suppliers(
     search: Optional[str] = Query(None),
     status_filter: Optional[str] = Query(None),
+    include_deleted: bool = Query(False),
     current_user: dict = Depends(get_current_user),
 ):
     if not supabase_client:
@@ -23,6 +24,8 @@ def list_suppliers(
     
     if status_filter:
         q = q.eq("status", status_filter)
+    elif not include_deleted:
+        q = q.neq("status", "deleted")
     if search:
         q = q.ilike("name", f"%{search}%")
         
@@ -68,6 +71,31 @@ def delete_supplier(supplier_id: str, current_user: dict = Depends(get_current_u
     if not supabase_client:
         raise HTTPException(status_code=500, detail="Supabase client not initialized")
 
-    result = supabase_client.table("suppliers").delete().eq("id", supplier_id).eq("company_id", current_user["company_id"]).execute()
-    if not result.data:
+    supplier = (
+        supabase_client.table("suppliers")
+        .select("id")
+        .eq("id", supplier_id)
+        .eq("company_id", current_user["company_id"])
+        .limit(1)
+        .execute()
+    )
+    if not supplier.data:
         raise HTTPException(status_code=404, detail="Supplier not found")
+
+    linked_procurement = (
+        supabase_client.table("procurements")
+        .select("id")
+        .eq("supplier_id", supplier_id)
+        .eq("company_id", current_user["company_id"])
+        .limit(1)
+        .execute()
+    )
+
+    if linked_procurement.data:
+        supabase_client.table("suppliers").update({
+            "status": "deleted",
+            "updated_at": "now()",
+        }).eq("id", supplier_id).eq("company_id", current_user["company_id"]).execute()
+        return
+
+    supabase_client.table("suppliers").delete().eq("id", supplier_id).eq("company_id", current_user["company_id"]).execute()

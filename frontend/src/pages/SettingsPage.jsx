@@ -3,7 +3,7 @@ import { useTheme } from '../contexts/ThemeContext'
 import { useCurrency, CURRENCIES } from '../contexts/CurrencyContext'
 import { useAppSettings } from '../contexts/AppSettingsContext'
 import { useToast } from '../components/ui/Toast'
-import { Moon, Sun, Store, Package, Clock, Type, LayoutList, Globe, Contrast, DollarSign, AlertTriangle, Lock, Shield, Mail, Key, Eye, EyeOff } from 'lucide-react'
+import { Moon, Sun, Store, Package, Clock, Type, LayoutList, Globe, Contrast, DollarSign, AlertTriangle, Shield, Mail, Key, Eye, EyeOff, CheckCircle2, ExternalLink } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SectionSkeleton } from '../components/ui/Skeletons'
 import { supabase } from '../lib/supabase'
@@ -93,7 +93,7 @@ export default function SettingsPage() {
       setSmtpSaved(true);
       toast("Email integration settings saved.", 'success');
       setTimeout(() => setSmtpSaved(false), 2000);
-    } catch (err) {
+    } catch {
       toast("Failed to save email settings.", 'error');
     } finally {
       setIsSavingSmtp(false);
@@ -294,16 +294,66 @@ export default function SettingsPage() {
 
       {/* ── 1.5 Email Integration ───────────────────────────── */}
       <Section icon={Mail} title="Email Integration (Custom SMTP)" subtitle="Send Purchase Order emails using your company's actual email address.">
-        <div className="mb-4 flex items-start gap-2.5 p-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl">
-          <Mail size={16} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-          <div className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
-            <p className="font-semibold mb-1">How to setup Gmail App Passwords:</p>
-            <ol className="list-decimal pl-4 space-y-1">
-              <li>Turn on <strong>2-Step Verification</strong> in your Google Account Security settings.</li>
-              <li>Search for <strong>App passwords</strong> and create one (Name it "SIA System").</li>
-              <li>Google will give you a 16-character password. Paste it below.</li>
-            </ol>
-            <p className="mt-1">Leave blank to use the default system email.</p>
+        <div className="mb-5 rounded-2xl border border-blue-200 bg-blue-50 p-5 dark:border-blue-500/20 dark:bg-blue-500/10">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm dark:bg-blue-500/10 dark:text-blue-300">
+              <Mail size={18} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h4 className="text-base font-bold text-blue-950 dark:text-blue-100">Gmail App Password setup guide</h4>
+                  <p className="mt-1 text-sm leading-6 text-blue-800 dark:text-blue-200">
+                    Use this when you want SIA to send purchase order emails from your own Gmail address.
+                  </p>
+                </div>
+                <a
+                  href="https://myaccount.google.com/apppasswords"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200 dark:hover:bg-blue-500/20"
+                >
+                  Open App Passwords
+                  <ExternalLink size={14} />
+                </a>
+              </div>
+
+              <div className="mt-5 grid gap-4">
+                {[
+                  {
+                    title: '1. Turn on 2-Step Verification',
+                    body: 'Go to your Google Account Security page, open 2-Step Verification, and finish the setup. App passwords are only available after 2-Step Verification is enabled.',
+                  },
+                  {
+                    title: '2. Create an app password',
+                    body: 'Open App passwords, sign in again if Google asks, enter a name such as "SIA System", then create the password.',
+                  },
+                  {
+                    title: '3. Copy the 16-character password',
+                    body: 'Google shows the app password once. Copy it exactly, paste it into the Google App Password field below, then save the settings.',
+                  },
+                ].map(step => (
+                  <div key={step.title} className="flex gap-3">
+                    <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-blue-600 dark:text-blue-300" />
+                    <div>
+                      <p className="text-sm font-bold text-blue-950 dark:text-blue-100">{step.title}</p>
+                      <p className="mt-1 text-sm leading-6 text-blue-800 dark:text-blue-200">{step.body}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 rounded-xl border border-blue-200 bg-white/70 p-4 dark:border-blue-500/20 dark:bg-black/10">
+                <p className="text-sm font-bold text-blue-950 dark:text-blue-100">If App passwords is missing</p>
+                <p className="mt-1 text-sm leading-6 text-blue-800 dark:text-blue-200">
+                  Google may hide it for some work or school accounts, accounts that only use security keys for 2-Step Verification, or accounts enrolled in Advanced Protection. Ask your Google Workspace admin to allow app passwords, or use the default system email for now.
+                </p>
+              </div>
+
+              <p className="mt-4 text-sm leading-6 text-blue-800 dark:text-blue-200">
+                Leave both fields blank to use the default system email. If you change your Google Account password later, Google revokes existing app passwords, so generate a new one and save it here again.
+              </p>
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

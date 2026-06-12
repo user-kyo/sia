@@ -1,16 +1,19 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, Building2, Phone, Mail, MapPin, MoreVertical, Edit2, Trash2, X } from 'lucide-react'
+import { Plus, Search, Building2, Phone, Mail, MapPin, Edit2, Trash2, X } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchSuppliers, createSupplier, updateSupplier, deleteSupplier } from '../features/suppliers/api/suppliersApi'
+import { useToast } from '../components/ui/Toast'
 
 export default function SuppliersDirectoryPage() {
   const queryClient = useQueryClient()
+  const toast = useToast()
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingSupplier, setEditingSupplier] = useState(null)
   const [supplierToDelete, setSupplierToDelete] = useState(null)
   const [errorMsg, setErrorMsg] = useState(null)
+  const [deleteErrorMsg, setDeleteErrorMsg] = useState(null)
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
   
   // Form State
@@ -29,10 +32,11 @@ export default function SuppliersDirectoryPage() {
 
   const createMut = useMutation({
     mutationFn: createSupplier,
-    onSuccess: () => {
-      queryClient.invalidateQueries(['suppliers'])
+    onSuccess: (supplier) => {
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] })
       setIsModalOpen(false)
       resetForm()
+      toast(`${supplier.name} added successfully.`, 'success')
     },
     onError: (err) => {
       setErrorMsg(err.response?.data?.detail || err.message || 'Failed to create supplier')
@@ -42,7 +46,7 @@ export default function SuppliersDirectoryPage() {
   const updateMut = useMutation({
     mutationFn: updateSupplier,
     onSuccess: () => {
-      queryClient.invalidateQueries(['suppliers'])
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] })
       setIsModalOpen(false)
       resetForm()
     },
@@ -54,8 +58,14 @@ export default function SuppliersDirectoryPage() {
   const deleteMut = useMutation({
     mutationFn: deleteSupplier,
     onSuccess: () => {
-      queryClient.invalidateQueries(['suppliers'])
+      const supplierName = supplierToDelete?.name || 'Supplier'
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] })
       setSupplierToDelete(null)
+      setDeleteErrorMsg(null)
+      toast(`${supplierName} deleted successfully.`, 'success')
+    },
+    onError: (err) => {
+      setDeleteErrorMsg(err.response?.data?.detail || err.message || 'Failed to delete supplier')
     }
   })
 
@@ -165,7 +175,7 @@ export default function SuppliersDirectoryPage() {
                       <button onClick={() => openEdit(supplier)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-colors">
                         <Edit2 size={16} />
                       </button>
-                      <button onClick={() => setSupplierToDelete(supplier)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors">
+                      <button onClick={() => { setSupplierToDelete(supplier); setDeleteErrorMsg(null) }} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -268,9 +278,14 @@ export default function SuppliersDirectoryPage() {
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
                 Are you sure you want to delete <span className="font-semibold text-slate-700 dark:text-slate-300">{supplierToDelete.name}</span>? This action cannot be undone and may affect active purchase orders.
               </p>
+              {deleteErrorMsg && (
+                <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-medium text-rose-600 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400">
+                  {deleteErrorMsg}
+                </div>
+              )}
               <div className="flex gap-3">
                 <button
-                  onClick={() => setSupplierToDelete(null)}
+                  onClick={() => { setSupplierToDelete(null); setDeleteErrorMsg(null) }}
                   className="flex-1 px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
                 >
                   Cancel

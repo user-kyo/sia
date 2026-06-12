@@ -1,9 +1,10 @@
 import api from '../../../lib/axios'
 
-export const fetchSuppliers = async ({ search, status } = {}) => {
+export const fetchSuppliers = async ({ search, status, includeDeleted = false } = {}) => {
   const p = new URLSearchParams()
   if (search) p.set('search', search)
   if (status) p.set('status_filter', status)
+  if (includeDeleted) p.set('include_deleted', 'true')
   const { data } = await api.get(`/suppliers?${p.toString()}`)
   return data
 }

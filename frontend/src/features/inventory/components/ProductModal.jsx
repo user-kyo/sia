@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Upload, Image as ImageIcon, Wand2, Info, Package, DollarSign, Folder, ImageIcon as ImgIcon, Box } from 'lucide-react'
+import { X, Upload, Image as ImageIcon, Wand2, Info, Package, DollarSign, Folder, ImageIcon as ImgIcon } from 'lucide-react'
 import CustomSelect from '../../../components/ui/CustomSelect'
 import { motion } from 'framer-motion'
 import { useUploadProductImage } from '../hooks/useInventory'
@@ -11,6 +11,20 @@ const EMPTY = {
   quantity: '', reorder_point: '10', description: '', image_url: '',
   currency: 'PHP',
 }
+
+const Card = ({ title, icon: Icon, children, className = '' }) => (
+  <div className={`bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm transition-all duration-300 hover:shadow-md flex flex-col ${className}`}>
+    <div className="flex items-center gap-2 mb-3 shrink-0">
+      <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+        <Icon size={16} />
+      </div>
+      <h3 className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight">{title}</h3>
+    </div>
+    <div className="space-y-4 flex-1 flex flex-col">
+      {children}
+    </div>
+  </div>
+)
 
 export default function ProductModal({ mode = 'add', product = null, categories = [], suppliers = [], onClose, onSubmit, isPending }) {
   const [form, setForm] = useState(EMPTY)
@@ -24,7 +38,6 @@ export default function ProductModal({ mode = 'add', product = null, categories 
   const { settings, t } = useAppSettings()
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if ((mode === 'edit' || mode === 'view') && product) {
       const init = {
         name: product.name || '',
@@ -40,6 +53,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
         image_url: product.image_url || '',
         currency: product.currency || 'PHP',
       }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm(init)
       setInitialForm(init)
       setPreviewUrl(product.image_url || '')
@@ -49,7 +63,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
       setPreviewUrl('')
     }
     setImageFile(null)
-  }, [mode, product])
+  }, [mode, product, settings.defaultReorderPoint, code])
 
   const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }))
 
@@ -129,21 +143,6 @@ export default function ProductModal({ mode = 'add', product = null, categories 
   const inputCls = 'w-full px-3 py-2 bg-slate-50 dark:bg-[#0A0A0B] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:bg-white dark:focus:bg-[#12141c] focus:ring-2 focus:ring-inset focus:ring-indigo-500/30 focus:border-indigo-500 transition-all shadow-sm focus:shadow-md disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-white/[0.02]'
   const numberInputCls = `${inputCls} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`
   const labelCls = 'block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-1'
-
-  const Card = ({ title, icon: Icon, children, className = '' }) => (
-    <div className={`bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm transition-all duration-300 hover:shadow-md flex flex-col ${className}`}>
-      <div className="flex items-center gap-2 mb-3 shrink-0">
-        <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-          <Icon size={16} />
-        </div>
-        <h3 className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight">{title}</h3>
-      </div>
-      <div className="space-y-4 flex-1 flex flex-col">
-        {children}
-      </div>
-    </div>
-  )
-
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6">

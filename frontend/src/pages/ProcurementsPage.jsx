@@ -24,7 +24,10 @@ export default function ProcurementsPage() {
     queryFn: () => fetchProcurements(),
   })
 
-  const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: fetchSuppliers })
+  const { data: suppliers = [] } = useQuery({
+    queryKey: ['suppliers', { includeDeleted: true }],
+    queryFn: () => fetchSuppliers({ includeDeleted: true }),
+  })
   const supplierMap = Object.fromEntries(suppliers.map(s => [s.id, s.name]))
 
   const updateStatusMut = useMutation({
@@ -198,7 +201,7 @@ function StatusBadge({ status }) {
 
 function CreateProcurementModal({ onClose, initialProduct = null }) {
   const queryClient = useQueryClient()
-  const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: fetchSuppliers })
+  const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: () => fetchSuppliers() })
   const [supplierId, setSupplierId] = useState(initialProduct?.supplier_id || '')
   const [remarks, setRemarks] = useState('')
   const [items, setItems] = useState(() => {
