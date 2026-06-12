@@ -3,7 +3,7 @@ import { useTheme } from '../contexts/ThemeContext'
 import { useCurrency, CURRENCIES } from '../contexts/CurrencyContext'
 import { useAppSettings } from '../contexts/AppSettingsContext'
 import { useToast } from '../components/ui/Toast'
-import { Moon, Sun, Store, Package, Clock, Type, LayoutList, Globe, Contrast, DollarSign, AlertTriangle, Shield, Mail, Key, Eye, EyeOff, CheckCircle2, ExternalLink } from 'lucide-react'
+import { Moon, Sun, Store, Package, Clock, Type, LayoutList, Globe, Contrast, DollarSign, AlertTriangle, Shield, Mail, Key, Eye, EyeOff, CheckCircle2, ExternalLink, X, Info } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SectionSkeleton } from '../components/ui/Skeletons'
 import { supabase } from '../lib/supabase'
@@ -66,6 +66,7 @@ export default function SettingsPage() {
   const [smtp, setSmtp] = useState({ email: '', password: '' })
   const [smtpSaved, setSmtpSaved] = useState(false)
   const [isSavingSmtp, setIsSavingSmtp] = useState(false)
+  const [showAppPasswordGuide, setShowAppPasswordGuide] = useState(false)
 
   React.useEffect(() => {
     const fetchSmtpSettings = async () => {
@@ -294,67 +295,20 @@ export default function SettingsPage() {
 
       {/* ── 1.5 Email Integration ───────────────────────────── */}
       <Section icon={Mail} title="Email Integration (Custom SMTP)" subtitle="Send Purchase Order emails using your company's actual email address.">
-        <div className="mb-5 rounded-2xl border border-blue-200 bg-blue-50 p-5 dark:border-blue-500/20 dark:bg-blue-500/10">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm dark:bg-blue-500/10 dark:text-blue-300">
-              <Mail size={18} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <h4 className="text-base font-bold text-blue-950 dark:text-blue-100">Gmail App Password setup guide</h4>
-                  <p className="mt-1 text-sm leading-6 text-blue-800 dark:text-blue-200">
-                    Use this when you want SIA to send purchase order emails from your own Gmail address.
-                  </p>
-                </div>
-                <a
-                  href="https://myaccount.google.com/apppasswords"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200 dark:hover:bg-blue-500/20"
-                >
-                  Open App Passwords
-                  <ExternalLink size={14} />
-                </a>
-              </div>
-
-              <div className="mt-5 grid gap-4">
-                {[
-                  {
-                    title: '1. Turn on 2-Step Verification',
-                    body: 'Go to your Google Account Security page, open 2-Step Verification, and finish the setup. App passwords are only available after 2-Step Verification is enabled.',
-                  },
-                  {
-                    title: '2. Create an app password',
-                    body: 'Open App passwords, sign in again if Google asks, enter a name such as "SIA System", then create the password.',
-                  },
-                  {
-                    title: '3. Copy the 16-character password',
-                    body: 'Google shows the app password once. Copy it exactly, paste it into the Google App Password field below, then save the settings.',
-                  },
-                ].map(step => (
-                  <div key={step.title} className="flex gap-3">
-                    <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-blue-600 dark:text-blue-300" />
-                    <div>
-                      <p className="text-sm font-bold text-blue-950 dark:text-blue-100">{step.title}</p>
-                      <p className="mt-1 text-sm leading-6 text-blue-800 dark:text-blue-200">{step.body}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-5 rounded-xl border border-blue-200 bg-white/70 p-4 dark:border-blue-500/20 dark:bg-black/10">
-                <p className="text-sm font-bold text-blue-950 dark:text-blue-100">If App passwords is missing</p>
-                <p className="mt-1 text-sm leading-6 text-blue-800 dark:text-blue-200">
-                  Google may hide it for some work or school accounts, accounts that only use security keys for 2-Step Verification, or accounts enrolled in Advanced Protection. Ask your Google Workspace admin to allow app passwords, or use the default system email for now.
-                </p>
-              </div>
-
-              <p className="mt-4 text-sm leading-6 text-blue-800 dark:text-blue-200">
-                Leave both fields blank to use the default system email. If you change your Google Account password later, Google revokes existing app passwords, so generate a new one and save it here again.
-              </p>
-            </div>
+        <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-blue-200 bg-blue-50 p-5 dark:border-blue-500/20 dark:bg-blue-500/10">
+          <div>
+            <h4 className="text-base font-bold text-blue-950 dark:text-blue-100">Use your own Gmail address</h4>
+            <p className="mt-1 text-sm leading-6 text-blue-800 dark:text-blue-200">
+              SIA can send purchase order emails from your own Gmail address. To do this, you need a Google App Password.
+            </p>
           </div>
+          <button
+            onClick={() => setShowAppPasswordGuide(true)}
+            className="mt-4 sm:mt-0 inline-flex shrink-0 items-center gap-2 rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200 dark:hover:bg-blue-500/20 shadow-sm"
+          >
+            <Info size={16} />
+            How to set this up?
+          </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -873,6 +827,110 @@ export default function SettingsPage() {
                 >
                   Confirm
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* App Password Guide Modal */}
+      <AnimatePresence>
+        {showAppPasswordGuide && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setShowAppPasswordGuide(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+              className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-[#0d0f1a] dark:backdrop-blur-xl border border-transparent dark:border-white/10 rounded-2xl shadow-2xl z-10"
+            >
+              <div className="sticky top-0 bg-white/90 dark:bg-[#0d0f1a]/90 backdrop-blur-md px-6 py-4 border-b border-slate-100 dark:border-white/10 flex items-center justify-between z-20">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20">
+                    <Mail size={18} className="text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">Gmail App Password Setup</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Step-by-step guide for connecting your Gmail account.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAppPasswordGuide(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="p-6">
+                <div className="flex justify-center mb-6">
+                  <a
+                    href="https://myaccount.google.com/apppasswords"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-blue-200 bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-blue-500 hover:shadow-lg hover:-translate-y-0.5 dark:border-blue-500/30"
+                  >
+                    Open Google App Passwords
+                    <ExternalLink size={16} />
+                  </a>
+                </div>
+
+                <div className="grid gap-5">
+                  {[
+                    {
+                      title: 'Step 1: Go to your Google Account Settings',
+                      body: 'Open a new tab and go to myaccount.google.com (or click your profile picture in Gmail and choose "Manage your Google Account").',
+                    },
+                    {
+                      title: 'Step 2: Turn on 2-Step Verification',
+                      body: 'On the left menu, click "Security". Scroll down to "How you sign in to Google". Click "2-Step Verification" and follow the steps on the screen to turn it on using your phone. If it already says "On", skip this step.',
+                    },
+                    {
+                      title: 'Step 3: Search for App Passwords',
+                      body: 'Go back to the main Security page (or use the search bar at the very top of your Google Account and type "App passwords"). Click on "App passwords".',
+                    },
+                    {
+                      title: 'Step 4: Create a new password',
+                      body: 'Google might ask you to type your normal password again. Then, you will see a box that says "App name". Type "SIA System" in that box and click the "Create" button.',
+                    },
+                    {
+                      title: 'Step 5: Copy the secret code',
+                      body: 'A box will pop up showing a 16-letter password on a yellow background. This is your App Password. Highlight it with your mouse, right-click, and select "Copy".',
+                    },
+                    {
+                      title: 'Step 6: Paste it into SIA and Save',
+                      body: 'Come back to this page. Right-click inside the "Google App Password" box at the bottom and choose "Paste". Click the "Save Email Settings" button.',
+                    },
+                  ].map((step, index) => (
+                    <div key={index} className="flex gap-4">
+                      <div className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 font-bold text-xs">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">{step.title}</p>
+                        <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">{step.body}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                  <p className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1">
+                    <AlertTriangle size={16} className="text-amber-500" />
+                    If you don't see "App passwords"
+                  </p>
+                  <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                    Google hides this if you haven't turned on 2-Step Verification first. Also, some school or work accounts don't allow it. Ask your IT admin, or simply leave the fields empty to use the system default email.
+                  </p>
+                </div>
               </div>
             </motion.div>
           </div>
