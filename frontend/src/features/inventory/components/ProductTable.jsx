@@ -6,12 +6,12 @@ import { useAppSettings } from '../../../contexts/AppSettingsContext'
 import { TableSkeleton } from '../../../components/ui/Skeletons'
 
 const COLS = [
-  { key: 'name',         tKey: 'col_product',       width: 'w-[22%]' },
+  { key: 'name',         tKey: 'col_product',       width: 'w-[24%]' },
   { key: 'brand',        tKey: 'col_brand',         width: 'w-[12%]' },
-  { key: 'category',     tKey: 'col_category',      width: 'w-[12%]' },
+  { key: 'category',     tKey: 'col_category',      width: 'w-[14%]' },
   { key: 'cost',         tKey: 'col_cost',          width: 'w-[12%]' },
-  { key: 'selling_price', tKey: 'col_selling_price', width: 'w-[12%]' },
-  { key: 'quantity',     tKey: 'col_stock',         width: 'w-[14%]' },
+  { key: 'price',        tKey: 'col_selling_price', width: 'w-[14%]' },
+  { key: 'quantity',     tKey: 'col_stock',         width: 'w-[12%]' },
 ]
 
 const DENSITY_CLS = {
@@ -74,18 +74,7 @@ export default function ProductTable({
   }
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      {isLoading ? (
-        <TableSkeleton key="skeleton-table" rows={5} columns={6} />
-      ) : (
-        <motion.div 
-          key="content-table"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="overflow-x-auto relative min-h-[500px]"
-        >
+    <div className="overflow-x-auto relative min-h-[500px]">
       <table className="w-full min-w-[800px] text-left text-sm table-fixed">
         <thead className="bg-slate-50 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 transition-colors">
           <tr>
@@ -110,14 +99,34 @@ export default function ProductTable({
                 </span>
               </th>
             ))}
-            <th className="px-6 py-4 font-semibold text-center transition-colors w-[16%] min-w-[180px]">
+            <th className="px-6 py-4 font-semibold text-center transition-colors w-[12%] min-w-[120px]">
               {t('col_actions')}
             </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-white/5 transition-colors">
-          <AnimatePresence>
-            {items.map((item, index) => {
+          <AnimatePresence mode="wait">
+            {isLoading ? (
+              <motion.tr key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="contents">
+                {Array.from({ length: 8 }).map((_, idx) => (
+                  <tr key={`sk-${idx}`} className="h-[73px] bg-transparent pointer-events-none animate-pulse">
+                    <td className="px-6 py-4"><div className="w-4 h-4 rounded bg-slate-200 dark:bg-white/10" /></td>
+                    <td className="px-6 py-4">
+                      <div className="h-4 w-3/4 bg-slate-200 dark:bg-white/10 rounded mb-2" />
+                      <div className="h-3 w-1/2 bg-slate-200 dark:bg-white/10 rounded" />
+                    </td>
+                    <td className="px-6 py-4"><div className="h-4 w-16 bg-slate-200 dark:bg-white/10 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-5 w-20 bg-slate-200 dark:bg-white/10 rounded-md" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-14 bg-slate-200 dark:bg-white/10 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-14 bg-slate-200 dark:bg-white/10 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-24 bg-slate-200 dark:bg-white/10 rounded-full" /></td>
+                    <td className="px-6 py-4 text-center"><div className="h-8 w-8 mx-auto bg-slate-200 dark:bg-white/10 rounded-lg" /></td>
+                  </tr>
+                ))}
+              </motion.tr>
+            ) : (
+              <motion.tr key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="contents">
+                {items.map((item, index) => {
               const { dot, text, label } = stockStatus(item.quantity, item.reorder_point, t)
               const isSelected = selectedIds.has(item.id)
               const catColor = CATEGORY_COLORS[item.category] || 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10'
@@ -235,8 +244,6 @@ export default function ProductTable({
                 </motion.tr>
               )
             })}
-            
-            {/* Pad with empty rows to maintain consistent table height, only if there are items */}
             {items.length > 0 && Array.from({ length: Math.max(0, itemsPerPage - items.length) }).map((_, idx) => (
               <tr key={`empty-${idx}`} className="h-[73px] bg-transparent pointer-events-none">
                 <td className="px-6 py-4"></td>
@@ -249,9 +256,11 @@ export default function ProductTable({
                 <td className="px-6 py-4"></td>
               </tr>
             ))}
+              </motion.tr>
+            )}
           </AnimatePresence>
 
-          {items.length === 0 && (
+          {!isLoading && items.length === 0 && (
             <tr>
               <td colSpan={8} className="p-0 border-t-0">
                 <motion.div 
@@ -268,8 +277,6 @@ export default function ProductTable({
           )}
         </tbody>
       </table>
-      </motion.div>
-      )}
-    </AnimatePresence>
+    </div>
   )
 }
