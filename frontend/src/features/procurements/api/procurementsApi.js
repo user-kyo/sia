@@ -12,6 +12,11 @@ export const createProcurement = async (procurement) => {
   return data
 }
 
+export const updateProcurement = async ({ id, ...procurement }) => {
+  const { data } = await api.put(`/procurements/${id}`, procurement)
+  return data
+}
+
 export const updateProcurementStatus = async ({ id, status, reason }) => {
   const p = new URLSearchParams({ new_status: status })
   if (reason) p.set('reason', reason)

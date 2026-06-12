@@ -238,9 +238,6 @@ export default function ProductModal({ mode = 'add', product = null, highlight =
               <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                 {mode === 'add' ? 'Add New Product' : mode === 'edit' ? 'Edit Product' : 'Product Details'}
               </h2>
-              {mode === 'add' && hasDraft && (
-                <button type="button" onClick={handleClearDraft} className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-md hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors">Clear Draft</button>
-              )}
             </div>
             <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
               {mode === 'add' ? 'Create a new inventory item and set its details.' : mode === 'edit' ? 'Modify existing inventory details and pricing.' : 'View product configuration and status.'}
@@ -453,6 +450,11 @@ export default function ProductModal({ mode = 'add', product = null, highlight =
 
         {/* Footer */}
         <div className="flex justify-end gap-3 px-6 py-4 bg-white dark:bg-[#12141c] border-t border-slate-200 dark:border-white/10 shrink-0 z-10">
+          {mode === 'add' && hasDraft && (
+            <button type="button" onClick={handleClearDraft} className="mr-auto px-6 py-2.5 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors text-sm font-semibold">
+              Clear Draft
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}

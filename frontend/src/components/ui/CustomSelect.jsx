@@ -2,9 +2,15 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, Check } from 'lucide-react'
 
-export default function CustomSelect({ value, onChange, options, placeholder, disabled, required, className, onClick, openUpwards = false }) {
+export default function CustomSelect({ value, onChange, options, placeholder, disabled, required, className, onClick, openUpwards = false, onOpenChange }) {
   const [isOpen, setIsOpen] = useState(false)
   const ref = useRef(null)
+
+  useEffect(() => {
+    if (onOpenChange) {
+      onOpenChange(isOpen)
+    }
+  }, [isOpen, onOpenChange])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -22,7 +28,7 @@ export default function CustomSelect({ value, onChange, options, placeholder, di
   const finalCls = className || defaultCls
 
   return (
-    <div ref={ref} className="relative w-full">
+    <div ref={ref} className={`relative w-full ${isOpen ? 'z-[60]' : 'z-auto'}`}>
       <div 
         onClick={(e) => {
           if (disabled) return

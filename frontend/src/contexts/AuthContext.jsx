@@ -16,24 +16,49 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Check active session on mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      setUserRole(session?.user?.user_metadata?.role || 'staff'); // Default to staff if not set
-      setUserStatus(session?.user?.user_metadata?.status || 'approved'); // Default to approved for older accounts
+      setUserRole(session?.user?.user_metadata?.role || 'staff');
       setCompanyId(session?.user?.user_metadata?.company_id || null);
       setCompanyName(session?.user?.user_metadata?.company_name || null);
+
+      if (session?.user) {
+        // Fetch real status from profiles
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('status')
+          .eq('id', session.user.id)
+          .single();
+        
+        setUserStatus(profile?.status || session?.user?.user_metadata?.status || 'approved');
+      } else {
+        setUserStatus(null);
+      }
       setLoading(false);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setLoading(true);
       setSession(session);
       setUser(session?.user ?? null);
       setUserRole(session?.user?.user_metadata?.role || 'staff');
-      setUserStatus(session?.user?.user_metadata?.status || 'approved');
       setCompanyId(session?.user?.user_metadata?.company_id || null);
       setCompanyName(session?.user?.user_metadata?.company_name || null);
+
+      if (session?.user) {
+        // Fetch real status from profiles
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('status')
+          .eq('id', session.user.id)
+          .single();
+        
+        setUserStatus(profile?.status || session?.user?.user_metadata?.status || 'approved');
+      } else {
+        setUserStatus(null);
+      }
       setLoading(false);
     });
 
