@@ -26,7 +26,7 @@ const Card = ({ title, icon: Icon, children, className = '' }) => (
   </div>
 )
 
-export default function ProductModal({ mode = 'add', product = null, categories = [], suppliers = [], onClose, onSubmit, isPending }) {
+export default function ProductModal({ mode = 'add', product = null, highlight = null, categories = [], suppliers = [], onClose, onSubmit, isPending }) {
   const [form, setForm] = useState(EMPTY)
   const [initialForm, setInitialForm] = useState(null)
   const [localError, setLocalError] = useState(null)
@@ -235,7 +235,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
                       </label>
                       <div className="relative">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-[13px] font-bold">{form.currency}</span>
-                        <input required type="number" min="0" step="0.01" value={form.cost} onChange={set('cost')} onKeyDown={handleNumberKeyDown(true)} placeholder="0.00" className={`${numberInputCls} pl-12 font-semibold`} />
+                        <input required type="number" min="0" step="0.01" value={form.cost} onChange={set('cost')} onKeyDown={handleNumberKeyDown(true)} placeholder="0.00" className={`${numberInputCls} pl-12 font-semibold ${highlight === 'cost' ? 'border-indigo-500 ring-2 ring-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.5)] bg-indigo-50/50 dark:bg-indigo-500/10 transition-all duration-1000' : ''}`} />
                       </div>
                     </div>
                     
@@ -245,7 +245,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
                       </label>
                       <div className="relative">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-[13px] font-bold">{form.currency}</span>
-                        <input required type="number" min="0" step="0.01" value={form.selling_price} onChange={set('selling_price')} onKeyDown={handleNumberKeyDown(true)} placeholder="0.00" className={`${numberInputCls} pl-12 font-semibold`} />
+                        <input required type="number" min="0" step="0.01" value={form.selling_price} onChange={set('selling_price')} onKeyDown={handleNumberKeyDown(true)} placeholder="0.00" className={`${numberInputCls} pl-12 font-semibold ${highlight === 'cost' ? 'border-amber-500 ring-2 ring-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.5)] bg-amber-50/50 dark:bg-amber-500/10 transition-all duration-1000' : ''}`} />
                       </div>
                       <div className="h-4 mt-1.5 flex items-center absolute -bottom-5 left-0">
                         {(costVal > 0 || priceVal > 0) && (

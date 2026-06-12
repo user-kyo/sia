@@ -63,19 +63,38 @@ const Header = ({ onLogoutClick }) => {
     return t('notif_day_ago', { n: Math.floor(hrs / 24) });
   };
 
-  const notifMeta = (n) => n.type === 'out_of_stock'
-    ? {
-        title: t('notif_out_title'),
-        desc: t('notif_out_desc', { name: n.product.name }),
-        icon: <PackageX size={15} className="text-rose-500 animate-pulse" />,
-        iconBg: 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse',
+  const notifMeta = (n) => {
+    if (n.type === 'cost_updated') {
+      return {
+        title: n.title,
+        desc: n.message,
+        icon: <AlertTriangle size={15} className="text-indigo-500" />,
+        iconBg: 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-100 dark:border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.3)]',
+        isActionable: true,
+        actionLink: `/inventory?editProductId=${n.metadata?.product_id}&highlight=cost`,
+        actionText: 'Review Cost'
       }
-    : {
-        title: t('notif_low_title'),
-        desc: t('notif_low_desc', { name: n.product.name, qty: n.product.quantity, reorder: n.product.reorder_point }),
-        icon: <AlertTriangle size={15} className="text-amber-500" />,
-        iconBg: 'bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20',
-      };
+    }
+    return n.type === 'out_of_stock'
+      ? {
+          title: t('notif_out_title'),
+          desc: t('notif_out_desc', { name: n.product.name }),
+          icon: <PackageX size={15} className="text-rose-500 animate-pulse" />,
+          iconBg: 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse',
+          isActionable: true,
+          actionState: { autoCreatePO: n.product },
+          actionText: t('notif_create_po') || 'Create PO'
+        }
+      : {
+          title: t('notif_low_title'),
+          desc: t('notif_low_desc', { name: n.product.name, qty: n.product.quantity, reorder: n.product.reorder_point }),
+          icon: <AlertTriangle size={15} className="text-amber-500" />,
+          iconBg: 'bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20',
+          isActionable: true,
+          actionState: { autoCreatePO: n.product },
+          actionText: t('notif_create_po') || 'Create PO'
+        };
+  };
 
   const handleNotifClick = (n) => {
     setExpandedId(prev => (prev === n.id ? null : n.id));
@@ -193,21 +212,29 @@ const Header = ({ onLogoutClick }) => {
                                     className="overflow-hidden"
                                   >
                                     <div className="mt-2 flex items-center justify-between gap-2 text-[11px]">
-                                      <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-mono">
-                                        {n.product.sku}
-                                      </span>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setIsNotifOpen(false);
-                                          setExpandedId(null);
-                                          navigate('/procurements', { state: { autoCreatePO: n.product } });
-                                        }}
-                                        className="flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 focus:outline-none focus-visible:underline"
-                                      >
-                                        {t('notif_create_po') || 'Create PO'}
-                                        <ArrowRight size={11} />
-                                      </button>
+                                      {n.product?.sku && (
+                                        <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-mono">
+                                          {n.product.sku}
+                                        </span>
+                                      )}
+                                      {meta.isActionable && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setIsNotifOpen(false);
+                                            setExpandedId(null);
+                                            if (meta.actionLink) {
+                                              navigate(meta.actionLink);
+                                            } else if (meta.actionState) {
+                                              navigate('/procurements', { state: meta.actionState });
+                                            }
+                                          }}
+                                          className="flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 focus:outline-none focus-visible:underline"
+                                        >
+                                          {meta.actionText}
+                                          <ArrowRight size={11} />
+                                        </button>
+                                      )}
                                     </div>
                                   </motion.div>
                                 )}

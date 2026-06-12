@@ -1,18 +1,10 @@
 import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { fetchInventory } from '../features/inventory/api/inventoryApi'
+import { fetchNotifications, markNotificationRead, markAllNotificationsRead, dismissNotification, dismissAllNotifications } from '../features/notifications/api/notificationsApi'
 import { supabase } from '../lib/supabase'
+import { useAuth } from './AuthContext'
 
-/**
- * Notifications are derived from live inventory data:
- *   - `out-<productId>`  → product quantity is 0
- *   - `low-<productId>`  → quantity at or below its reorder point
- *
- * Per-notification UI state (read / dismissed / first-seen time) lives in
- * localStorage so it survives refreshes. When a product is restocked above
- * its reorder point, its entries are cleaned up so a future stock drop
- * produces a fresh notification.
- */
 const STORAGE_KEY = 'sia_notifications_v1'
 
 function loadState() {
@@ -35,6 +27,7 @@ const NotificationContext = createContext(null)
 export function NotificationProvider({ children }) {
   const [state, setState] = useState(loadState)
   const qc = useQueryClient()
+  const { user } = useAuth()
 
   const persist = useCallback((updater) => {
     setState(prev => {
@@ -44,9 +37,8 @@ export function NotificationProvider({ children }) {
     })
   }, [])
 
-  // Inventory snapshot for stock alerts. Realtime invalidation below keeps
-  // it fresh; the interval is a fallback when realtime is unavailable.
-  const { data } = useQuery({
+  // --- 1. LOCAL INVENTORY ALERTS ---
+  const { data: invData } = useQuery({
     queryKey: ['notification-inventory'],
     queryFn: () => fetchInventory({ limit: 100, offset: 0 }),
     refetchInterval: 60_000,
@@ -56,18 +48,15 @@ export function NotificationProvider({ children }) {
   useEffect(() => {
     const channel = supabase
       .channel('notification-inventory-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'inventory' },
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' },
         () => qc.invalidateQueries({ queryKey: ['notification-inventory'] })
       )
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [qc])
 
-  // Active alert candidates derived from current stock levels
-  const candidates = useMemo(() => {
-    const items = data?.data ?? []
+  const localCandidates = useMemo(() => {
+    const items = invData?.data ?? []
     const list = []
     for (const p of items) {
       const qty = Number(p.quantity) || 0
@@ -79,17 +68,15 @@ export function NotificationProvider({ children }) {
       }
     }
     return list
-  }, [data])
+  }, [invData])
 
-  // Stamp first-seen time for new alerts; drop state for resolved ones so
-  // the same product can alert again after being restocked.
   useEffect(() => {
-    if (!data) return
-    const activeIds = new Set(candidates.map(c => c.id))
+    if (!invData) return
+    const activeIds = new Set(localCandidates.map(c => c.id))
     persist(prev => {
       let changed = false
       const next = { read: { ...prev.read }, dismissed: { ...prev.dismissed }, seen: { ...prev.seen } }
-      for (const c of candidates) {
+      for (const c of localCandidates) {
         if (!next.seen[c.id]) { next.seen[c.id] = Date.now(); changed = true }
       }
       for (const key of ['read', 'dismissed', 'seen']) {
@@ -99,48 +86,108 @@ export function NotificationProvider({ children }) {
       }
       return changed ? next : prev
     })
-  }, [candidates, data, persist])
+  }, [localCandidates, invData, persist])
 
-  const notifications = useMemo(() => {
-    return candidates
+  const localNotifications = useMemo(() => {
+    return localCandidates
       .filter(c => !state.dismissed[c.id])
       .map(c => ({
         ...c,
         unread: !state.read[c.id],
         time: state.seen[c.id] ?? Date.now(),
       }))
-      .sort((a, b) => {
-        // Out-of-stock first, then newest first
-        if (a.type !== b.type) return a.type === 'out_of_stock' ? -1 : 1
-        return b.time - a.time
-      })
-  }, [candidates, state])
+  }, [localCandidates, state])
+
+  // --- 2. BACKEND DB NOTIFICATIONS ---
+  const { data: dbData } = useQuery({
+    queryKey: ['db-notifications'],
+    queryFn: fetchNotifications,
+    enabled: !!user,
+    refetchInterval: 30_000,
+  })
+
+  const readMutation = useMutation({
+    mutationFn: markNotificationRead,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['db-notifications'] })
+  })
+
+  const readAllMutation = useMutation({
+    mutationFn: markAllNotificationsRead,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['db-notifications'] })
+  })
+
+  const dismissMutation = useMutation({
+    mutationFn: dismissNotification,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['db-notifications'] })
+  })
+
+  const dismissAllMutation = useMutation({
+    mutationFn: dismissAllNotifications,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['db-notifications'] })
+  })
+
+  const dbNotifications = useMemo(() => {
+    if (!dbData) return []
+    return dbData.map(n => ({
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      message: n.message,
+      metadata: n.metadata,
+      unread: !n.is_read,
+      time: new Date(n.created_at).getTime(),
+      is_db: true
+    }))
+  }, [dbData])
+
+  // --- MERGE & SORT ---
+  const notifications = useMemo(() => {
+    return [...localNotifications, ...dbNotifications].sort((a, b) => {
+      if (a.type !== b.type && (a.type === 'out_of_stock' || b.type === 'out_of_stock')) {
+        return a.type === 'out_of_stock' ? -1 : 1
+      }
+      return b.time - a.time
+    })
+  }, [localNotifications, dbNotifications])
 
   const unreadCount = notifications.filter(n => n.unread).length
 
+  // --- UNIFIED ACTIONS ---
   const markRead = useCallback((id) => {
-    persist(prev => ({ ...prev, read: { ...prev.read, [id]: true } }))
-  }, [persist])
+    const isDb = dbNotifications.find(n => n.id === id)
+    if (isDb) {
+      readMutation.mutate(id)
+    } else {
+      persist(prev => ({ ...prev, read: { ...prev.read, [id]: true } }))
+    }
+  }, [persist, dbNotifications, readMutation])
 
   const markAllRead = useCallback(() => {
+    readAllMutation.mutate()
     persist(prev => {
       const read = { ...prev.read }
-      for (const c of candidates) read[c.id] = true
+      for (const c of localCandidates) read[c.id] = true
       return { ...prev, read }
     })
-  }, [persist, candidates])
+  }, [persist, localCandidates, readAllMutation])
 
   const dismiss = useCallback((id) => {
-    persist(prev => ({ ...prev, dismissed: { ...prev.dismissed, [id]: true } }))
-  }, [persist])
+    const isDb = dbNotifications.find(n => n.id === id)
+    if (isDb) {
+      dismissMutation.mutate(id)
+    } else {
+      persist(prev => ({ ...prev, dismissed: { ...prev.dismissed, [id]: true } }))
+    }
+  }, [persist, dbNotifications, dismissMutation])
 
   const clearAll = useCallback(() => {
+    dismissAllMutation.mutate()
     persist(prev => {
       const dismissed = { ...prev.dismissed }
-      for (const c of candidates) dismissed[c.id] = true
+      for (const c of localCandidates) dismissed[c.id] = true
       return { ...prev, dismissed }
     })
-  }, [persist, candidates])
+  }, [persist, localCandidates, dismissAllMutation])
 
   return (
     <NotificationContext.Provider value={{

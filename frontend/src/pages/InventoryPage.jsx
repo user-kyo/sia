@@ -20,7 +20,7 @@ import StockAdjustModal from '../features/inventory/components/StockAdjustModal'
 import DeleteConfirmModal from '../features/inventory/components/DeleteConfirmModal'
 import { useQuery } from '@tanstack/react-query'
 import { fetchSuppliers } from '../features/suppliers/api/suppliersApi'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from '../contexts/AuthContext'
 import { AlertCircle } from 'lucide-react'
 
@@ -100,6 +100,7 @@ const StatCardSkeleton = () => (
 
 export default function InventoryPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { userRole } = useAuth()
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -229,6 +230,20 @@ export default function InventoryPage() {
       }
     )
   }
+
+  useEffect(() => {
+    const editId = searchParams.get('editProductId')
+    const highlight = searchParams.get('highlight')
+    if (editId && allItemsRaw.length > 0 && categories.length > 0) {
+      const product = allItemsRaw.find(p => p.id === editId)
+      if (product) {
+        setModal({ type: 'edit', product, highlight })
+        searchParams.delete('editProductId')
+        searchParams.delete('highlight')
+        setSearchParams(searchParams, { replace: true })
+      }
+    }
+  }, [searchParams, allItemsRaw, categories])
 
   return (
     <div className="space-y-6">
@@ -590,6 +605,7 @@ export default function InventoryPage() {
               <ProductModal
                 mode="edit"
                 product={modal.product}
+                highlight={modal.highlight}
                 categories={categories}
                 suppliers={suppliers}
                 onClose={closeModal}
