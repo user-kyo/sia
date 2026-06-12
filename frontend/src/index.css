@@ -29,6 +29,16 @@ body {
   .animate-floating-delayed {
     animation: floating 4s ease-in-out 2s infinite;
   }
+
+  .hide-arrows::-webkit-outer-spin-button,
+  .hide-arrows::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .hide-arrows[type=number] {
+    -moz-appearance: textfield;
+  }
 }
 
 /* ── High Contrast Mode ──────────────────────────────────────────────────

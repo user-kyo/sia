@@ -10,9 +10,15 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router';
 import CommandPalette from '../ui/CommandPalette';
 import { useGlobalRealtimeSubscription } from '../../hooks/useGlobalRealtimeSubscription';
+import { useEffect } from 'react';
+import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { fetchSuppliers, createSupplier } from '../../features/suppliers/api/suppliersApi';
+
+let isInitializingSupplier = false;
+let initializedSupplierKey = null;
 
 const MainLayout = () => {
-  const { session, signOut } = useAuth();
+  const { session, signOut, companyId } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -22,6 +28,43 @@ const MainLayout = () => {
   }
 
   useGlobalRealtimeSubscription();
+
+  const { settings } = useAppSettings();
+
+  useEffect(() => {
+    const initInHouseSupplier = async () => {
+      const storeName = settings?.storeName;
+      if (!storeName || !session?.user) return;
+      
+      const key = `${companyId || session.user.id}-${storeName}`;
+      if (isInitializingSupplier || initializedSupplierKey === key) return;
+      
+      isInitializingSupplier = true;
+      try {
+        const suppliers = await fetchSuppliers();
+        const exists = suppliers.find(s => s.name === 'In-House Production');
+        if (!exists) {
+          const userEmail = session.user.email || '';
+          const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'In-House Production';
+
+          await createSupplier({
+            name: 'In-House Production',
+            contact_name: userName,
+            email: userEmail,
+            phone: null,
+            address: null,
+            status: 'active'
+          });
+        }
+        initializedSupplierKey = key;
+      } catch (err) {
+        console.error('Failed to initialize in-house supplier:', err);
+      } finally {
+        isInitializingSupplier = false;
+      }
+    };
+    initInHouseSupplier();
+  }, [settings?.storeName, session?.user]);
 
   const confirmLogout = async () => {
     await signOut();
