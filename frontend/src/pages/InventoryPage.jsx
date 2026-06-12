@@ -368,15 +368,17 @@ export default function InventoryPage() {
             />
             <AnimatePresence>
               {search && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-md hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
-                >
-                  <X size={14} />
-                </motion.button>
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center">
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    onClick={() => setSearch('')}
+                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-md hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                  >
+                    <X size={14} />
+                  </motion.button>
+                </div>
               )}
             </AnimatePresence>
           </motion.div>

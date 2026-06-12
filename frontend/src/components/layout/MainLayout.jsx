@@ -9,6 +9,7 @@ import { LogOut } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router';
 import CommandPalette from '../ui/CommandPalette';
+import { useGlobalRealtimeSubscription } from '../../hooks/useGlobalRealtimeSubscription';
 
 const MainLayout = () => {
   const { session, signOut } = useAuth();
@@ -19,6 +20,8 @@ const MainLayout = () => {
   if (!session) {
     return <Navigate to="/" replace />;
   }
+
+  useGlobalRealtimeSubscription();
 
   const confirmLogout = async () => {
     await signOut();
