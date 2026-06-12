@@ -126,7 +126,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
     }
   }
 
-  const inputCls = 'w-full px-3 py-2 bg-slate-50 dark:bg-[#0A0A0B] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:bg-white dark:focus:bg-[#12141c] focus:ring-2 focus:ring-inset focus:ring-indigo-500/30 focus:border-indigo-500 transition-all shadow-sm focus:shadow-md'
+  const inputCls = 'w-full px-3 py-2 bg-slate-50 dark:bg-[#0A0A0B] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:bg-white dark:focus:bg-[#12141c] focus:ring-2 focus:ring-inset focus:ring-indigo-500/30 focus:border-indigo-500 transition-all shadow-sm focus:shadow-md disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-white/[0.02]'
   const numberInputCls = `${inputCls} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`
   const labelCls = 'block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-1'
 
@@ -143,8 +143,7 @@ export default function ProductModal({ mode = 'add', product = null, categories 
       </div>
     </div>
   )
-  const inputCls = 'w-full px-3 py-2 bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all disabled:opacity-60 disabled:bg-slate-50 dark:disabled:bg-white/[0.02] disabled:cursor-not-allowed'
-  const labelCls = 'block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5'
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6">
