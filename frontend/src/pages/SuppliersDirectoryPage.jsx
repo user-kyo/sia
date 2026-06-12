@@ -644,9 +644,6 @@ export default function SuppliersDirectoryPage() {
                       <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                         {editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}
                       </h2>
-                      {!editingSupplier && hasDraft && (
-                        <button type="button" onClick={handleClearDraft} className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-md hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors">Clear Draft</button>
-                      )}
                     </div>
                     <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
                       {editingSupplier ? 'Update supplier details and contact information' : 'Register a new supplier to your directory'}
@@ -723,6 +720,11 @@ export default function SuppliersDirectoryPage() {
 
                 {/* Footer */}
                 <div className="bg-white dark:bg-[#12141c] border-t border-slate-200 dark:border-white/10 p-4 md:p-6 shrink-0 z-10 flex justify-end gap-3">
+                  {!editingSupplier && hasDraft && (
+                    <button type="button" onClick={handleClearDraft} className="mr-auto px-6 py-2.5 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors text-sm font-semibold">
+                      Clear Draft
+                    </button>
+                  )}
                   <button type="button" onClick={() => {setIsModalOpen(false); resetForm()}} className="px-5 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors">
                     Cancel
                   </button>

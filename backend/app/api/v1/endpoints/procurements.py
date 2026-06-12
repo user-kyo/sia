@@ -40,7 +40,11 @@ def list_procurements(
     return result.data
 
 @router.post("", response_model=ProcurementResponse, status_code=status.HTTP_201_CREATED)
-def create_procurement(procurement: ProcurementCreate, current_user: dict = Depends(get_current_user)):
+def create_procurement(
+    procurement: ProcurementCreate, 
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user)
+):
     if not supabase_client:
         raise HTTPException(status_code=500, detail="Supabase client not initialized")
 
@@ -54,6 +58,14 @@ def create_procurement(procurement: ProcurementCreate, current_user: dict = Depe
     payload["po_number"] = _generate_po_number()
     payload["requested_by"] = current_user.get("username", "unknown")
     
+    is_admin = current_user.get("role") in ["super_admin", "admin"]
+    
+    new_status = procurement.status
+    if new_status != "draft":
+        new_status = "approved" if is_admin else "pending_approval"
+        
+    payload["status"] = new_status
+    
     # Items must be JSON serializable dicts
     payload["items"] = [item for item in payload["items"]]
 
@@ -63,13 +75,33 @@ def create_procurement(procurement: ProcurementCreate, current_user: dict = Depe
         
     created_po = result.data[0]
     
+    # Email notification for approval if auto-approved
+    if new_status == "approved":
+        if supplier.data and supplier.data[0].get("email"):
+            company = supabase_client.table("companies").select("name, smtp_email, smtp_password").eq("id", current_user["company_id"]).execute()
+            company_name = company.data[0]["name"] if company.data else "Your Company"
+            smtp_email = company.data[0].get("smtp_email") if company.data else None
+            smtp_password = company.data[0].get("smtp_password") if company.data else None
+            portal_link = f"http://localhost:5173/supplier/po/{created_po['id']}"
+            background_tasks.add_task(
+                send_po_approval_email,
+                to_email=supplier.data[0]["email"],
+                supplier_name=supplier.data[0]["name"],
+                po_number=created_po["po_number"],
+                items=created_po["items"],
+                company_name=company_name,
+                portal_link=portal_link,
+                custom_smtp_user=smtp_email,
+                custom_smtp_password=smtp_password
+            )
+    
     log_audit_event(
         company_id=current_user["company_id"],
         user_id=current_user["id"],
         username=current_user.get("username", current_user.get("email", "unknown")),
         action="CREATE",
         module="Procurement",
-        description=f"Created Purchase Order {created_po['po_number']} for supplier {supplier.data[0]['name']}"
+        description=f"Created Purchase Order {created_po['po_number']} for supplier {supplier.data[0]['name']}" + (" (Auto-Approved)" if new_status == "approved" else "")
     )
     
     return created_po
@@ -150,6 +182,74 @@ def submit_public_invoice(po_id: str, payload: SubmitInvoiceRequest):
         raise HTTPException(status_code=500, detail="Failed to submit invoice")
         
     return result.data[0]
+
+@router.put("/{po_id}", response_model=ProcurementResponse)
+def update_procurement(
+    po_id: str,
+    procurement: ProcurementCreate,
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user)
+):
+    if not supabase_client:
+        raise HTTPException(status_code=500, detail="Supabase client not initialized")
+
+    existing = supabase_client.table("procurements").select("*").eq("id", po_id).eq("company_id", current_user["company_id"]).execute()
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Purchase Order not found")
+        
+    po = existing.data[0]
+    if po["status"] != "draft":
+        raise HTTPException(status_code=400, detail="Only drafts can be updated this way")
+
+    payload = procurement.model_dump()
+    payload["items"] = [item for item in payload["items"]]
+    payload["updated_at"] = "now()"
+
+    is_admin = current_user.get("role") in ["super_admin", "admin"]
+    new_status = procurement.status
+    if new_status != "draft":
+        new_status = "approved" if is_admin else "pending_approval"
+        
+    payload["status"] = new_status
+
+    result = supabase_client.table("procurements").update(payload).eq("id", po_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Failed to update procurement")
+
+    updated_po = result.data[0]
+
+    # Email notification for approval if auto-approved
+    if new_status == "approved":
+        supplier = supabase_client.table("suppliers").select("id, name, email").eq("id", payload["supplier_id"]).eq("company_id", current_user["company_id"]).execute()
+        if supplier.data and supplier.data[0].get("email"):
+            company = supabase_client.table("companies").select("name, smtp_email, smtp_password").eq("id", current_user["company_id"]).execute()
+            company_name = company.data[0]["name"] if company.data else "Your Company"
+            smtp_email = company.data[0].get("smtp_email") if company.data else None
+            smtp_password = company.data[0].get("smtp_password") if company.data else None
+            portal_link = f"http://localhost:5173/supplier/po/{updated_po['id']}"
+            background_tasks.add_task(
+                send_po_approval_email,
+                to_email=supplier.data[0]["email"],
+                supplier_name=supplier.data[0]["name"],
+                po_number=updated_po["po_number"],
+                items=updated_po["items"],
+                company_name=company_name,
+                portal_link=portal_link,
+                custom_smtp_user=smtp_email,
+                custom_smtp_password=smtp_password
+            )
+            
+    if new_status != "draft":
+        log_audit_event(
+            company_id=current_user["company_id"],
+            user_id=current_user["id"],
+            username=current_user.get("username", current_user.get("email", "unknown")),
+            action="SUBMIT_DRAFT",
+            module="Procurement",
+            description=f"Submitted Draft Purchase Order {updated_po['po_number']} for supplier {supplier.data[0]['name'] if 'supplier' in locals() and supplier.data else 'Unknown'}" + (" (Auto-Approved)" if new_status == "approved" else "")
+        )
+
+    return updated_po
 
 @router.put("/{po_id}/status", response_model=ProcurementResponse)
 def update_procurement_status(
@@ -282,8 +382,8 @@ def delete_completed_procurement(po_id: str, current_user: dict = Depends(get_cu
         raise HTTPException(status_code=404, detail="Purchase Order not found")
 
     po = existing.data[0]
-    if po["status"] != "received":
-        raise HTTPException(status_code=400, detail="Only completed purchase orders can be deleted")
+    if po["status"] not in ["received", "draft", "cancelled"]:
+        raise HTTPException(status_code=400, detail="Only completed, draft, or cancelled purchase orders can be deleted")
 
     result = (
         supabase_client.table("procurements")
@@ -295,11 +395,12 @@ def delete_completed_procurement(po_id: str, current_user: dict = Depends(get_cu
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to delete purchase order")
 
+    status_label = po["status"].replace('_', ' ').title()
     log_audit_event(
         company_id=current_user["company_id"],
         user_id=current_user["id"],
         username=current_user.get("username", current_user.get("email", "unknown")),
         action="DELETE",
         module="Procurement",
-        description=f"Deleted completed Purchase Order {po['po_number']}"
+        description=f"Deleted {status_label} Purchase Order {po['po_number']}"
     )
