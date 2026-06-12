@@ -286,7 +286,7 @@ export default function SettingsPage() {
         <div className="flex justify-end mt-4">
           <button
             onClick={saveBiz}
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold text-white transition-colors shadow-[0_4px_14px_0_rgba(99,102,241,0.2)]"
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold text-white transition-colors shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] active:scale-[0.98]"
           >
             {bizSaved ? t('set_saved') : t('set_save')}
           </button>
@@ -304,7 +304,7 @@ export default function SettingsPage() {
           </div>
           <button
             onClick={() => setShowAppPasswordGuide(true)}
-            className="mt-4 sm:mt-0 inline-flex shrink-0 items-center gap-2 rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200 dark:hover:bg-blue-500/20 shadow-sm"
+            className="mt-4 sm:mt-0 inline-flex shrink-0 items-center gap-2 rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition-all hover:bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200 dark:hover:bg-blue-500/20 shadow-sm active:scale-[0.98]"
           >
             <Info size={16} />
             How to set this up?
@@ -336,7 +336,7 @@ export default function SettingsPage() {
           <button
             onClick={saveSmtp}
             disabled={isSavingSmtp}
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl text-sm font-semibold text-white transition-colors shadow-[0_4px_14px_0_rgba(99,102,241,0.2)]"
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl text-sm font-semibold text-white transition-all shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] active:scale-[0.98]"
           >
             {isSavingSmtp ? 'Saving...' : smtpSaved ? 'Saved!' : 'Save Email Settings'}
           </button>
@@ -708,7 +708,7 @@ export default function SettingsPage() {
                     <button
                       onClick={handleUpdatePassword}
                       disabled={isUpdatingPassword}
-                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:hover:bg-indigo-600 rounded-xl text-sm font-semibold text-white transition-colors shadow-[0_4px_14px_0_rgba(99,102,241,0.2)]"
+                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:hover:bg-indigo-600 rounded-xl text-sm font-semibold text-white transition-all shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] active:scale-[0.98]"
                     >
                       {isUpdatingPassword ? 'Updating...' : 'Update Password'}
                     </button>
@@ -722,7 +722,7 @@ export default function SettingsPage() {
                     </p>
                     <button
                       onClick={handleSendResetEmail}
-                      className="px-5 py-2.5 whitespace-nowrap bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 transition-colors"
+                      className="px-5 py-2.5 whitespace-nowrap bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 transition-all active:scale-[0.98]"
                     >
                       Send Reset Link
                     </button>
@@ -750,7 +750,7 @@ export default function SettingsPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-              className="relative bg-white dark:bg-[#0d0f1a] dark:backdrop-blur-xl border border-transparent dark:border-white/10 rounded-2xl w-full max-w-sm shadow-2xl dark:shadow-none p-6 z-10"
+              className="relative bg-white dark:bg-[#12141c] dark:backdrop-blur-xl border border-transparent dark:border-white/10 rounded-2xl w-full max-w-sm shadow-2xl dark:shadow-none p-6 z-10"
             >
               <div className="w-11 h-11 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl flex items-center justify-center mb-4">
                 <AlertTriangle size={20} className="text-indigo-600 dark:text-indigo-400" />
@@ -764,7 +764,7 @@ export default function SettingsPage() {
               <div className="flex gap-2.5">
                 <button
                   onClick={() => setConfirmSetting(null)}
-                  className="flex-1 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors"
+                  className="flex-1 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-all active:scale-[0.98]"
                 >
                   {t('modal_cancel') || 'Cancel'}
                 </button>
@@ -773,7 +773,7 @@ export default function SettingsPage() {
                     updateSettings({ [confirmSetting.type]: confirmSetting.value })
                     setConfirmSetting(null)
                   }}
-                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold text-white transition-colors shadow-[0_4px_14px_0_rgba(99,102,241,0.2)]"
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold text-white transition-all shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] active:scale-[0.98]"
                 >
                   Confirm
                 </button>
@@ -799,7 +799,7 @@ export default function SettingsPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-              className="relative bg-white dark:bg-[#0d0f1a] dark:backdrop-blur-xl border border-transparent dark:border-white/10 rounded-2xl w-full max-w-sm shadow-2xl dark:shadow-none p-6 z-10"
+              className="relative bg-white dark:bg-[#12141c] dark:backdrop-blur-xl border border-transparent dark:border-white/10 rounded-2xl w-full max-w-sm shadow-2xl dark:shadow-none p-6 z-10"
             >
               <div className="w-11 h-11 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl flex items-center justify-center mb-4">
                 <AlertTriangle size={20} className="text-indigo-600 dark:text-indigo-400" />
@@ -823,7 +823,7 @@ export default function SettingsPage() {
                     toast(`Display currency switched to ${confirmCurrency.code}. Products will now show their original price alongside an approximate converted amount.`, 'success')
                     setConfirmCurrency(null)
                   }}
-                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold text-white transition-colors shadow-[0_4px_14px_0_rgba(99,102,241,0.2)]"
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold text-white transition-all shadow-[0_4px_14px_0_rgba(99,102,241,0.2)] active:scale-[0.98]"
                 >
                   Confirm
                 </button>
@@ -850,9 +850,9 @@ export default function SettingsPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-              className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-[#0d0f1a] dark:backdrop-blur-xl border border-transparent dark:border-white/10 rounded-2xl shadow-2xl z-10"
+              className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-[#12141c] dark:backdrop-blur-xl border border-transparent dark:border-white/10 rounded-2xl shadow-2xl z-10"
             >
-              <div className="sticky top-0 bg-white/90 dark:bg-[#0d0f1a]/90 backdrop-blur-md px-6 py-4 border-b border-slate-100 dark:border-white/10 flex items-center justify-between z-20">
+              <div className="sticky top-0 bg-white/90 dark:bg-[#12141c]/90 backdrop-blur-md px-6 py-4 border-b border-slate-100 dark:border-white/10 flex items-center justify-between z-20">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20">
                     <Mail size={18} className="text-blue-600 dark:text-blue-400" />
@@ -864,7 +864,7 @@ export default function SettingsPage() {
                 </div>
                 <button
                   onClick={() => setShowAppPasswordGuide(false)}
-                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors"
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-all active:scale-[0.98]"
                 >
                   <X size={20} />
                 </button>
@@ -876,7 +876,7 @@ export default function SettingsPage() {
                     href="https://myaccount.google.com/apppasswords"
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-blue-200 bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-blue-500 hover:shadow-lg hover:-translate-y-0.5 dark:border-blue-500/30"
+                    className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-blue-200 bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-blue-500 hover:shadow-lg hover:-translate-y-0.5 dark:border-blue-500/30 active:scale-[0.98]"
                   >
                     Open Google App Passwords
                     <ExternalLink size={16} />

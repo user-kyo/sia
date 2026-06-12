@@ -21,7 +21,7 @@ const AuditLogsPage = () => {
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">{t('audit_subtitle')}</p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all backdrop-blur-md shadow-sm dark:shadow-none">
+          <button className="flex items-center gap-2 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all backdrop-blur-md shadow-sm dark:shadow-none active:scale-[0.98]">
             <Filter className="w-4 h-4" />
             {t('audit_btn_filters')}
           </button>
@@ -117,8 +117,8 @@ const AuditLogsPage = () => {
         <div className="px-6 py-5 border-t border-slate-200 dark:border-white/10 flex justify-between items-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-white/[0.01] transition-colors">
           <span>{t('audit_showing', { from: '1', to: '3', total: '1,294' })}</span>
           <div className="flex gap-2">
-            <button className="px-4 py-2 border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors disabled:opacity-50 text-slate-700 dark:text-slate-200 shadow-sm dark:shadow-none">{t('audit_prev')}</button>
-            <button className="px-4 py-2 border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors text-slate-700 dark:text-slate-200 shadow-sm dark:shadow-none">{t('audit_next')}</button>
+            <button className="px-4 py-2 border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors disabled:opacity-50 text-slate-700 dark:text-slate-200 shadow-sm dark:shadow-none active:scale-[0.98]">{t('audit_prev')}</button>
+            <button className="px-4 py-2 border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors text-slate-700 dark:text-slate-200 shadow-sm dark:shadow-none active:scale-[0.98]">{t('audit_next')}</button>
           </div>
         </div>
       </motion.div>
