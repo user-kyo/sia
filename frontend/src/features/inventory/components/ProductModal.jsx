@@ -26,7 +26,8 @@ const Card = ({ title, icon: Icon, children, className = '' }) => (
   </div>
 )
 
-export default function ProductModal({ mode = 'add', product = null, highlight = null, categories = [], suppliers = [], onClose, onSubmit, isPending }) {
+export default function ProductModal({ mode = 'add', product = null, highlight = null, categories = [], suppliers = [], onClose, onSubmit, isPending, onNoSuppliersClick }) {
+
   const [form, setForm] = useState(EMPTY)
   const [initialForm, setInitialForm] = useState(null)
   const [localError, setLocalError] = useState(null)
@@ -74,7 +75,7 @@ export default function ProductModal({ mode = 'add', product = null, highlight =
   }
 
   const handleNumberKeyDown = (allowDecimal) => (e) => {
-    if (['Backspace', 'Tab', 'End', 'Home', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter'].includes(e.key)) return;
+    if (['Backspace', 'Tab', 'End', 'Home', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Delete', 'Enter'].includes(e.key)) return;
     if (/[0-9]/.test(e.key)) return;
     if (allowDecimal && e.key === '.' && !e.target.value.includes('.')) return;
     if (e.ctrlKey || e.metaKey) return;
@@ -317,16 +318,16 @@ export default function ProductModal({ mode = 'add', product = null, highlight =
                           ...suppliers.map(s => ({ value: s.id, label: s.name })),
                         ]}
                         className={inputCls}
+                        onClick={() => {
+                          if (suppliers.length === 0 && onNoSuppliersClick) {
+                            onNoSuppliersClick()
+                          }
+                        }}
                       />
                     </div>
                   </div>
                 </Card>
-            <div>
-              <label className={labelCls}>
-                {mode === 'add' ? t('field_qty_initial') : t('field_qty')} {mode === 'add' && <span className="text-red-500">*</span>}
-              </label>
-              <input required={mode === 'add'} disabled={mode === 'edit'} title={mode === 'edit' ? "Update quantity via procurements or stock adjustments" : ""} type="number" min="0" value={form.quantity} onChange={set('quantity')} placeholder="0" className={inputCls} />
-            </div>
+
 
                 <Card title="Media" icon={ImgIcon} className="flex-1">
                   <div className="flex flex-col h-full min-h-[140px]">
