@@ -261,7 +261,7 @@ export default function ProcurementsPage() {
 
 function DeleteCompletedProcurementModal({ po, supplierName, onClose, onConfirm, isPending }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -301,7 +301,7 @@ function DeleteCompletedProcurementModal({ po, supplierName, onClose, onConfirm,
           </button>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -413,8 +413,9 @@ function CreateProcurementModal({ onClose, initialProduct = null }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh]">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh]">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-white/[0.02]">
           <h3 className="font-semibold text-slate-900 dark:text-white">Create Purchase Order</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><XCircle size={20} /></button>
@@ -509,7 +510,7 @@ function CreateProcurementModal({ onClose, initialProduct = null }) {
           </div>
         </form>
       </motion.div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -530,8 +531,9 @@ function ViewProcurementModal({ po, isAdmin, onClose }) {
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh]">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh]">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-white/[0.02]">
           <div className="flex items-center gap-4">
             <h3 className="font-bold text-lg text-slate-900 dark:text-white font-mono">{po.po_number}</h3>
@@ -634,6 +636,6 @@ function ViewProcurementModal({ po, isAdmin, onClose }) {
           </div>
         )}
       </motion.div>
-    </div>
+    </motion.div>
   )
 }

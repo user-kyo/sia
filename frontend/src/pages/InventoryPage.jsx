@@ -383,6 +383,8 @@ export default function InventoryPage() {
         className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide"
       >
         <motion.button
+          layout
+          whileTap={{ scale: 0.95 }}
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3, delay: 0.05 }}
@@ -390,18 +392,22 @@ export default function InventoryPage() {
             setFilters(prev => ({ ...prev, categories: [] }))
             setCurrentPage(1)
           }}
-          className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
+          className={`relative px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
             !filters.categories || filters.categories.length === 0
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+              ? 'text-white border border-transparent'
               : 'bg-white dark:bg-[#0A0A0B] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10 hover:border-indigo-300 dark:hover:border-indigo-500/30'
           }`}
         >
-          {t('filter_all')} Products
+          {(!filters.categories || filters.categories.length === 0) && (
+            <motion.div layoutId="activeCategoryInventory" className="absolute inset-0 bg-indigo-600 shadow-md shadow-indigo-600/20 rounded-xl" style={{ zIndex: 0 }} />
+          )}
+          <span className="relative z-10">{t('filter_all')} Products</span>
         </motion.button>
         <AnimatePresence>
           {categories.slice(0, 5).map((cat, i) => (
             <motion.button
               layout
+              whileTap={{ scale: 0.95 }}
               key={cat.id || cat.name}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -411,13 +417,16 @@ export default function InventoryPage() {
                 setFilters(prev => ({ ...prev, categories: [cat.name] }))
                 setCurrentPage(1)
               }}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all overflow-hidden ${
+              className={`relative px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
                 filters.categories?.includes(cat.name) && filters.categories.length === 1
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                  ? 'text-white border border-transparent'
                   : 'bg-white dark:bg-[#0A0A0B] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10 hover:border-indigo-300 dark:hover:border-indigo-500/30'
               }`}
             >
-              {cat.name}
+              {(filters.categories?.includes(cat.name) && filters.categories.length === 1) && (
+                <motion.div layoutId="activeCategoryInventory" className="absolute inset-0 bg-indigo-600 shadow-md shadow-indigo-600/20 rounded-xl" style={{ zIndex: 0 }} />
+              )}
+              <span className="relative z-10">{cat.name}</span>
             </motion.button>
           ))}
         </AnimatePresence>
@@ -506,6 +515,7 @@ export default function InventoryPage() {
           }}
           onAdjustStock={product => setModal({ type: 'adjust', product })}
           onDelete={product => setModal({ type: 'delete', products: [product] })}
+          onRestockPO={product => navigate('/procurements', { state: { autoCreatePO: product } })}
           itemsPerPage={itemsPerPage}
         />
       </div>
