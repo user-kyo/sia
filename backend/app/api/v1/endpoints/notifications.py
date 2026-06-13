@@ -20,6 +20,29 @@ class NotificationResponse(BaseModel):
     is_dismissed: bool
     created_at: datetime
 
+class NotificationCreate(BaseModel):
+    type: str
+    title: str
+    message: str
+    metadata: Optional[dict] = None
+
+@router.post("", response_model=NotificationResponse)
+def create_notification(request: NotificationCreate, current_user: dict = Depends(get_current_user)):
+    if not supabase_client:
+        raise HTTPException(status_code=500, detail="Supabase client not initialized")
+        
+    result = supabase_client.table("notifications").insert({
+        "company_id": current_user["company_id"],
+        "type": request.type,
+        "title": request.title,
+        "message": request.message,
+        "metadata": request.metadata
+    }).execute()
+    
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Failed to create notification")
+    return result.data[0]
+
 @router.get("", response_model=List[NotificationResponse])
 def get_notifications(current_user: dict = Depends(get_current_user)):
     if not supabase_client:
