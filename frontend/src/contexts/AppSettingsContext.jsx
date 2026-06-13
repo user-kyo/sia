@@ -3,9 +3,9 @@ import translations from '../lib/translations'
 
 const DEFAULTS = {
   // Business Info
-  storeName:           'My Store',
-  storeAddress:        '123 Main Street, City',
-  storePhone:          '+63 912 345 6789',
+  storeName:           '',
+  storeAddress:        '',
+  storePhone:          '',
 
   // Tax
   taxRate:             12,

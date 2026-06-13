@@ -17,14 +17,14 @@ export const TableSkeleton = ({ rows = 5, columns = 4 }) => {
             <tr>
               {[...Array(columns)].map((_, i) => (
                 <th key={i} className="px-6 py-4">
-                  <div className="h-4 w-20 bg-slate-200 dark:bg-white/10 rounded animate-pulse" />
+                  <div className="h-4 w-20 bg-slate-200 dark:bg-white/10 rounded animate-shimmer" />
                 </th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-white/5">
             {[...Array(rows)].map((_, i) => (
-              <tr key={i} className="animate-pulse">
+              <tr key={i} >
                 {[...Array(columns)].map((_, j) => (
                   <td key={j} className="px-6 py-4">
                     {j === 0 ? (
@@ -45,7 +45,7 @@ export const TableSkeleton = ({ rows = 5, columns = 4 }) => {
           </tbody>
         </table>
       </div>
-      <div className="p-4 flex justify-center text-xs font-semibold text-slate-500 dark:text-slate-400 animate-pulse">
+      <div className="p-4 flex justify-center text-xs font-semibold text-slate-500 dark:text-slate-400 animate-shimmer">
         Loading data...
       </div>
     </motion.div>
@@ -63,7 +63,7 @@ export const CardSkeleton = ({ count = 4, className = "grid grid-cols-1 md:grid-
       className={className}
     >
       {[...Array(count)].map((_, i) => (
-        <div key={i} className="relative h-full w-full bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col justify-between animate-pulse">
+        <div key={i} className="relative h-full w-full bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col justify-between animate-shimmer">
           <div className="flex justify-between items-start mb-6">
             <div className="h-11 w-11 rounded-xl bg-slate-200 dark:bg-white/10" />
             <div className="h-6 w-16 bg-slate-200 dark:bg-white/10 rounded-md" />
@@ -85,7 +85,7 @@ export const ChartCardSkeleton = ({ className = "" }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className={`relative h-full w-full bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col animate-pulse ${className}`}
+      className={`relative h-full w-full bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col animate-shimmer ${className}`}
     >
       <div className="flex justify-between items-center mb-6">
         <div className="h-5 w-48 bg-slate-200 dark:bg-white/10 rounded" />
@@ -103,7 +103,7 @@ export const TrendsChartSkeleton = ({ className = "" }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className={`relative h-full w-full bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col animate-pulse ${className}`}
+      className={`relative h-full w-full bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col animate-shimmer ${className}`}
     >
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
@@ -124,7 +124,7 @@ export const CategoryChartSkeleton = ({ className = "" }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className={`relative h-full w-full bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col animate-pulse ${className}`}
+      className={`relative h-full w-full bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col animate-shimmer ${className}`}
     >
       <div className="flex justify-between items-center mb-6">
         <div className="h-5 w-32 bg-slate-200 dark:bg-white/10 rounded" />
@@ -154,17 +154,17 @@ export const ReportCardSkeleton = ({ count = 3, className = "grid grid-cols-1 md
       className={className}
     >
       {[...Array(count)].map((_, i) => (
-        <div key={i} className="bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col justify-between shadow-sm animate-pulse">
+        <div key={i} className="bg-white dark:bg-[#1b2035] rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col justify-between shadow-sm">
           <div>
-            <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-white/10 mb-5" />
-            <div className="h-6 w-32 bg-slate-200 dark:bg-white/10 rounded mb-3" />
+            <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-white/10 mb-5 animate-shimmer" />
+            <div className="h-6 w-32 bg-slate-200 dark:bg-white/10 rounded mb-3 animate-shimmer" />
             <div className="space-y-2 mb-2">
-              <div className="h-4 w-full bg-slate-200 dark:bg-white/10 rounded" />
-              <div className="h-4 w-4/5 bg-slate-200 dark:bg-white/10 rounded" />
+              <div className="h-4 w-full bg-slate-200 dark:bg-white/10 rounded animate-shimmer" />
+              <div className="h-4 w-4/5 bg-slate-200 dark:bg-white/10 rounded animate-shimmer" />
             </div>
           </div>
           <div className="mt-6 pt-6 border-t border-slate-100 dark:border-white/10">
-            <div className="h-10 w-full bg-slate-200 dark:bg-white/10 rounded-xl" />
+            <div className="h-10 w-full bg-slate-200 dark:bg-white/10 rounded-xl animate-shimmer" />
           </div>
         </div>
       ))}
@@ -183,7 +183,7 @@ export const ProductGridSkeleton = ({ count = 8 }) => {
       className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full"
     >
       {[...Array(count)].map((_, i) => (
-        <div key={i} className="bg-white dark:bg-white/[0.02] p-4 rounded-xl border border-slate-200 dark:border-white/10 flex flex-col items-center animate-pulse">
+        <div key={i} className="bg-white dark:bg-white/[0.02] p-4 rounded-xl border border-slate-200 dark:border-white/10 flex flex-col items-center animate-shimmer">
           <div className="w-full h-32 bg-slate-200 dark:bg-white/10 rounded-lg mb-4 mt-6" />
           <div className="w-full space-y-2 mb-4">
             <div className="h-4 w-3/4 bg-slate-200 dark:bg-white/10 rounded" />
@@ -213,7 +213,7 @@ export const SectionSkeleton = ({ count = 3 }) => {
       className="space-y-6 w-full"
     >
       {[...Array(count)].map((_, i) => (
-        <div key={i} className="bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm animate-pulse">
+        <div key={i} className="bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm animate-shimmer">
           <div className="p-6 border-b border-slate-100 dark:border-white/10 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-white/10" />
             <div className="space-y-2">

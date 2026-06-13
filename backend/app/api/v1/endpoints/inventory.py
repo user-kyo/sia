@@ -139,7 +139,7 @@ def list_inventory(
     include_summary: bool = Query(False),
     sort_by: str = Query("created_at"),
     sort_order: str = Query("desc"),
-    limit: int = Query(20, ge=1, le=1000),
+    limit: int = Query(20, ge=1, le=100000),
     offset: int = Query(0, ge=0),
     current_user: dict = Depends(get_current_user),
 ):

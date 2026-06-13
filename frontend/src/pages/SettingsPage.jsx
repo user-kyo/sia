@@ -3,12 +3,13 @@ import { useTheme } from '../contexts/ThemeContext'
 import { useCurrency, CURRENCIES } from '../contexts/CurrencyContext'
 import { useAppSettings } from '../contexts/AppSettingsContext'
 import { useToast } from '../components/ui/Toast'
-import { Moon, Sun, Store, Package, Clock, Type, LayoutList, Globe, Contrast, DollarSign, AlertTriangle, Shield, Mail, Key, Eye, EyeOff, CheckCircle2, ExternalLink, X, Info } from 'lucide-react'
+import { Moon, Sun, Store, Package, Clock, Type, LayoutList, Globe, Contrast, DollarSign, AlertTriangle, Shield, Mail, Key, Eye, EyeOff, ExternalLink, X, Info } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SectionSkeleton } from '../components/ui/Skeletons'
 import { supabase } from '../lib/supabase'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator'
 import { useAuth } from '../contexts/AuthContext'
+import api from '../lib/axios'
 
 const DATE_FORMATS = ['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD']
 
@@ -71,9 +72,16 @@ export default function SettingsPage() {
   React.useEffect(() => {
     const fetchSmtpSettings = async () => {
       try {
-        const api = (await import('../lib/axios')).default;
         const res = await api.get('/companies/settings');
         setSmtp({ email: res.data.smtp_email || '', password: res.data.smtp_password || '' });
+        
+        // Populate store name from company database if not overridden
+        if (res.data.name) {
+          setBiz(b => ({
+            ...b,
+            storeName: b.storeName && b.storeName !== 'My Store' ? b.storeName : res.data.name
+          }));
+        }
       } catch (err) {
         console.error("Failed to load SMTP settings:", err);
       }
@@ -86,7 +94,6 @@ export default function SettingsPage() {
   const saveSmtp = async () => {
     setIsSavingSmtp(true);
     try {
-      const api = (await import('../lib/axios')).default;
       await api.put('/companies/settings', {
         smtp_email: smtp.email,
         smtp_password: smtp.password
@@ -169,7 +176,6 @@ export default function SettingsPage() {
       
       // Trigger the custom "Password Changed" email via our backend
       try {
-        const api = (await import('../lib/axios')).default;
         await api.post('/auth/notify-security', { event_type: 'password_changed' });
       } catch (err) {
         console.error("Failed to trigger security email:", err);
@@ -261,7 +267,7 @@ export default function SettingsPage() {
               className={inputCls}
               value={biz.storeName}
               onChange={e => setBiz(b => ({ ...b, storeName: e.target.value }))}
-              placeholder="e.g. Ppen's Store"
+              placeholder="e.g. Your Company Name"
             />
           </div>
           <div>
@@ -270,7 +276,7 @@ export default function SettingsPage() {
               className={inputCls}
               value={biz.storeAddress}
               onChange={e => setBiz(b => ({ ...b, storeAddress: e.target.value }))}
-              placeholder="e.g. 123 Rizal St, Manila"
+              placeholder="e.g. 123 Main St, City"
             />
           </div>
           <div>
@@ -352,7 +358,7 @@ export default function SettingsPage() {
             min="0"
             value={settings.defaultReorderPoint}
             onChange={e => updateSettings({ defaultReorderPoint: parseInt(e.target.value) || 0 })}
-            className={inputCls}
+            className={`${inputCls} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
           />
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
             {t('set_reorder_hint')}

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { ShieldAlert, Download, Filter, Search, Trash2, Loader2, AlertTriangle, Lock, Eye, EyeOff, X, ArrowUpDown } from 'lucide-react'
+import { ShieldAlert, Download, Filter, Search, Trash2, Loader2, AlertTriangle, Lock, Eye, EyeOff, X, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { useAppSettings } from '../contexts/AppSettingsContext'
@@ -88,7 +88,12 @@ const AuditLogsPage = () => {
   const [showFilters, setShowFilters] = useState(false)
   const [logToDelete, setLogToDelete] = useState(null)
   const [showClearModal, setShowClearModal] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
   const filtersRef = useRef(null)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, actionFilter, moduleFilter, rangeDays])
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -172,6 +177,10 @@ const AuditLogsPage = () => {
     }
     return true
   })
+
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage) || 1;
+  const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const columnCount = isSuperAdmin ? 7 : 6
 
@@ -285,8 +294,8 @@ const AuditLogsPage = () => {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5 transition-colors">
               <AnimatePresence>
-                {filteredLogs.length > 0 ? (
-                  filteredLogs.map((log, index) => {
+                {paginatedLogs.length > 0 ? (
+                  paginatedLogs.map((log, index) => {
                     const changes = getAuditChanges(log)
                     return (
                     <motion.tr
@@ -349,11 +358,49 @@ const AuditLogsPage = () => {
           </table>
         </div>
 
-        <div className="px-6 py-5 border-t border-slate-200 dark:border-white/10 flex justify-between items-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-white/[0.01] transition-colors">
-          <span>{t('audit_showing', { from: filteredLogs.length > 0 ? '1' : '0', to: String(filteredLogs.length), total: String(filteredLogs.length) })}</span>
+        <div className="p-4 border-t border-slate-200 dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#0A0A0B] rounded-b-2xl">
+          <span className="text-sm text-slate-500 dark:text-slate-400">
+            {filteredLogs.length === 0 ? (
+              'No results found'
+            ) : filteredLogs.length === 1 ? (
+              'Showing 1 result'
+            ) : totalPages === 1 ? (
+              <>Showing all <span className="font-medium text-slate-900 dark:text-white">{filteredLogs.length}</span> results</>
+            ) : (
+              <>Showing <span className="font-medium text-slate-900 dark:text-white">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium text-slate-900 dark:text-white">{Math.min(currentPage * itemsPerPage, filteredLogs.length)}</span> of <span className="font-medium text-slate-900 dark:text-white">{filteredLogs.length}</span> results</>
+            )}
+          </span>
           <div className="flex gap-2">
-            <button disabled className="px-4 py-2 border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors disabled:opacity-50 text-slate-700 dark:text-slate-200 shadow-sm dark:shadow-none">{t('audit_prev')}</button>
-            <button disabled className="px-4 py-2 border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors disabled:opacity-50 text-slate-700 dark:text-slate-200 shadow-sm dark:shadow-none">{t('audit_next')}</button>
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-2 rounded-xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <div className="hidden sm:flex gap-1">
+              {Array.from({ length: totalPages }).map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentPage(idx + 1)}
+                  className={`w-9 h-9 rounded-xl text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 ${currentPage === idx + 1
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'
+                    }`}
+                >
+                  {idx + 1}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
         </div>
       </motion.div>
