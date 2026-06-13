@@ -2135,10 +2135,7 @@ const AnalyticsDashboard = () => {
                       {t('dash_trends_title')}
                     </h3>
                     <div className="flex items-center gap-3">
-                      <button onClick={(e) => { e.stopPropagation(); navigate('/reports'); }} className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:text-indigo-600 dark:hover:text-indigo-300" title="Go to Reports">
-                        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Open</span>
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </button>
+
                       <button className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
                         <Maximize2 className="w-3.5 h-3.5" />
@@ -2174,10 +2171,7 @@ const AnalyticsDashboard = () => {
                   >
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('dash_cat_title')}</h3>
                     <div className="flex items-center gap-3">
-                      <button onClick={(e) => { e.stopPropagation(); navigate('/inventory'); }} className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:text-indigo-600 dark:hover:text-indigo-300" title="Go to Inventory">
-                        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Open</span>
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </button>
+
                       <button className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
                         <Maximize2 className="w-3.5 h-3.5" />
@@ -2229,10 +2223,7 @@ const AnalyticsDashboard = () => {
                   >
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('dash_top_title')}</h3>
                     <div className="flex items-center gap-3">
-                      <button onClick={(e) => { e.stopPropagation(); navigate('/reports'); }} className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:text-indigo-600 dark:hover:text-indigo-300" title="Go to Reports">
-                        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Open</span>
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </button>
+
                       <button className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
                         <Maximize2 className="w-3.5 h-3.5" />
@@ -2273,10 +2264,7 @@ const AnalyticsDashboard = () => {
                       </h3>
                     </div>
                     <div className="flex items-center gap-3">
-                      <button onClick={(e) => { e.stopPropagation(); navigate('/reports'); }} className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:text-indigo-600 dark:hover:text-indigo-300" title="Go to Reports">
-                        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Open</span>
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </button>
+
                       <button className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Details</span>
                         <Maximize2 className="w-3.5 h-3.5" />
@@ -2407,7 +2395,7 @@ const AnalyticsDashboard = () => {
                     </h3>
                   </div>
                   <div className="flex items-center gap-3">
-                    <button onClick={(e) => { e.stopPropagation(); navigate('/settings'); }} className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:text-indigo-600 dark:hover:text-indigo-300" title="Go to Settings">
+                    <button onClick={(e) => { e.stopPropagation(); navigate('/reports'); }} className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:text-indigo-600 dark:hover:text-indigo-300" title="Go to Audit Logs">
                       <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Open</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </button>
@@ -2522,16 +2510,7 @@ const Card = ({ title, value, icon: Icon, trend, trendUp, trendTone, alert, atte
       >
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
         <div className="flex items-center gap-3">
-          {linkTo && navigate && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); navigate(linkTo); }}
-              className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:text-indigo-600 dark:hover:text-indigo-300"
-              title={`Go to ${title}`}
-            >
-              <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:block">Open</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </button>
-          )}
+
           {onClick && (
             <button 
               onClick={(e) => { e.stopPropagation(); onClick(e); }}
