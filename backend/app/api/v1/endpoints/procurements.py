@@ -49,7 +49,7 @@ def create_procurement(
         raise HTTPException(status_code=500, detail="Supabase client not initialized")
 
     # Verify supplier exists
-    supplier = supabase_client.table("suppliers").select("id, name").eq("id", procurement.supplier_id).eq("company_id", current_user["company_id"]).execute()
+    supplier = supabase_client.table("suppliers").select("id, name, email").eq("id", procurement.supplier_id).eq("company_id", current_user["company_id"]).execute()
     if not supplier.data:
         raise HTTPException(status_code=404, detail="Supplier not found")
 
@@ -58,11 +58,9 @@ def create_procurement(
     payload["po_number"] = _generate_po_number()
     payload["requested_by"] = current_user.get("username", "unknown")
     
-    is_admin = current_user.get("role") in ["super_admin", "admin"]
-    
     new_status = procurement.status
     if new_status != "draft":
-        new_status = "approved" if is_admin else "pending_approval"
+        new_status = "pending_approval"
         
     payload["status"] = new_status
     
@@ -130,44 +128,7 @@ def submit_public_invoice(po_id: str, payload: SubmitInvoiceRequest):
 
     items = [item.model_dump() for item in payload.items]
 
-    # Process cost updates
-    try:
-        supplier_id = po.get("supplier_id")
-        supplier_name = "Supplier"
-        if supplier_id:
-            supplier_res = supabase_client.table("suppliers").select("name").eq("id", supplier_id).execute()
-            if supplier_res.data:
-                supplier_name = supplier_res.data[0]["name"]
-
-        company_id = po.get("company_id")
-        
-        for po_item in items:
-            product_id = po_item.get("product_id")
-            new_cost = float(po_item.get("unit_price", 0))
-            if product_id and new_cost is not None:
-                inv_res = supabase_client.table("inventory").select("cost, name").eq("id", product_id).execute()
-                if inv_res.data:
-                    old_cost = float(inv_res.data[0].get("cost") or 0)
-                    product_name = inv_res.data[0].get("name")
-                    if old_cost != new_cost:
-                        supabase_client.table("inventory").update({"cost": new_cost, "updated_at": "now()"}).eq("id", product_id).execute()
-                        
-                        notif_msg = f"Product cost updated: {product_name} changed from ₱{old_cost:.2f} to ₱{new_cost:.2f} based on {supplier_name}'s submitted invoice."
-                        metadata = {
-                            "product_id": product_id,
-                            "old_cost": old_cost,
-                            "new_cost": new_cost,
-                            "supplier_name": supplier_name
-                        }
-                        supabase_client.table("notifications").insert({
-                            "company_id": company_id,
-                            "type": "cost_updated",
-                            "title": "Cost Updated from Invoice",
-                            "message": notif_msg,
-                            "metadata": metadata
-                        }).execute()
-    except Exception as e:
-        print("Error processing cost updates:", e)
+    # Cost updates will happen later when the user marks the PO as received
 
 
     update_payload = {
