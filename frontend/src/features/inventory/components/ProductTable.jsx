@@ -60,6 +60,7 @@ export default function ProductTable({
   onDelete,
   onRestockPO,
   itemsPerPage = 10,
+  suppliers = [],
 }) {
   const { formatPrice, formatAs, code } = useCurrency()
   const { t, settings } = useAppSettings()
@@ -76,6 +77,8 @@ export default function ProductTable({
         : { by: key, order: 'asc' }
     )
   }
+
+  const inHouseSupplierId = suppliers?.find(s => s.name === 'In-House Production')?.id
 
   return (
     <div className="overflow-x-auto relative min-h-[500px]">
@@ -230,12 +233,12 @@ export default function ProductTable({
                               <button onClick={() => { onEdit(item); setActiveMenuId(null); }} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                 <Edit size={14} /> {t('act_edit')}
                               </button>
-                              {!item.supplier_id && (
+                              {(!item.supplier_id || item.supplier_id === inHouseSupplierId || item.supplier_id === '__in_house__') && (
                                 <button onClick={() => { onAdjustStock(item); setActiveMenuId(null); }} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                   <Package size={14} /> {t('act_adjust')}
                                 </button>
                               )}
-                              {item.supplier_id && item.quantity <= item.reorder_point && onRestockPO && (
+                              {(item.supplier_id && item.supplier_id !== inHouseSupplierId && item.supplier_id !== '__in_house__') && onRestockPO && (
                                 <button onClick={() => { onRestockPO(item); setActiveMenuId(null); }} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-white/5 transition-colors font-medium">
                                   <Truck size={14} /> Restock PO
                                 </button>

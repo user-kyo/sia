@@ -519,6 +519,7 @@ export default function InventoryPage() {
           onDelete={product => setModal({ type: 'delete', products: [product] })}
           onRestockPO={product => navigate('/procurements', { state: { autoCreatePO: product } })}
           itemsPerPage={itemsPerPage}
+          suppliers={suppliers}
         />
       </div>
 

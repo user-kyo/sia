@@ -499,16 +499,18 @@ function ProcurementCard({ po, supplierMap, isAdmin, formatPrice, setPoToDelete,
         </div>
       </div>
       
-      <div className="bg-slate-50/80 dark:bg-white/[0.02] p-5 border-t border-slate-50 dark:border-white/5 flex justify-between items-center">
+      <div className="bg-slate-50/80 dark:bg-white/[0.02] p-5 border-t border-slate-50 dark:border-white/5 flex flex-col gap-4">
         <div>
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Supply Cost</div>
-          <div className="text-lg font-bold text-slate-800 dark:text-white">{formatPrice(po.total_amount, po.currency)}</div>
+          <div className="text-xl font-extrabold tracking-tight text-slate-800 dark:text-white">{formatPrice(po.total_amount, po.currency)}</div>
         </div>
-        <div className="flex items-center gap-3">
+        
+        {(isDraft || isAdmin) && (
+          <div className="flex flex-wrap items-center justify-end gap-2.5 pt-4 border-t border-slate-200 dark:border-white/5">
           {isDraft && (
             <button
               onClick={() => { setDraftToEdit(po); setIsCreateOpen(true); }}
-              className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+              className="flex-1 flex justify-center items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-3 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 whitespace-nowrap"
             >
               <FileText size={16} />
               Edit Draft
@@ -518,24 +520,22 @@ function ProcurementCard({ po, supplierMap, isAdmin, formatPrice, setPoToDelete,
             <button
               onClick={() => setPoToDelete(po)}
               disabled={deleteMut.isPending}
-              className="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+              className="flex-1 flex justify-center items-center gap-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 px-3 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 whitespace-nowrap"
             >
               <Trash2 size={16} />
               Delete
             </button>
           )}
           {isApproved && isAdmin && (
-            <button 
-              onClick={() => { setSelectedPO(po); setIsViewOpen(true); }}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 shadow-[0_4px_14px_0_rgba(16,185,129,0.2)]"
-            >
-              Receive Stocks
-            </button>
+            <div className="flex-1 flex justify-center items-center gap-2 text-slate-500 dark:text-slate-400 text-xs font-bold px-3 py-2 bg-slate-100/50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 whitespace-nowrap shadow-sm">
+              <Clock size={16} />
+              Waiting for Supplier Invoice...
+            </div>
           )}
           {isInvoiceReceived && isAdmin && (
             <>
               {po.invoice_url && (
-                <a href={po.invoice_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-700 font-semibold text-sm mr-2 bg-indigo-50 px-3 py-1.5 rounded-lg">
+                <a href={po.invoice_url} target="_blank" rel="noreferrer" className="flex-1 flex justify-center items-center gap-1.5 text-indigo-600 hover:text-indigo-700 font-bold text-xs bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded-xl whitespace-nowrap transition-colors">
                   <FileText size={16} />
                   View Invoice
                 </a>
@@ -543,14 +543,14 @@ function ProcurementCard({ po, supplierMap, isAdmin, formatPrice, setPoToDelete,
               <button 
                 onClick={() => updateStatusMut.mutate({ id: po.id, status: 'received' })}
                 disabled={updateStatusMut.isPending}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 shadow-[0_4px_14px_0_rgba(16,185,129,0.2)]"
+                className="flex-1 flex justify-center items-center bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 shadow-sm whitespace-nowrap"
               >
                 Stock Received
               </button>
               <button 
                 onClick={() => updateStatusMut.mutate({ id: po.id, status: 'cancelled' })}
                 disabled={updateStatusMut.isPending}
-                className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+                className="flex-1 flex justify-center items-center bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 px-3 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 whitespace-nowrap"
               >
                 Cancel
               </button>
@@ -561,20 +561,21 @@ function ProcurementCard({ po, supplierMap, isAdmin, formatPrice, setPoToDelete,
               <button 
                 onClick={() => updateStatusMut.mutate({ id: po.id, status: 'approved' })}
                 disabled={updateStatusMut.isPending}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 shadow-[0_4px_14px_0_rgba(37,99,235,0.2)]"
+                className="flex-1 flex justify-center items-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 shadow-sm whitespace-nowrap"
               >
                 Approve PO
               </button>
               <button 
                 onClick={() => updateStatusMut.mutate({ id: po.id, status: 'cancelled' })}
                 disabled={updateStatusMut.isPending}
-                className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+                className="flex-1 flex justify-center items-center bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 px-3 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 whitespace-nowrap"
               >
                 Cancel
               </button>
             </>
           )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -683,6 +684,23 @@ function CreateProcurementModal({ onClose, initialProduct = null, initialDraft =
     return ''
   })
   
+  const [selectedSupplier, setSelectedSupplier] = useState(() => {
+    if (initialDraft?.supplier_id) return initialDraft.supplier_id
+    if (initialProduct?.supplier_id) return initialProduct.supplier_id
+    try {
+      if (!initialDraft) {
+        const draft = localStorage.getItem('sia_po_draft_items')
+        if (draft) {
+          const parsed = JSON.parse(draft)
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].supplier_id) {
+            return parsed[0].supplier_id
+          }
+        }
+      }
+    } catch (e) {}
+    return ''
+  })
+
   const [items, setItems] = useState(() => {
     if (initialDraft?.items?.length) {
       return initialDraft.items.map(i => ({ ...i, _rowId: crypto.randomUUID() }))
@@ -747,7 +765,7 @@ function CreateProcurementModal({ onClose, initialProduct = null, initialDraft =
     localStorage.removeItem('sia_po_draft_items')
     localStorage.removeItem('sia_po_draft_remarks')
     setHasLocalDraft(false)
-    setItems([{ _rowId: crypto.randomUUID(), product_id: '', product_name: '', quantity: 1, unit_price: 0, line_total: 0, supplier_id: '' }])
+    setItems([{ _rowId: crypto.randomUUID(), product_id: '', product_name: '', quantity: 1, unit_price: 0, line_total: 0, supplier_id: selectedSupplier }])
     setRemarks('')
   }
 
@@ -756,7 +774,7 @@ function CreateProcurementModal({ onClose, initialProduct = null, initialDraft =
     queryFn: () => fetchInventory({ limit: 1000 }),
   })
 
-  const activeSuppliers = suppliers.filter(s => s.status?.toLowerCase() !== 'inactive')
+  const activeSuppliers = suppliers.filter(s => s.status?.toLowerCase() !== 'inactive' && s.name !== 'In-House Production')
   const activeSupplierIds = new Set(activeSuppliers.map(s => s.id))
 
   const availableProducts = allInvData?.data || []
@@ -775,10 +793,10 @@ function CreateProcurementModal({ onClose, initialProduct = null, initialDraft =
     setItems(newItems)
   }
 
-  const canAddRow = availableProducts.length > items.length && items.every(i => i.product_id)
+  const canAddRow = selectedSupplier && availableProducts.filter(p => p.supplier_id === selectedSupplier).length > items.length && items.every(i => i.product_id)
   const addItem = () => {
     if (canAddRow) {
-      setItems([...items, { _rowId: crypto.randomUUID(), product_id: '', product_name: '', quantity: 1, unit_price: 0, line_total: 0, supplier_id: '' }])
+      setItems([...items, { _rowId: crypto.randomUUID(), product_id: '', product_name: '', quantity: 1, unit_price: 0, line_total: 0, supplier_id: selectedSupplier }])
     }
   }
   const removeItem = (idx) => setItems(items.filter((_, i) => i !== idx))
@@ -788,35 +806,32 @@ function CreateProcurementModal({ onClose, initialProduct = null, initialDraft =
   const handleSubmit = async (e, status) => {
     e.preventDefault()
     
-    if (items.some(i => !i.product_id || i.quantity <= 0 || !i.supplier_id)) {
-      setErrorMsg("Please ensure all items have a valid product, quantity, and assigned supplier.")
+    if (!selectedSupplier) {
+      setErrorMsg("Please select a supplier first.")
       return
     }
 
-    const groups = {}
-    items.forEach(item => {
-      if (!groups[item.supplier_id]) groups[item.supplier_id] = []
-      groups[item.supplier_id].push(item)
-    })
+    if (items.some(i => !i.product_id || i.quantity <= 0)) {
+      setErrorMsg("Please ensure all items have a valid product and quantity.")
+      return
+    }
+
+    const payload = {
+      supplier_id: selectedSupplier,
+      remarks,
+      items: items.map(i => ({ ...i, supplier_id: selectedSupplier })), // Ensure all items have the selected supplier
+      total_amount: items.reduce((sum, item) => sum + item.line_total, 0),
+      status: status,
+      requested_by: user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Unknown'
+    }
 
     try {
-      const promises = Object.entries(groups).map(([suppId, groupItems]) => {
-        const payload = {
-          supplier_id: suppId,
-          remarks,
-          items: groupItems,
-          total_amount: groupItems.reduce((sum, item) => sum + item.line_total, 0),
-          status: status,
-          requested_by: user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Unknown'
-        }
-        if (initialDraft && suppId === initialDraft.supplier_id) {
-          return updateMut.mutateAsync({ id: initialDraft.id, ...payload })
-        } else {
-          return createMut.mutateAsync(payload)
-        }
-      })
+      if (initialDraft && selectedSupplier === initialDraft.supplier_id) {
+        await updateMut.mutateAsync({ id: initialDraft.id, ...payload })
+      } else {
+        await createMut.mutateAsync(payload)
+      }
       
-      await Promise.all(promises)
       if (!initialDraft) {
         localStorage.removeItem('sia_po_draft_items')
         localStorage.removeItem('sia_po_draft_remarks')
@@ -824,7 +839,7 @@ function CreateProcurementModal({ onClose, initialProduct = null, initialDraft =
       queryClient.invalidateQueries({ queryKey: ['procurements'] })
       onClose()
     } catch (err) {
-      setErrorMsg(err?.response?.data?.detail || err.message || 'Failed to submit POs')
+      setErrorMsg(err?.response?.data?.detail || err.message || 'Failed to submit PO')
     }
   }
 
@@ -860,8 +875,8 @@ function CreateProcurementModal({ onClose, initialProduct = null, initialDraft =
           </div>
         </div>
 
-        <form onSubmit={e => handleSubmit(e, 'pending_approval')} className="flex flex-col flex-1 overflow-hidden h-full">
-          <div className="p-6 md:p-8 flex-1 relative flex flex-col overflow-hidden bg-slate-50/50 dark:bg-[#0A0A0B]">
+        <form onSubmit={e => handleSubmit(e, 'pending_approval')} className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden h-full custom-scrollbar">
+          <div className="p-6 md:p-8 flex-1 relative z-20 flex flex-col bg-slate-50/50 dark:bg-[#0A0A0B]">
             {errorMsg && (
               <div className="mb-6 px-5 py-4 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-xl text-sm font-bold text-rose-600 dark:text-rose-400 leading-relaxed shadow-sm shrink-0 flex items-center gap-3">
                 <AlertCircle size={20} className="shrink-0" />
@@ -869,12 +884,46 @@ function CreateProcurementModal({ onClose, initialProduct = null, initialDraft =
               </div>
             )}
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1">
               
               {/* Left Column (2/3 width) - Order Items */}
-              <div className="lg:col-span-2 flex flex-col h-full min-h-0 gap-6">
-                <div className="bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm flex flex-col overflow-hidden flex-1 min-h-0">
-                  <div className="px-6 py-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between gap-3 bg-slate-50/50 dark:bg-white/[0.02]">
+              <div className="lg:col-span-2 flex flex-col gap-6">
+                
+                {/* Supplier Selection Block */}
+                <div className="bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm flex flex-col overflow-visible shrink-0 relative z-20">
+                  <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 flex items-center gap-3 bg-slate-50/50 dark:bg-white/[0.02] rounded-t-2xl">
+                    <div className="p-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg">
+                      <PackageOpen size={18} />
+                    </div>
+                    <h3 className="font-bold text-[15px] text-slate-800 dark:text-white">Select Supplier</h3>
+                  </div>
+                  <div className="p-5">
+                    <label className={labelCls}>Supplier</label>
+                    <CustomSelect
+                      required
+                      value={selectedSupplier}
+                      onChange={(e) => {
+                        const newSupplier = e?.target ? e.target.value : e;
+                        if (selectedSupplier !== newSupplier) {
+                          setSelectedSupplier(newSupplier);
+                          setItems([{ _rowId: crypto.randomUUID(), product_id: '', product_name: '', quantity: 1, unit_price: 0, line_total: 0, supplier_id: newSupplier }]);
+                        }
+                      }}
+                      options={activeSuppliers.map(s => ({ value: s.id, label: s.name }))}
+                      placeholder="Choose a supplier first..."
+                      className={inputCls}
+                      disabled={!!initialDraft || !!initialProduct}
+                    />
+                    {(initialDraft || initialProduct) && (
+                      <p className="text-xs text-slate-500 mt-2 flex items-center gap-1.5">
+                        <AlertCircle size={12} /> Supplier cannot be changed for this draft or auto-created PO.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className={`bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm flex flex-col overflow-visible relative z-10 ${!selectedSupplier ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <div className="px-6 py-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between gap-3 bg-slate-50/50 dark:bg-white/[0.02] rounded-t-2xl">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg">
                         <Package size={20} />
@@ -886,12 +935,11 @@ function CreateProcurementModal({ onClose, initialProduct = null, initialDraft =
                     </button>
                   </div>
                   
-                  <div className="overflow-auto flex-1 custom-scrollbar min-h-0">
-                    <table className="w-full text-sm relative min-w-[900px]">
+                  <div className="overflow-visible">
+                    <table className="w-full text-sm relative min-w-[700px]">
                       <thead className="bg-slate-50/80 dark:bg-[#0A0A0B]/50 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-white/10 sticky top-0 z-10 backdrop-blur-md">
                         <tr>
                           <th className="px-6 py-4">Item Name</th>
-                          <th className="px-6 py-4 w-52">Supplier</th>
                           <th className="px-6 py-4 w-32">Qty</th>
                           <th className="px-6 py-4 w-40">Unit Cost</th>
                           <th className="px-6 py-4 w-40">Total</th>
@@ -916,53 +964,17 @@ function CreateProcurementModal({ onClose, initialProduct = null, initialDraft =
                                     newItems[idx].product_name = selected.name
                                     newItems[idx].unit_price = selected.cost || selected.price || 0
                                     newItems[idx].line_total = newItems[idx].quantity * newItems[idx].unit_price
-                                    if (selected.supplier_id) {
-                                      const supp = suppliers.find(s => s.id === selected.supplier_id)
-                                      if (supp && supp.status?.toLowerCase() !== 'inactive') {
-                                        newItems[idx].supplier_id = selected.supplier_id
-                                      } else {
-                                        newItems[idx].supplier_id = ''
-                                      }
-                                    } else {
-                                      newItems[idx].supplier_id = ''
-                                    }
+                                    newItems[idx].supplier_id = selectedSupplier
                                     setItems(newItems)
                                   }
                                 }}
                                 placeholder="Select product..."
                                 options={availableProducts
+                                  .filter(p => p.supplier_id === selectedSupplier)
                                   .filter(p => !items.some((i, index) => i.product_id === p.id && index !== idx))
                                   .map(p => ({ value: p.id, label: p.name }))}
                                 className={inputCls}
-                              />
-                              {(() => {
-                                const prod = availableProducts.find(p => p.id === item.product_id)
-                                if (prod && prod.supplier_id) {
-                                  const prodSupplier = suppliers.find(s => s.id === prod.supplier_id)
-                                  if (prodSupplier?.status?.toLowerCase() === 'inactive') {
-                                    return (
-                                      <div className="text-[12px] font-bold text-rose-500 mt-2 flex items-center gap-1.5">
-                                        <AlertCircle size={14} className="shrink-0" />
-                                        Original supplier is inactive.
-                                      </div>
-                                    )
-                                  }
-                                }
-                                return null
-                              })()}
-                            </td>
-                            <td className="p-4 align-top">
-                              <CustomSelect
-                                required
-                                onOpenChange={(isOpen) => setOpenDropdownRowIdx(isOpen ? idx : null)}
-                                value={item.supplier_id || ''}
-                                onChange={val => {
-                                  const value = val?.target ? val.target.value : val;
-                                  handleItemChange(idx, 'supplier_id', value)
-                                }}
-                                placeholder="Supplier..."
-                                options={suppliers.filter(s => s.status?.toLowerCase() !== 'inactive').map(s => ({ value: s.id, label: s.name }))}
-                                className={inputCls}
+                                disabled={!selectedSupplier}
                               />
                             </td>
                             <td className="p-4 align-top">
@@ -996,7 +1008,7 @@ function CreateProcurementModal({ onClose, initialProduct = null, initialDraft =
               </div>
 
               {/* Right Column (1/3 width) - Order Details */}
-              <div className="lg:col-span-1 flex flex-col gap-6 h-full min-h-0">
+              <div className="lg:col-span-1 flex flex-col gap-6">
                 
                 <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl shadow-xl shadow-indigo-500/20 p-6 text-white relative overflow-hidden shrink-0">
                   <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
@@ -1023,14 +1035,14 @@ function CreateProcurementModal({ onClose, initialProduct = null, initialDraft =
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm flex flex-col overflow-hidden flex-1 min-h-0">
+                <div className="bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm flex flex-col overflow-hidden flex-1 min-h-[200px]">
                   <div className="px-6 py-5 border-b border-slate-200 dark:border-white/10 flex items-center gap-3 bg-slate-50/50 dark:bg-white/[0.02]">
                     <div className="p-2 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg">
                       <Folder size={20} />
                     </div>
                     <h3 className="font-bold text-lg text-slate-800 dark:text-white">Internal Remarks</h3>
                   </div>
-                  <div className="p-6 flex-1 flex flex-col min-h-0">
+                  <div className="p-6 flex-1 flex flex-col">
                     <textarea
                       placeholder="Add any internal notes, supplier instructions, or references here..."
                       value={remarks}
@@ -1264,9 +1276,9 @@ function ViewProcurementModal({ po, isAdmin, onClose }) {
                   </>
                 )}
                 {po.status === 'approved' && (
-                  <button onClick={() => statusMut.mutate({ id: po.id, status: 'received' })} disabled={statusMut.isPending} className="px-8 py-3 text-sm font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl transition-all disabled:opacity-50 shadow-[0_8px_20px_-6px_rgba(16,185,129,0.5)] hover:shadow-[0_12px_25px_-6px_rgba(16,185,129,0.6)] hover:-translate-y-0.5 flex items-center gap-2">
-                    <PackageCheck size={18} />
-                    Confirm & Restock Items
+                  <button disabled className="px-8 py-3 text-sm font-bold bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-500 rounded-xl flex items-center gap-2 cursor-not-allowed border border-slate-200 dark:border-white/10">
+                    <Clock size={18} />
+                    Waiting for Supplier Invoice...
                   </button>
                 )}
                 {po.status === 'invoice_received' && (
