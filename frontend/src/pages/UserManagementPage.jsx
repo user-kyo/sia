@@ -112,6 +112,9 @@ export default function UserManagementPage() {
   const [transferTarget, setTransferTarget] = useState(null);
   const [transferConfirmText, setTransferConfirmText] = useState('');
 
+  // Confirm Action State
+  const [confirmAction, setConfirmAction] = useState(null); // { user, action }
+
   const { userRole, user: currentUser, signOut } = useAuth();
 
   const fetchUsers = async () => {
@@ -571,12 +574,12 @@ export default function UserManagementPage() {
                                       <>
                                         <div className="h-px bg-slate-100 dark:bg-white/10 my-1"></div>
                                         {u.status !== 'approved' && (
-                                          <button onClick={() => updateStatus(u.id, 'approved')} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-emerald-600 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                          <button onClick={() => { setConfirmAction({ user: u, action: 'approved' }); setActiveMenuId(null); }} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-emerald-600 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                             <CheckCircle size={14} /> Approve Access
                                           </button>
                                         )}
                                         {u.status !== 'revoked' && (
-                                          <button onClick={() => updateStatus(u.id, 'revoked')} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-rose-600 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                          <button onClick={() => { setConfirmAction({ user: u, action: 'revoked' }); setActiveMenuId(null); }} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-rose-600 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                             <XCircle size={14} /> Revoke Access
                                           </button>
                                         )}
@@ -771,6 +774,63 @@ export default function UserManagementPage() {
                   className="flex-1 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-amber-500/20"
                 >
                   Confirm Transfer
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Confirm Action Modal */}
+      <AnimatePresence>
+        {confirmAction && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm"
+              onClick={() => setConfirmAction(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-md bg-white dark:bg-[#12141c] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-6"
+            >
+              <div className="flex items-center gap-4 mb-4">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 border ${confirmAction.action === 'approved' ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20 text-rose-600 dark:text-rose-400'}`}>
+                  {confirmAction.action === 'approved' ? <CheckCircle size={24} /> : <XCircle size={24} />}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                    {confirmAction.action === 'approved' ? 'Approve Access' : 'Revoke Access'}
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Please confirm this action.</p>
+                </div>
+              </div>
+
+              <div className={`border rounded-xl p-4 mb-6 ${confirmAction.action === 'approved' ? 'bg-emerald-50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-200' : 'bg-rose-50 dark:bg-rose-500/5 border-rose-200 dark:border-rose-500/20 text-rose-800 dark:text-rose-200'}`}>
+                <p className="text-sm leading-relaxed">
+                  Are you sure you want to {confirmAction.action === 'approved' ? 'approve' : 'revoke'} access for <strong>{confirmAction.user.name || confirmAction.user.email}</strong>?
+                  {confirmAction.action === 'revoked' && " They will no longer be able to log in or access the system."}
+                  {confirmAction.action === 'approved' && " They will be granted access to the system based on their assigned role."}
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmAction(null)}
+                  className="flex-1 px-4 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-xl font-semibold hover:bg-slate-50 dark:hover:bg-white/10 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    updateStatus(confirmAction.user.id, confirmAction.action);
+                    setConfirmAction(null);
+                  }}
+                  className={`flex-1 px-4 py-2.5 text-white rounded-xl font-semibold transition-all shadow-sm ${confirmAction.action === 'approved' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20' : 'bg-rose-600 hover:bg-rose-700 shadow-rose-500/20'}`}
+                >
+                  Confirm {confirmAction.action === 'approved' ? 'Approval' : 'Revocation'}
                 </button>
               </div>
             </motion.div>

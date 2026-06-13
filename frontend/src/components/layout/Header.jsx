@@ -75,24 +75,35 @@ const Header = ({ onLogoutClick }) => {
         actionText: 'Review Cost'
       }
     }
+    if (n.type === 'USER_REGISTRATION') {
+      return {
+        title: n.title,
+        desc: n.message,
+        icon: <User size={15} className="text-emerald-500" />,
+        iconBg: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.3)]',
+        isActionable: true,
+        actionLink: '/users',
+        actionText: 'Manage Users'
+      }
+    }
     return n.type === 'out_of_stock'
       ? {
           title: t('notif_out_title'),
-          desc: t('notif_out_desc', { name: n.product.name }),
+          desc: n.product ? t('notif_out_desc', { name: n.product.name }) : n.message,
           icon: <PackageX size={15} className="text-rose-500 animate-pulse" />,
           iconBg: 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse',
-          isActionable: true,
-          actionState: { autoCreatePO: n.product },
+          isActionable: !!n.product,
+          actionState: n.product ? { autoCreatePO: n.product } : null,
           actionText: t('notif_create_po') || 'Create PO'
         }
       : {
-          title: t('notif_low_title'),
-          desc: t('notif_low_desc', { name: n.product.name, qty: n.product.quantity, reorder: n.product.reorder_point }),
+          title: n.title || t('notif_low_title'),
+          desc: n.product ? t('notif_low_desc', { name: n.product.name, qty: n.product.quantity, reorder: n.product.reorder_point }) : n.message,
           icon: <AlertTriangle size={15} className="text-amber-500" />,
           iconBg: 'bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20',
-          isActionable: true,
-          actionState: { autoCreatePO: n.product },
-          actionText: t('notif_create_po') || 'Create PO'
+          isActionable: !!n.product,
+          actionState: n.product ? { autoCreatePO: n.product } : null,
+          actionText: n.product ? (t('notif_create_po') || 'Create PO') : null
         };
   };
 

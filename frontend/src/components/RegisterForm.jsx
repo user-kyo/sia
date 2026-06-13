@@ -195,6 +195,17 @@ export default function RegisterForm({ onToggle }) {
 
         if (authError) throw authError;
 
+        // Notify super admin
+        try {
+          await api.post('/notifications', {
+            type: 'USER_REGISTRATION',
+            title: 'New User Registration',
+            message: `${fullName} (${email}) has registered and is pending approval.`
+          });
+        } catch (e) {
+          console.error("Failed to notify super admin", e);
+        }
+
         console.log('Registered successfully', data);
         toast("Registered successfully! Pending admin approval.", "success");
         setLoading(false);
