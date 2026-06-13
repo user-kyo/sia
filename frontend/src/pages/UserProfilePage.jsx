@@ -190,18 +190,18 @@ export default function UserProfilePage() {
     return (
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-10 h-10 bg-slate-200 dark:bg-white/10 rounded-xl animate-pulse"></div>
-          <div className="w-48 h-8 bg-slate-200 dark:bg-white/10 rounded-lg animate-pulse"></div>
+          <div className="w-10 h-10 bg-slate-200 dark:bg-white/10 rounded-xl animate-shimmer"></div>
+          <div className="w-48 h-8 bg-slate-200 dark:bg-white/10 rounded-lg animate-shimmer"></div>
         </div>
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar Skeleton */}
-          <div className="w-full lg:w-1/4 shrink-0 h-96 bg-slate-200 dark:bg-white/5 rounded-3xl animate-pulse"></div>
+          <div className="w-full lg:w-1/4 shrink-0 h-96 bg-slate-200 dark:bg-white/5 rounded-3xl animate-shimmer"></div>
           {/* Canvas Skeleton */}
           <div className="flex-1 space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-slate-200 dark:bg-white/5 rounded-2xl animate-pulse"></div>)}
+              {[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-slate-200 dark:bg-white/5 rounded-2xl animate-shimmer"></div>)}
             </div>
-            <div className="h-96 bg-slate-200 dark:bg-white/5 rounded-3xl animate-pulse"></div>
+            <div className="h-96 bg-slate-200 dark:bg-white/5 rounded-3xl animate-shimmer"></div>
           </div>
         </div>
       </div>

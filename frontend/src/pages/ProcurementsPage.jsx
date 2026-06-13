@@ -72,10 +72,44 @@ const StatCard = ({ title, value, icon: Icon, colorClass, onClick }) => {
 const StatCardSkeleton = () => (
   <div className="relative h-full w-full bg-white dark:bg-[#0A0A0B] rounded-2xl p-5 flex flex-col justify-end border border-slate-200 dark:border-white/10 overflow-hidden min-h-[104px]">
     <div className="absolute -top-2 -right-2 p-4 opacity-5">
-      <div className="w-16 h-16 rounded-xl bg-slate-300 dark:bg-white/20 animate-pulse" />
+      <div className="w-16 h-16 rounded-xl bg-slate-300 dark:bg-white/20 animate-shimmer" />
     </div>
-    <div className="h-5 w-24 bg-slate-200 dark:bg-white/10 rounded-md mb-1 relative z-10 animate-pulse" />
-    <div className="h-8 w-16 bg-slate-200 dark:bg-white/10 rounded-md relative z-10 animate-pulse" />
+    <div className="h-5 w-24 bg-slate-200 dark:bg-white/10 rounded-md mb-1 relative z-10 animate-shimmer" />
+    <div className="h-8 w-16 bg-slate-200 dark:bg-white/10 rounded-md relative z-10 animate-shimmer" />
+  </div>
+);
+
+const ProcurementCardSkeleton = () => (
+  <div className="bg-white dark:bg-[#12141c] rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm overflow-hidden flex flex-col">
+    <div className="p-6 flex-1">
+      <div className="flex justify-between items-start mb-4">
+        <div className="space-y-2">
+          <div className="h-3 w-20 bg-slate-200 dark:bg-white/10 rounded animate-shimmer" />
+          <div className="h-6 w-40 bg-slate-200 dark:bg-white/10 rounded animate-shimmer" />
+          <div className="h-4 w-32 bg-slate-200 dark:bg-white/10 rounded animate-shimmer" />
+        </div>
+        <div className="h-6 w-20 bg-slate-200 dark:bg-white/10 rounded-md animate-shimmer" />
+      </div>
+      
+      <div className="mt-6 space-y-3">
+        {[1, 2].map(i => (
+          <div key={i} className="flex justify-between items-start">
+            <div className="h-4 w-1/2 bg-slate-200 dark:bg-white/10 rounded animate-shimmer" />
+            <div className="h-4 w-20 bg-slate-200 dark:bg-white/10 rounded animate-shimmer" />
+          </div>
+        ))}
+      </div>
+    </div>
+    
+    <div className="bg-slate-50/80 dark:bg-white/[0.02] p-5 border-t border-slate-50 dark:border-white/5 flex justify-between items-center">
+      <div className="space-y-2">
+        <div className="h-3 w-16 bg-slate-200 dark:bg-white/10 rounded animate-shimmer" />
+        <div className="h-6 w-24 bg-slate-200 dark:bg-white/10 rounded animate-shimmer" />
+      </div>
+      <div className="flex gap-2">
+        <div className="h-9 w-24 bg-slate-200 dark:bg-white/10 rounded-xl animate-shimmer" />
+      </div>
+    </div>
   </div>
 );
 
@@ -267,7 +301,34 @@ export default function ProcurementsPage() {
 
       <div>
         {isLoading ? (
-          <div className="py-8 text-center text-slate-500">Loading...</div>
+          <div className="space-y-8">
+            <div className="mb-10">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="h-6 w-6 rounded bg-slate-200 dark:bg-white/10 animate-shimmer" />
+                  <div className="h-6 w-40 rounded bg-slate-200 dark:bg-white/10 animate-shimmer" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pt-1 pb-4">
+                <ProcurementCardSkeleton />
+                <ProcurementCardSkeleton />
+                <ProcurementCardSkeleton />
+              </div>
+            </div>
+            <div className="mb-10">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="h-6 w-6 rounded bg-slate-200 dark:bg-white/10 animate-shimmer" />
+                  <div className="h-6 w-40 rounded bg-slate-200 dark:bg-white/10 animate-shimmer" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pt-1 pb-4">
+                <ProcurementCardSkeleton />
+                <ProcurementCardSkeleton />
+                <ProcurementCardSkeleton />
+              </div>
+            </div>
+          </div>
         ) : procurements.length === 0 ? (
           <div className="py-8 text-center text-slate-500">No procurements found.</div>
         ) : (

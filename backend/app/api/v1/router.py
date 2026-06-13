@@ -1,7 +1,7 @@
 # pyrefly: ignore [missing-import]
 from fastapi import APIRouter
 from app.api.v1.endpoints import inventory, categories, companies, users, brands, auth, sales, suppliers, procurements, audit
-from app.api.v1.endpoints import inventory, categories, companies, users, brands, auth, sales, suppliers, procurements, notifications
+from app.api.v1.endpoints import inventory, categories, companies, users, brands, auth, sales, suppliers, procurements, notifications, reports
 
 api_router = APIRouter()
 
@@ -16,3 +16,4 @@ api_router.include_router(suppliers.router, prefix="/suppliers", tags=["supplier
 api_router.include_router(procurements.router, prefix="/procurements", tags=["procurements"])
 api_router.include_router(audit.router, prefix="/audit-logs", tags=["audit-logs"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+api_router.include_router(reports.router, prefix="/reports", tags=["reports"])

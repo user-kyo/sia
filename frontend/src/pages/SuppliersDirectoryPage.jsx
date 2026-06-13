@@ -84,10 +84,10 @@ const StatCard = ({ title, value, icon: Icon, colorClass, onClick }) => {
 const StatCardSkeleton = () => (
   <div className="relative h-full w-full bg-white dark:bg-[#0A0A0B] rounded-2xl p-5 flex flex-col justify-end border border-slate-200 dark:border-white/10 overflow-hidden min-h-[104px]">
     <div className="absolute -top-2 -right-2 p-4 opacity-5">
-      <div className="w-16 h-16 rounded-xl bg-slate-300 dark:bg-white/20 animate-pulse" />
+      <div className="w-16 h-16 rounded-xl bg-slate-300 dark:bg-white/20 animate-shimmer" />
     </div>
-    <div className="h-5 w-24 bg-slate-200 dark:bg-white/10 rounded-md mb-1 relative z-10 animate-pulse" />
-    <div className="h-8 w-16 bg-slate-200 dark:bg-white/10 rounded-md relative z-10 animate-pulse" />
+    <div className="h-5 w-24 bg-slate-200 dark:bg-white/10 rounded-md mb-1 relative z-10 animate-shimmer" />
+    <div className="h-8 w-16 bg-slate-200 dark:bg-white/10 rounded-md relative z-10 animate-shimmer" />
   </div>
 );
 
@@ -459,16 +459,16 @@ export default function SuppliersDirectoryPage() {
                     <tr key={`skel-${idx}`} className="h-[73px] bg-transparent border-b border-slate-100 dark:border-white/5 last:border-0 opacity-40">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-xl bg-slate-200 dark:bg-white/10 shrink-0 animate-pulse" />
-                          <div className="h-4 w-32 bg-slate-200 dark:bg-white/10 rounded animate-pulse" />
+                          <div className="h-10 w-10 rounded-xl bg-slate-200 dark:bg-white/10 shrink-0 animate-shimmer" />
+                          <div className="h-4 w-32 bg-slate-200 dark:bg-white/10 rounded animate-shimmer" />
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="h-4 w-40 bg-slate-200 dark:bg-white/10 rounded animate-pulse mb-2" />
-                        <div className="h-3 w-24 bg-slate-200 dark:bg-white/10 rounded animate-pulse" />
+                        <div className="h-4 w-40 bg-slate-200 dark:bg-white/10 rounded animate-shimmer mb-2" />
+                        <div className="h-3 w-24 bg-slate-200 dark:bg-white/10 rounded animate-shimmer" />
                       </td>
-                      <td className="px-6 py-4"><div className="h-6 w-20 bg-slate-200 dark:bg-white/10 rounded-md animate-pulse" /></td>
-                      <td className="px-6 py-4 text-right"><div className="h-6 w-16 ml-auto bg-slate-200 dark:bg-white/10 rounded-md animate-pulse" /></td>
+                      <td className="px-6 py-4"><div className="h-6 w-20 bg-slate-200 dark:bg-white/10 rounded-md animate-shimmer" /></td>
+                      <td className="px-6 py-4 text-right"><div className="h-6 w-16 ml-auto bg-slate-200 dark:bg-white/10 rounded-md animate-shimmer" /></td>
                     </tr>
                   ))}
                 </motion.tbody>

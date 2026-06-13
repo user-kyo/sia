@@ -1579,10 +1579,10 @@ const AnalyticsDashboard = () => {
           return (
             <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center gap-6">
               <div className="relative flex items-center justify-center">
-                <div className="absolute w-20 h-20 bg-indigo-500/20 rounded-full blur-xl animate-pulse" />
+                <div className="absolute w-20 h-20 bg-indigo-500/20 rounded-full blur-xl animate-shimmer" />
                 <Loader2 className="w-10 h-10 animate-spin text-indigo-500 relative z-10" />
               </div>
-              <p className="font-semibold text-sm text-slate-700 dark:text-slate-300 animate-pulse">Analyzing entire dashboard data...</p>
+              <p className="font-semibold text-sm text-slate-700 dark:text-slate-300 animate-shimmer">Analyzing entire dashboard data...</p>
             </div>
           );
         }

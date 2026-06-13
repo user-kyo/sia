@@ -239,7 +239,7 @@ def _load_sales_summary(company_id: str, summary_from: datetime | None, summary_
 
 @router.get("", response_model=SalesTransactionListResponse)
 def list_sales_transactions(
-    limit: int = Query(6, ge=1, le=100),
+    limit: int = Query(6, ge=1, le=100000),
     offset: int = Query(0, ge=0),
     summary_from: datetime | None = Query(None),
     summary_to: datetime | None = Query(None),

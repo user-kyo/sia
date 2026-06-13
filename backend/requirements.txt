@@ -11,3 +11,4 @@ python-dotenv
 pytest
 httpx
 python-multipart
+matplotlib

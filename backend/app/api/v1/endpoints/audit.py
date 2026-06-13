@@ -64,7 +64,7 @@ def list_audit_logs(
     action: Optional[str] = Query(None),
     module: Optional[str] = Query(None),
     days: Optional[int] = Query(None, ge=1, description="Only logs from the last N days"),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=100000),
     current_user: dict = Depends(get_current_user),
 ):
     _check_admin(current_user)

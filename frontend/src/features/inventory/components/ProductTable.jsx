@@ -113,18 +113,18 @@ export default function ProductTable({
             {isLoading ? (
               <motion.tr key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="contents">
                 {Array.from({ length: 8 }).map((_, idx) => (
-                  <tr key={`sk-${idx}`} className="h-[73px] bg-transparent pointer-events-none animate-pulse">
-                    <td className="px-6 py-4"><div className="w-4 h-4 rounded bg-slate-200 dark:bg-white/10" /></td>
+                  <tr key={`sk-${idx}`} className="h-[73px] bg-transparent pointer-events-none">
+                    <td className="px-6 py-4"><div className="w-4 h-4 rounded bg-slate-200 dark:bg-white/10 animate-shimmer" /></td>
                     <td className="px-6 py-4">
-                      <div className="h-4 w-3/4 bg-slate-200 dark:bg-white/10 rounded mb-2" />
-                      <div className="h-3 w-1/2 bg-slate-200 dark:bg-white/10 rounded" />
+                      <div className="h-4 w-3/4 bg-slate-200 dark:bg-white/10 rounded mb-2 animate-shimmer" />
+                      <div className="h-3 w-1/2 bg-slate-200 dark:bg-white/10 rounded animate-shimmer" />
                     </td>
-                    <td className="px-6 py-4"><div className="h-4 w-16 bg-slate-200 dark:bg-white/10 rounded" /></td>
-                    <td className="px-6 py-4"><div className="h-5 w-20 bg-slate-200 dark:bg-white/10 rounded-md" /></td>
-                    <td className="px-6 py-4"><div className="h-4 w-14 bg-slate-200 dark:bg-white/10 rounded" /></td>
-                    <td className="px-6 py-4"><div className="h-4 w-14 bg-slate-200 dark:bg-white/10 rounded" /></td>
-                    <td className="px-6 py-4"><div className="h-4 w-24 bg-slate-200 dark:bg-white/10 rounded-full" /></td>
-                    <td className="px-6 py-4 text-center"><div className="h-8 w-8 mx-auto bg-slate-200 dark:bg-white/10 rounded-lg" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-16 bg-slate-200 dark:bg-white/10 rounded animate-shimmer" /></td>
+                    <td className="px-6 py-4"><div className="h-5 w-20 bg-slate-200 dark:bg-white/10 rounded-md animate-shimmer" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-14 bg-slate-200 dark:bg-white/10 rounded animate-shimmer" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-14 bg-slate-200 dark:bg-white/10 rounded animate-shimmer" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-24 bg-slate-200 dark:bg-white/10 rounded-full animate-shimmer" /></td>
+                    <td className="px-6 py-4 text-center"><div className="h-8 w-8 mx-auto bg-slate-200 dark:bg-white/10 rounded-lg animate-shimmer" /></td>
                   </tr>
                 ))}
               </motion.tr>
